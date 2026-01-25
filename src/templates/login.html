@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/login.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="login-container">
+    <!-- Theme Toggle -->
+    <button class="theme-toggle login-theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+            <path class="sun-icon" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/>
+        </svg>
+    </button>
+
+    <div class="login-card">
+        <div class="login-header">
+            <!-- Avatar grande del usuario -->
+            <div class="avatar avatar-xl login-avatar">
+                <img src="{{ url_for('static', path='/img/default-avatar.jpg') }}" alt="Usuario" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span style="display: none;">👤</span>
+            </div>
+            
+            <div class="login-logo">facturalo.pro</div>
+            <h1 class="login-title">Bienvenido de vuelta</h1>
+            <p class="login-subtitle">Ingresa tus credenciales para continuar</p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger" style="margin-bottom: var(--space-6);">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form class="login-form" method="POST" action="/login">
+            <div class="input-group">
+                <label class="input-label" for="ruc">RUC de tu empresa</label>
+                <input 
+                    type="text" 
+                    id="ruc" 
+                    name="ruc" 
+                    class="input" 
+                    placeholder="10123456789"
+                    required
+                    maxlength="11"
+                    pattern="[0-9]{11}"
+                    autofocus
+                >
+                <span class="input-helper">Ingresa tu RUC de 11 dígitos</span>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label" for="password">Contraseña</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="input" 
+                    placeholder="••••••••"
+                    required
+                >
+            </div>
+
+            <div class="login-options">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember" name="remember" class="checkbox">
+                    <label for="remember" class="checkbox-label">Recordarme</label>
+                </div>
+                <a href="/recuperar-password" style="color: var(--primary); text-decoration: none;">
+                    ¿Olvidaste tu contraseña?
+                </a>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg btn-block">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: var(--space-2);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                </svg>
+                Entrar a mi cuenta
+            </button>
+        </form>
+
+        <div class="login-divider">
+            o
+        </div>
+
+        <div class="login-footer">
+            ¿No tienes una cuenta? 
+            <a href="/registro">Regístrate gratis</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/theme.js') }}"></script>
+{% endblock %}

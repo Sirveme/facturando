@@ -1,0 +1,747 @@
+<!-- FACTURALO => src\templates\marca_blanca.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Propuesta Marca Blanca - SIGCO Systems</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #09090B;
+            --bg-secondary: #18181B;
+            --bg-tertiary: #27272A;
+            
+            --text-primary: #FAFAFA;
+            --text-secondary: #A1A1AA;
+            
+            --primary: #5E6AD2;
+            --success: #3DD68C;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+        
+        /* Hero */
+        .hero {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+        
+        .logo-sigco {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 {
+            font-size: 56px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        
+        .hero .subtitle {
+            font-size: 24px;
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 80px;
+        }
+        
+        .stat-card {
+            background: var(--bg-secondary);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 1px solid var(--bg-tertiary);
+        }
+        
+        .stat-number {
+            font-size: 64px;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+        
+        .stat-number.danger {
+            color: var(--danger);
+        }
+        
+        .stat-number.success {
+            color: var(--success);
+        }
+        
+        .stat-label {
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+        
+        /* Section */
+        .section {
+            margin-bottom: 80px;
+        }
+        
+        .section-title {
+            font-size: 42px;
+            font-weight: 900;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        /* Comparison */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 80px;
+        }
+        
+        .comparison-card {
+            background: var(--bg-secondary);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid;
+        }
+        
+        .comparison-card.actual {
+            border-color: var(--danger);
+        }
+        
+        .comparison-card.propuesta {
+            border-color: var(--success);
+        }
+        
+        .comparison-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .badge.danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+        
+        .badge.success {
+            background: rgba(61, 214, 140, 0.2);
+            color: var(--success);
+        }
+        
+        .comparison-item {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--bg-tertiary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .comparison-item:last-child {
+            border-bottom: none;
+        }
+        
+        .comparison-label {
+            color: var(--text-secondary);
+        }
+        
+        .comparison-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .comparison-value.danger {
+            color: var(--danger);
+        }
+        
+        .comparison-value.success {
+            color: var(--success);
+        }
+        
+        /* Pricing Options */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 80px;
+        }
+        
+        .pricing-card {
+            background: var(--bg-secondary);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid var(--bg-tertiary);
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+        
+        .pricing-card.recommended {
+            border-color: var(--success);
+            background: linear-gradient(135deg, var(--bg-secondary), rgba(61, 214, 140, 0.1));
+        }
+        
+        .pricing-plan {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .pricing-price {
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+        
+        .pricing-price span {
+            font-size: 24px;
+            color: var(--text-secondary);
+        }
+        
+        .pricing-revenue {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--success);
+            margin: 20px 0;
+        }
+        
+        .pricing-features {
+            list-style: none;
+            text-align: left;
+            margin: 30px 0;
+        }
+        
+        .pricing-features li {
+            padding: 10px 0;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .pricing-features li::before {
+            content: "✓";
+            color: var(--success);
+            font-weight: 900;
+            font-size: 20px;
+        }
+        
+        /* Market Comparison */
+        .market-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        
+        .market-table th {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            text-align: left;
+            font-weight: 700;
+        }
+        
+        .market-table td {
+            padding: 20px;
+            border-bottom: 1px solid var(--bg-tertiary);
+        }
+        
+        .market-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .market-table .highlight {
+            background: rgba(61, 214, 140, 0.1);
+            font-weight: 700;
+            color: var(--success);
+        }
+        
+        /* Calculator */
+        .calculator {
+            background: linear-gradient(135deg, var(--bg-secondary), rgba(94, 106, 210, 0.1));
+            padding: 60px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid var(--primary);
+        }
+        
+        .calculator h3 {
+            font-size: 32px;
+            margin-bottom: 30px;
+        }
+        
+        .calculator-input {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .calculator-input label {
+            font-size: 20px;
+        }
+        
+        .calculator-input input {
+            font-size: 32px;
+            font-weight: 700;
+            padding: 15px 30px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            color: var(--text-primary);
+            width: 150px;
+            text-align: center;
+        }
+        
+        .calculator-result {
+            font-size: 72px;
+            font-weight: 900;
+            color: var(--success);
+            margin: 30px 0;
+        }
+        
+        .calculator-breakdown {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .calculator-item {
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+        }
+        
+        .calculator-item-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--success);
+        }
+        
+        .calculator-item-label {
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        /* CTA */
+        .cta {
+            background: linear-gradient(135deg, var(--primary), var(--success));
+            padding: 80px 60px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        
+        .cta h2 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .cta p {
+            font-size: 24px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 20px 50px;
+            font-size: 20px;
+            font-weight: 700;
+            background: white;
+            color: var(--bg-primary);
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 36px;
+            }
+            
+            .stats-grid,
+            .comparison,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .calculator-breakdown {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero -->
+        <div class="hero">
+            <div class="logo-sigco">SIGCO SYSTEMS</div>
+            <h1>Tu Negocio Está Dejando de Ganar<br><span style="color: var(--danger);">S/ 120,000 al año</span></h1>
+            <p class="subtitle">Convierte tu facturación electrónica de COSTO a INGRESO RECURRENTE con Marca Blanca</p>
+        </div>
+        
+        <!-- Current Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">800</div>
+                <div class="stat-label">Clientes Activos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number danger">S/ 0</div>
+                <div class="stat-label">Ingreso por Facturación</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number success">S/ 20,000</div>
+                <div class="stat-label">Potencial Mensual</div>
+            </div>
+        </div>
+        
+        <!-- Comparison -->
+        <div class="section">
+            <h2 class="section-title">Tu Situación Actual vs Con Marca Blanca</h2>
+            
+            <div class="comparison">
+                <!-- Actual -->
+                <div class="comparison-card actual">
+                    <div class="comparison-title">
+                        <span>Situación Actual</span>
+                        <span class="badge danger">Perdiendo Dinero</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Clientes</span>
+                        <span class="comparison-value">800</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Cobro mensual</span>
+                        <span class="comparison-value danger">S/ 0</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Ingreso mensual</span>
+                        <span class="comparison-value danger">S/ 0</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Ingreso anual</span>
+                        <span class="comparison-value danger">S/ 0</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Problemas</span>
+                        <span class="comparison-value danger" style="font-size: 18px;">
+                            ✗ Soporte gratis<br>
+                            ✗ Servidor propio<br>
+                            ✗ Mantenimiento<br>
+                            ✗ Dolores de cabeza
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Propuesta -->
+                <div class="comparison-card propuesta">
+                    <div class="comparison-title">
+                        <span>Con Marca Blanca</span>
+                        <span class="badge success">Ganando</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Clientes</span>
+                        <span class="comparison-value success">800</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Cobro mensual</span>
+                        <span class="comparison-value success">S/ 25</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Ingreso mensual</span>
+                        <span class="comparison-value success">S/ 20,000</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Ingreso anual</span>
+                        <span class="comparison-value success">S/ 240,000</span>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <span class="comparison-label">Beneficios</span>
+                        <span class="comparison-value success" style="font-size: 18px;">
+                            ✓ Ingreso recurrente<br>
+                            ✓ Sin infraestructura<br>
+                            ✓ Soporte incluido<br>
+                            ✓ Tu marca
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pricing Options -->
+        <div class="section">
+            <h2 class="section-title">3 Escenarios de Pricing para Tus Clientes</h2>
+            
+            <div class="pricing-grid">
+                <!-- Opción Conservadora -->
+                <div class="pricing-card">
+                    <div class="pricing-plan">Conservador</div>
+                    <div class="pricing-price">S/ 10<span>/mes</span></div>
+                    <p style="color: var(--text-secondary);">"Solo para cubrir costos"</p>
+                    
+                    <div class="pricing-revenue">S/ 96,000/año</div>
+                    
+                    <ul class="pricing-features">
+                        <li>800 clientes × S/10</li>
+                        <li>Fácil de justificar</li>
+                        <li>Bajo rechazo</li>
+                        <li>Cubre inversión</li>
+                    </ul>
+                </div>
+                
+                <!-- Opción Competitiva -->
+                <div class="pricing-card recommended">
+                    <div class="pricing-plan">Competitivo ⭐</div>
+                    <div class="pricing-price">S/ 25<span>/mes</span></div>
+                    <p style="color: var(--text-secondary);">El más barato del mercado</p>
+                    
+                    <div class="pricing-revenue">S/ 240,000/año</div>
+                    
+                    <ul class="pricing-features">
+                        <li>800 clientes × S/25</li>
+                        <li>50% más barato que competencia</li>
+                        <li>Valor percibido alto</li>
+                        <li>Mejor ROI</li>
+                    </ul>
+                </div>
+                
+                <!-- Opción Premium -->
+                <div class="pricing-card">
+                    <div class="pricing-plan">Premium</div>
+                    <div class="pricing-price">S/ 40<span>/mes</span></div>
+                    <p style="color: var(--text-secondary);">Con soporte prioritario</p>
+                    
+                    <div class="pricing-revenue">S/ 384,000/año</div>
+                    
+                    <ul class="pricing-features">
+                        <li>800 clientes × S/40</li>
+                        <li>Soporte VIP incluido</li>
+                        <li>Reportes avanzados</li>
+                        <li>Máximo margen</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Market Comparison -->
+        <div class="section">
+            <h2 class="section-title">Comparación con el Mercado Peruano</h2>
+            
+            <table class="market-table">
+                <thead>
+                    <tr>
+                        <th>Proveedor</th>
+                        <th>Precio Mensual</th>
+                        <th>Límite de Docs</th>
+                        <th>Soporte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Nubefact</strong></td>
+                        <td>S/ 49 - S/ 199</td>
+                        <td>100 - 1000</td>
+                        <td>Email</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FactuDirecto</strong></td>
+                        <td>S/ 45 - S/ 180</td>
+                        <td>150 - 800</td>
+                        <td>Limitado</td>
+                    </tr>
+                    <tr>
+                        <td><strong>PSE - SUNAT</strong></td>
+                        <td>S/ 50+</td>
+                        <td>Variable</td>
+                        <td>Básico</td>
+                    </tr>
+                    <tr class="highlight">
+                        <td><strong>SIGCO Systems (TÚ)</strong></td>
+                        <td>S/ 25</td>
+                        <td>Ilimitados</td>
+                        <td>Prioritario</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Calculator -->
+        <div class="section">
+            <div class="calculator">
+                <h3>Calcula Tu Ingreso Potencial</h3>
+                
+                <div class="calculator-input">
+                    <label>Tus clientes:</label>
+                    <input type="number" id="clientes" value="800" min="0" max="10000">
+                    <label>× S/</label>
+                    <input type="number" id="precio" value="25" min="0" max="200">
+                </div>
+                
+                <div class="calculator-result" id="resultado">S/ 20,000</div>
+                <p style="color: var(--text-secondary); font-size: 20px;">ingreso mensual recurrente</p>
+                
+                <div class="calculator-breakdown">
+                    <div class="calculator-item">
+                        <div class="calculator-item-value" id="mensual">S/ 20,000</div>
+                        <div class="calculator-item-label">Por mes</div>
+                    </div>
+                    <div class="calculator-item">
+                        <div class="calculator-item-value" id="anual">S/ 240,000</div>
+                        <div class="calculator-item-label">Por año</div>
+                    </div>
+                    <div class="calculator-item">
+                        <div class="calculator-item-value" id="tuinversion">S/ 4,000</div>
+                        <div class="calculator-item-label">Tu inversión mensual</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- What You Get -->
+        <div class="section">
+            <h2 class="section-title">¿Qué Incluye la Marca Blanca?</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px;">
+                <div class="stat-card" style="text-align: left;">
+                    <h3 style="font-size: 24px; margin-bottom: 20px;">🎨 Tu Marca</h3>
+                    <ul style="list-style: none; color: var(--text-secondary);">
+                        <li style="padding: 10px 0;">✓ Panel: <strong>factura.sigcosystems.com</strong></li>
+                        <li style="padding: 10px 0;">✓ Logo SIGCO Systems</li>
+                        <li style="padding: 10px 0;">✓ Tus colores corporativos</li>
+                        <li style="padding: 10px 0;">✓ SIN mención a facturalo.pro</li>
+                    </ul>
+                </div>
+                
+                <div class="stat-card" style="text-align: left;">
+                    <h3 style="font-size: 24px; margin-bottom: 20px;">🔧 Infraestructura</h3>
+                    <ul style="list-style: none; color: var(--text-secondary);">
+                        <li style="padding: 10px 0;">✓ Servidores en la nube</li>
+                        <li style="padding: 10px 0;">✓ Backups automáticos</li>
+                        <li style="padding: 10px 0;">✓ SSL incluido</li>
+                        <li style="padding: 10px 0;">✓ 99.9% uptime</li>
+                    </ul>
+                </div>
+                
+                <div class="stat-card" style="text-align: left;">
+                    <h3 style="font-size: 24px; margin-bottom: 20px;">🚀 Integración</h3>
+                    <ul style="list-style: none; color: var(--text-secondary);">
+                        <li style="padding: 10px 0;">✓ API REST completa</li>
+                        <li style="padding: 10px 0;">✓ Documentación detallada</li>
+                        <li style="padding: 10px 0;">✓ Ejemplos en VB/VFP</li>
+                        <li style="padding: 10px 0;">✓ Soporte técnico</li>
+                    </ul>
+                </div>
+                
+                <div class="stat-card" style="text-align: left;">
+                    <h3 style="font-size: 24px; margin-bottom: 20px;">📊 Panel de Control</h3>
+                    <ul style="list-style: none; color: var(--text-secondary);">
+                        <li style="padding: 10px 0;">✓ Dashboard estadísticas</li>
+                        <li style="padding: 10px 0;">✓ Gestión clientes</li>
+                        <li style="padding: 10px 0;">✓ Reportes exportables</li>
+                        <li style="padding: 10px 0;">✓ Monitoreo en tiempo real</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CTA -->
+        <div class="cta">
+            <h2>¿Listo para Convertir tu Facturación en Ingreso?</h2>
+            <p>En 15 minutos sabrás si Marca Blanca puede transformar tu negocio.</p>
+            <a href="https://wa.me/51967317946?text=Hola Duilio,%20listo%20conversemos%20sobre%20Marca%20Blanca" class="btn">Mensaje por WhatsApp</a>
+            <p style="margin-top: 30px; font-size: 18px; opacity: 0.8;">O escríbeme: asesorautorizado.duilio@gmail.com</p>
+        </div>
+    </div>
+    
+    <script>
+        // Calculator
+        const clientesInput = document.getElementById('clientes');
+        const precioInput = document.getElementById('precio');
+        const resultadoDiv = document.getElementById('resultado');
+        const mensualDiv = document.getElementById('mensual');
+        const anualDiv = document.getElementById('anual');
+        const tuinversionDiv = document.getElementById('tuinversion');
+        
+        function calcular() {
+            const clientes = parseInt(clientesInput.value) || 0;
+            const precio = parseInt(precioInput.value) || 0;
+            
+            const mensual = clientes * precio;
+            const anual = mensual * 12;
+            const tuinversion = mensual * 0.2; // 20% para ti
+            
+            resultadoDiv.textContent = `S/ ${mensual.toLocaleString()}`;
+            mensualDiv.textContent = `S/ ${mensual.toLocaleString()}`;
+            anualDiv.textContent = `S/ ${anual.toLocaleString()}`;
+            tuinversionDiv.textContent = `S/ ${tuinversion.toLocaleString()}`;
+        }
+        
+        clientesInput.addEventListener('input', calcular);
+        precioInput.addEventListener('input', calcular);
+        
+        calcular();
+    </script>
+</body>
+</html>

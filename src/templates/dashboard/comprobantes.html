@@ -1,0 +1,671 @@
+{% extends "base.html" %}
+
+{% block title %}Comprobantes - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/comprobantes.css') }}?v=3">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            
+            <a href="/dashboard" class="header-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#gradient)"/>
+                    <path d="M16 8L20 16H12L16 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" style="stop-color:var(--primary)"/>
+                            <stop offset="100%" style="stop-color:var(--secondary)"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>facturalo.pro</span>
+            </a>
+        </div>
+        
+        <div class="header-right">
+            <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            </button>
+            
+            <div class="header-user">
+                <div class="avatar">
+                    <span>{{ user_ruc[:2] }}</span>
+                </div>
+                <div class="header-user-info">
+                    <div class="header-user-name">{{ emisor.razon_social[:20] }}</div>
+                    <div class="header-user-role">RUC {{ user_ruc }}</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <a href="/dashboard" class="sidebar-link">
+                    <span class="sidebar-link-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                    </span>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="/comprobantes" class="sidebar-link active">
+                    <span class="sidebar-link-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </span>
+                    <span>Comprobantes</span>
+                    <span class="sidebar-link-badge">{{ total }}</span>
+                </a>
+                
+                <a href="/configuracion" class="sidebar-link">
+                    <span class="sidebar-link-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </span>
+                    <span>Configuración</span>
+                </a>
+                
+                <a href="/logout" class="sidebar-link">
+                    <span class="sidebar-link-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                    </span>
+                    <span>Salir</span>
+                </a>
+            </div>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <a href="/comprobantes/emitir" class="btn btn-primary btn-block">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Nueva Factura
+            </a>
+        </div>
+    </aside>
+    
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+    
+    <!-- Main Content -->
+    <!-- Main Content -->
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Comprobantes Electrónicos</h1>
+                <p class="page-description">{{ total }} comprobantes emitidos ({{ total_hoy }} hoy)</p>
+            </div>
+            <div class="flex gap-3">
+                <button class="btn btn-ghost" id="btn-abrir-filtros">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                    </svg>
+                    Filtros
+                </button>
+                <a href="/comprobantes/emitir" class="btn btn-primary">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Emitir Comprobante
+                </a>
+            </div>
+        </div>
+
+        <!-- AGREGAR después de <div class="page-header"> y ANTES de la tabla -->
+
+        {% if total_rechazados > 0 %}
+        <div class="alert alert-warning" style="margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <div style="flex: 1;">
+                    <strong style="font-size: 1.125rem;">{{ total_rechazados }} comprobantes rechazados hoy</strong>
+                    <p style="margin: 0.25rem 0 0; color: var(--text-secondary);">SUNAT no aceptó estos comprobantes. Puedes reenviarlos ahora.</p>
+                </div>
+                <button class="btn btn-primary" onclick="reenviarTodosRechazados()" id="btn-reenviar-todos">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Reenviar Todos
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Tabla de Comprobantes -->
+        <div class="card">
+            <div class="table-container">
+                {% if comprobantes %}
+                <table class="table table-dense">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">#</th>
+                            <th style="width: 20%;">Comprobante</th>
+                            <th style="width: 30%;">Cliente</th>
+                            <th style="width: 15%;" class="text-right">Monto</th>
+                            <th style="width: 15%;">Estado</th>
+                            <th style="width: 15%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for comp in comprobantes %}
+                        <tr class="table-row-main">
+                            <td>
+                                <div class="row-number">
+                                    {{ ((page - 1) * per_page) + loop.index }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comprobante-cell">
+                                    <span class="comprobante-serie">{{ comp.serie }}-{{ "%08d"|format(comp.numero) }}</span>
+                                    <span class="comprobante-date">{{ comp.fecha_emision.strftime('%d %b, %Y') }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cliente-cell">
+                                    <span class="cliente-name">Cliente</span>
+                                    <span class="cliente-ruc">-</span>
+                                </div>
+                            </td>
+                            <td class="text-right">
+                                <div class="monto-cell">
+                                    <span class="monto-total">S/ {{ "%.2f"|format(comp.monto_total) }}</span>
+                                    <span class="monto-detalle">Base: S/ {{ "%.2f"|format(comp.monto_base) }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if comp.estado == 'aceptado' %}
+                                <span class="badge badge-success">
+                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Aceptado
+                                </span>
+                                {% elif comp.estado == 'rechazado' %}
+                                <span class="badge badge-danger">
+                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Rechazado
+                                </span>
+                                {% elif comp.estado == 'enviando' %}
+                                <span class="badge badge-warning">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Enviando
+                                </span>
+                                {% else %}
+                                <span class="badge badge-info">{{ comp.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="table-actions">
+                                    <a href="/api/comprobantes/{{ comp.id }}/xml" class="btn-icon-sm" title="Descargar XML" download>
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                        </svg>
+                                    </a>
+                                    <a href="/api/comprobantes/{{ comp.id }}/pdf" class="btn-icon-sm" title="Descargar PDF" target="_blank">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                        </svg>
+                                    </a>
+                                    {% if comp.estado == 'rechazado' %}
+                                    <button class="btn-icon-sm" title="Reenviar" onclick="reenviar('{{ comp.id }}')">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3>No hay comprobantes</h3>
+                    <p>{% if estado %}No se encontraron comprobantes con estado "{{ estado }}"{% else %}Emite tu primer comprobante electrónico{% endif %}</p>
+                    <a href="/comprobantes/emitir" class="btn btn-primary">Emitir ahora</a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Paginación -->
+            {% if total_pages > 1 %}
+            <div class="card-footer">
+                <div class="pagination">
+                    {% if page > 1 %}
+                    <a href="/comprobantes?page={{ page - 1 }}{% if estado %}&estado={{ estado }}{% endif %}{% if buscar %}&buscar={{ buscar }}{% endif %}" class="btn btn-ghost btn-sm">Anterior</a>
+                    {% endif %}
+                    
+                    <span class="pagination-info">
+                        Mostrando {{ inicio }} - {{ fin }} de {{ total }} comprobantes
+                    </span>
+                    
+                    {% if page < total_pages %}
+                    <a href="/comprobantes?page={{ page + 1 }}{% if estado %}&estado={{ estado }}{% endif %}{% if buscar %}&buscar={{ buscar }}{% endif %}" class="btn btn-ghost btn-sm">Siguiente</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+    
+    <!-- BOTONERA FIJA -->
+    <div class="bottom-nav">
+        <div class="bottom-nav-content">
+            <a href="/comprobantes/emitir" class="bottom-nav-btn primary">
+                <div class="bottom-nav-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </div>
+                <span class="bottom-nav-label">Emitir</span>
+            </a>
+            
+            <a href="/comprobantes?estado=aceptado" class="bottom-nav-btn {% if estado == 'aceptado' %}active{% endif %}">
+                <div class="bottom-nav-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <span class="bottom-nav-label">Aceptados</span>
+            </a>
+            
+            <a href="/comprobantes?estado=encolado" class="bottom-nav-btn {% if estado == 'encolado' %}active{% endif %}">
+                <div class="bottom-nav-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {% if total_encolados > 0 %}
+                    <span class="bottom-nav-badge">{{ total_encolados }}</span>
+                    {% endif %}
+                </div>
+                <span class="bottom-nav-label">En cola</span>
+            </a>
+            
+            <a href="/comprobantes?estado=rechazado" class="bottom-nav-btn {% if estado == 'rechazado' %}active{% endif %}">
+                <div class="bottom-nav-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {% if total_rechazados > 0 %}
+                    <span class="bottom-nav-badge">{{ total_rechazados }}</span>
+                    {% endif %}
+                </div>
+                <span class="bottom-nav-label">Rechazados</span>
+            </a>
+            
+            <a href="/comprobantes" class="bottom-nav-btn {% if not estado %}active{% endif %}">
+                <div class="bottom-nav-icon">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                    </svg>
+                </div>
+                <span class="bottom-nav-label">Todos</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- AGREGAR antes del cierre de </div> (dashboard-layout) -->
+    <!-- Modal de Progreso -->
+    <div class="modal" id="modal-progreso">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Reenviando a SUNAT</h3>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; padding: 2rem 0;">
+                    <!-- Spinner -->
+                    <div style="width: 80px; height: 80px; margin: 0 auto 2rem; border: 4px solid var(--bg-tertiary); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    
+                    <!-- Texto principal -->
+                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--text-primary); margin-bottom: 0.5rem;" id="progreso-texto">
+                        Procesando...
+                    </div>
+                    
+                    <!-- Subtexto -->
+                    <div style="color: var(--text-secondary); margin-bottom: 2rem;" id="progreso-subtexto">
+                        Iniciando reenvío
+                    </div>
+                    
+                    <!-- Barra de progreso -->
+                    <div style="background: var(--bg-tertiary); height: 8px; border-radius: 999px; overflow: hidden; margin-bottom: 1rem;">
+                        <div id="progreso-barra" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                    </div>
+                    
+                    <!-- Contador -->
+                    <div style="color: var(--text-secondary); font-size: 0.875rem;">
+                        <span id="progreso-contador">0 / 0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    </style>
+
+</div>
+
+<!-- MODAL FILTROS -->
+<div class="modal" id="modal-filtros">
+    <div class="modal-backdrop" id="modal-filtros-backdrop"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Filtrar Comprobantes</h3>
+            <button class="modal-close" id="btn-cerrar-filtros">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <form method="GET" action="/comprobantes" class="modal-body">
+            <div class="input-group">
+                <label class="input-label" for="buscar">Buscar</label>
+                <input 
+                    type="text" 
+                    id="buscar" 
+                    name="buscar" 
+                    class="input" 
+                    placeholder="Serie o número..."
+                    value="{{ buscar or '' }}"
+                >
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label" for="estado">Estado</label>
+                <select id="estado" name="estado" class="input">
+                    <option value="">Todos</option>
+                    <option value="aceptado" {% if estado == 'aceptado' %}selected{% endif %}>Aceptado</option>
+                    <option value="rechazado" {% if estado == 'rechazado' %}selected{% endif %}>Rechazado</option>
+                    <option value="encolado" {% if estado == 'encolado' %}selected{% endif %}>En cola</option>
+                    <option value="enviando" {% if estado == 'enviando' %}selected{% endif %}>Enviando</option>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="input-group">
+                    <label class="input-label" for="fecha_desde">Desde</label>
+                    <input 
+                        type="date" 
+                        id="fecha_desde" 
+                        name="fecha_desde" 
+                        class="input"
+                        value="{{ fecha_desde or '' }}"
+                    >
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label" for="fecha_hasta">Hasta</label>
+                    <input 
+                        type="date" 
+                        id="fecha_hasta" 
+                        name="fecha_hasta" 
+                        class="input"
+                        value="{{ fecha_hasta or '' }}"
+                    >
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" id="btn-limpiar-filtros">Limpiar</button>
+                <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/theme.js') }}?v=3"></script>
+<script src="{{ url_for('static', path='/js/app.js') }}?v=3"></script>
+<script>
+
+// Variables globales para tracking
+let progresoInterval = null;
+let progresoInicio = null;
+let totalOriginal = 0;
+
+// Modal filtros
+document.getElementById('btn-abrir-filtros').addEventListener('click', () => {
+    document.getElementById('modal-filtros').classList.add('active');
+    document.body.style.overflow = 'hidden';
+});
+
+document.getElementById('btn-cerrar-filtros').addEventListener('click', () => {
+    document.getElementById('modal-filtros').classList.remove('active');
+    document.body.style.overflow = '';
+});
+
+document.getElementById('modal-filtros-backdrop').addEventListener('click', () => {
+    document.getElementById('modal-filtros').classList.remove('active');
+    document.body.style.overflow = '';
+});
+
+document.getElementById('btn-limpiar-filtros').addEventListener('click', () => {
+    window.location.href = '/comprobantes';
+});
+
+// Reenviar
+// Reenviar comprobante individual (en el mismo script)
+async function reenviar(comprobanteId) {
+    const confirmado = await confirmModal(
+        '¿Reenviar este comprobante?',
+        'Se volverá a enviar a SUNAT para su validación.',
+        'Reenviar',
+        'Cancelar'
+    );
+    
+    if (!confirmado) return;
+    
+    const toastId = toast.loading('Reenviando comprobante...');
+    
+    try {
+        const response = await fetch(`/api/comprobantes/${comprobanteId}/reenviar`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        toast.remove(toastId);
+        
+        if (response.ok) {
+            toast.success(data.mensaje || 'Comprobante reenviado');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            toast.error('Error al reenviar', data.mensaje);
+        }
+    } catch (error) {
+        toast.remove(toastId);
+        toast.error('Error de conexión', error.message);
+    }
+}
+
+// AGREGAR esta función al final del <script> existente
+
+// Reenviar todos los rechazados
+// Reenviar todos los rechazados (SIN alert, SIN confirm)
+// Reenviar todos los rechazados CON PROGRESO
+async function reenviarTodosRechazados() {
+    const btn = document.getElementById('btn-reenviar-todos');
+    
+    const confirmado = await confirmModal(
+        '¿Reenviar todos los rechazados?',
+        `Se reenviarán {{ total_rechazados }} comprobantes a SUNAT. Podrás ver el progreso en tiempo real.`,
+        'Sí, reenviar',
+        'Cancelar'
+    );
+    
+    if (!confirmado) return;
+    
+    btn.disabled = true;
+    btn.classList.add('loading');
+    
+    try {
+        const response = await fetch('/api/comprobantes/reenviar-rechazados', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                emisor_ruc: '{{ user_ruc }}'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.exito) {
+            if (data.total === 0) {
+                toast.info('Sin comprobantes para reenviar', data.mensaje);
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                return;
+            }
+            
+            // Mostrar modal de progreso
+            totalOriginal = data.total;
+            progresoInicio = Date.now();
+            
+            mostrarModalProgreso();
+            iniciarMonitoreoProgreso();
+            
+        } else {
+            toast.error('Error al reenviar', data.mensaje || 'Error desconocido');
+            btn.disabled = false;
+            btn.classList.remove('loading');
+        }
+    } catch (error) {
+        toast.error('Error de conexión', error.message);
+        btn.disabled = false;
+        btn.classList.remove('loading');
+    }
+}
+
+// Mostrar modal de progreso
+function mostrarModalProgreso() {
+    const modal = document.getElementById('modal-progreso');
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+// Cerrar modal de progreso
+function cerrarModalProgreso() {
+    const modal = document.getElementById('modal-progreso');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    
+    if (progresoInterval) {
+        clearInterval(progresoInterval);
+        progresoInterval = null;
+    }
+}
+
+// Monitorear progreso
+function iniciarMonitoreoProgreso() {
+    let intentos = 0;
+    const maxIntentos = 60; // 60 segundos máximo
+    
+    progresoInterval = setInterval(async () => {
+        intentos++;
+        
+        try {
+            const response = await fetch('/api/comprobantes/progreso-reenvio/{{ user_ruc }}');
+            const data = await response.json();
+            
+            // Actualizar UI
+            const completados = data.recien_aceptados;
+            const procesando = data.procesando;
+            const rechazados = data.rechazados;
+            const total = completados + procesando + rechazados;
+            
+            const porcentaje = data.progreso_porcentaje;
+            
+            // Actualizar elementos
+            document.getElementById('progreso-barra').style.width = `${porcentaje}%`;
+            document.getElementById('progreso-contador').textContent = `${completados} / ${total}`;
+            
+            if (procesando > 0) {
+                const tiempoTranscurrido = Math.floor((Date.now() - progresoInicio) / 1000);
+                document.getElementById('progreso-texto').textContent = `Procesando ${procesando} comprobantes`;
+                document.getElementById('progreso-subtexto').textContent = `${completados} completados • ${tiempoTranscurrido}s transcurridos`;
+            } else if (rechazados > 0 && completados > 0) {
+                document.getElementById('progreso-texto').textContent = `✓ ${completados} aceptados`;
+                document.getElementById('progreso-subtexto').textContent = `${rechazados} aún rechazados`;
+            } else if (rechazados === 0 && completados > 0) {
+                // TODOS COMPLETADOS
+                document.getElementById('progreso-texto').textContent = `✓ Completado`;
+                document.getElementById('progreso-subtexto').textContent = `${completados} comprobantes aceptados por SUNAT`;
+                
+                setTimeout(() => {
+                    cerrarModalProgreso();
+                    toast.success('Reenvío completado', `${completados} comprobantes aceptados`);
+                    setTimeout(() => location.reload(), 1500);
+                }, 2000);
+                
+                clearInterval(progresoInterval);
+            } else if (procesando === 0 && rechazados > 0 && completados === 0) {
+                // TODOS RECHAZADOS
+                document.getElementById('progreso-texto').textContent = `✗ Finalizado con errores`;
+                document.getElementById('progreso-subtexto').textContent = `${rechazados} comprobantes siguen rechazados`;
+                
+                setTimeout(() => {
+                    cerrarModalProgreso();
+                    toast.warning('Reenvío finalizado', `${rechazados} comprobantes aún tienen errores`);
+                    setTimeout(() => location.reload(), 1500);
+                }, 2000);
+                
+                clearInterval(progresoInterval);
+            }
+            
+            // Timeout
+            if (intentos >= maxIntentos) {
+                cerrarModalProgreso();
+                toast.warning('Tiempo agotado', 'Recarga la página para ver el estado actualizado');
+                clearInterval(progresoInterval);
+            }
+            
+        } catch (error) {
+            console.error('Error obteniendo progreso:', error);
+        }
+        
+    }, 1000); // Cada 1 segundo
+}
+
+
+</script>
+{% endblock %}

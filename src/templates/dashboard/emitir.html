@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Emitir Comprobante - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/emitir.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    <!-- Header (igual que comprobantes.html) -->
+    <header class="header">
+        <div class="header-left">
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            
+            <a href="/dashboard" class="header-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#gradient)"/>
+                    <path d="M16 8L20 16H12L16 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" style="stop-color:var(--primary)"/>
+                            <stop offset="100%" style="stop-color:var(--secondary)"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>facturalo.pro</span>
+            </a>
+        </div>
+        
+        <div class="header-right">
+            <button class="theme-toggle" id="theme-toggle">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            </button>
+            
+            <div class="header-user">
+                <div class="avatar">
+                    <span>{{ user_ruc[:2] }}</span>
+                </div>
+                <div class="header-user-info">
+                    <div class="header-user-name">Mi Empresa</div>
+                    <div class="header-user-role">RUC {{ user_ruc }}</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Sidebar (igual que comprobantes.html) -->
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <a href="/dashboard" class="sidebar-link">
+                    <span class="sidebar-link-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                    </span>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="/comprobantes" class="sidebar-link">
+                    <span class="sidebar-link-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </span>
+                    <span>Comprobantes</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+    
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+    
+    <!-- Main Content -->
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Emitir Comprobante</h1>
+                <p class="page-description">Complete los datos para emitir su factura o boleta electrónica</p>
+            </div>
+        </div>
+        
+        <!-- Alerts -->
+        <div id="alert-container"></div>
+        
+        <!-- Form -->
+        <form id="emitir-form" class="emitir-form">
+            <div class="form-grid">
+                <!-- Tipo y Serie -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Tipo de Comprobante</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label class="input-label" for="tipo_documento">Tipo</label>
+                                <select id="tipo_documento" name="tipo_documento" class="input" required>
+                                    <option value="01">Factura</option>
+                                    <option value="03">Boleta</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label class="input-label" for="serie">Serie</label>
+                                <input 
+                                    type="text" 
+                                    id="serie" 
+                                    name="serie" 
+                                    class="input" 
+                                    placeholder="F001"
+                                    value="F001"
+                                    required
+                                    pattern="[FB][0-9]{3}"
+                                    maxlength="4"
+                                >
+                                <span class="input-helper">F001 para facturas, B001 para boletas</span>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label class="input-label" for="numero">Número</label>
+                                <input 
+                                    type="number" 
+                                    id="numero" 
+                                    name="numero" 
+                                    class="input" 
+                                    placeholder="Autoincremental"
+                                    min="1"
+                                >
+                                <span class="input-helper">Dejar vacío para autoincremental</span>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label class="input-label" for="fecha_emision">Fecha</label>
+                                <input 
+                                    type="date" 
+                                    id="fecha_emision" 
+                                    name="fecha_emision" 
+                                    class="input" 
+                                    required
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Datos del Cliente -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Datos del Cliente</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label class="input-label" for="cliente_tipo_doc">Tipo Doc.</label>
+                                <select id="cliente_tipo_doc" name="cliente_tipo_doc" class="input" required>
+                                    <option value="6">RUC</option>
+                                    <option value="1">DNI</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-group" style="flex: 2;">
+                                <label class="input-label" for="cliente_ruc">Documento</label>
+                                <div class="input-with-button">
+                                    <input 
+                                        type="text" 
+                                        id="cliente_ruc" 
+                                        name="cliente_ruc" 
+                                        class="input" 
+                                        placeholder="20123456789"
+                                        required
+                                        maxlength="11"
+                                    >
+                                    <button type="button" class="btn btn-ghost btn-sm" id="btn-buscar-cliente" title="Buscar en SUNAT">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label class="input-label" for="cliente_razon_social">Razón Social / Nombre</label>
+                            <input 
+                                type="text" 
+                                id="cliente_razon_social" 
+                                name="cliente_razon_social" 
+                                class="input" 
+                                placeholder="EMPRESA SAC"
+                                required
+                            >
+                        </div>
+                        
+                        <div class="input-group">
+                            <label class="input-label" for="cliente_direccion">Dirección</label>
+                            <input 
+                                type="text" 
+                                id="cliente_direccion" 
+                                name="cliente_direccion" 
+                                class="input" 
+                                placeholder="Av. Principal 123, Iquitos"
+                                required
+                            >
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Items -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Detalle de Items</h3>
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-agregar-item">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Agregar Item
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="items-container">
+                        <!-- Items se agregan aquí dinámicamente -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Totales -->
+            <div class="form-grid">
+                <div></div>
+                <div class="card totales-card">
+                    <div class="card-body">
+                        <div class="totales-row">
+                            <span>Sub Total (Base Imponible):</span>
+                            <span class="totales-value" id="subtotal">S/ 0.00</span>
+                        </div>
+                        <div class="totales-row">
+                            <span>IGV (18%):</span>
+                            <span class="totales-value" id="igv">S/ 0.00</span>
+                        </div>
+                        <div class="totales-row total">
+                            <span>TOTAL:</span>
+                            <span class="totales-value" id="total">S/ 0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="form-actions">
+                <a href="/comprobantes" class="btn btn-ghost">Cancelar</a>
+                <button type="submit" class="btn btn-primary btn-lg" id="btn-emitir">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Emitir Comprobante
+                </button>
+            </div>
+        </form>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/theme.js') }}"></script>
+<script src="{{ url_for('static', path='/js/app.js') }}"></script>
+<script src="{{ url_for('static', path='/js/emitir.js') }}"></script>
+{% endblock %}

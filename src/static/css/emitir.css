@@ -1,0 +1,212 @@
+/* ========================================
+   FORMULARIO EMITIR
+   ======================================== */
+
+.emitir-form {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-4);
+}
+
+.input-with-button {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.input-with-button .input {
+    flex: 1;
+}
+
+/* Items */
+.item-row {
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr 1.5fr auto 1.5fr auto;
+    gap: var(--space-3);
+    align-items: end;
+    padding: var(--space-4);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-3);
+}
+
+.item-row .input-group {
+    margin-bottom: 0;
+}
+
+.btn-remove-item {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--danger-light);
+    color: var(--danger-text);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.btn-remove-item:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* Totales con mejor contraste */
+/* Tarjeta totales MEJORADA */
+.totales-card {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+}
+
+.totales-card .card-body {
+  padding: var(--space-6);
+}
+
+.totales-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--text-lg);
+}
+
+.totales-row:last-child {
+  border-bottom: none;
+}
+
+.totales-row span {
+  color: var(--text-primary) !important;
+  font-weight: var(--weight-medium);
+}
+
+.totales-row.total {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  padding: var(--space-6) 0;
+  margin-top: var(--space-4);
+  border-top: 3px solid var(--primary);
+  border-bottom: none;
+}
+
+.totales-row.total span {
+  color: var(--success-text) !important;
+}
+
+.totales-value {
+  font-weight: var(--weight-bold);
+  font-size: 1.2em;
+}
+
+/* Actions */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-4);
+    padding: var(--space-6) 0;
+}
+
+/* Alerts */
+#alert-container {
+    margin-bottom: var(--space-6);
+}
+
+.alert {
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-success {
+    background: var(--success-light);
+    color: var(--success-text);
+    border: 1px solid var(--success);
+}
+
+.alert-error {
+    background: var(--danger-light);
+    color: var(--danger-text);
+    border: 1px solid var(--danger);
+}
+
+.alert-info {
+    background: var(--info-light);
+    color: var(--info-text);
+    border: 1px solid var(--info);
+}
+
+/* Loading */
+.btn.loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+}
+
+.btn.loading::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid white;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .item-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+}

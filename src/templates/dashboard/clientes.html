@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=4">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/comprobantes.css') }}?v=4">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    <!-- Header (copiar del comprobantes.html) -->
+    <header class="header">
+        <div class="header-left">
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            
+            <a href="/dashboard" class="header-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#gradient)"/>
+                    <path d="M16 8L20 16H12L16 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" style="stop-color:var(--primary)"/>
+                            <stop offset="100%" style="stop-color:var(--secondary)"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>facturalo.pro</span>
+            </a>
+        </div>
+        
+        <div class="header-right">
+            <button class="theme-toggle" id="theme-toggle">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            </button>
+            
+            <div class="header-user">
+                <div class="avatar">
+                    <span>{{ user_ruc[:2] }}</span>
+                </div>
+                <div class="header-user-info">
+                    <div class="header-user-name">Mi Empresa</div>
+                    <div class="header-user-role">RUC {{ user_ruc }}</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Sidebar (copiar del comprobantes.html) -->
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <a href="/dashboard" class="sidebar-link">
+                    <span class="sidebar-link-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                    </span>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="/comprobantes" class="sidebar-link">
+                    <span class="sidebar-link-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </span>
+                    <span>Comprobantes</span>
+                </a>
+                
+                <a href="/clientes" class="sidebar-link active">
+                    <span class="sidebar-link-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </span>
+                    <span>Clientes</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+    
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+    
+    <!-- Main Content -->
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Gestión de Clientes</h1>
+                <p class="page-description">Importa tu base de clientes masivamente desde Excel</p>
+            </div>
+        </div>
+        
+        <!-- Card Importador -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Importar Clientes desde Excel</h3>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; gap: 2rem;">
+                    <!-- Paso 1 -->
+                    <div>
+                        <h4 style="font-size: 1.125rem; margin-bottom: 0.5rem; color: var(--text-primary);">
+                            📥 Paso 1: Descarga el template
+                        </h4>
+                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                            Descarga nuestra plantilla Excel con el formato correcto
+                        </p>
+                        <a href="/api/clientes/template" class="btn btn-ghost" download>
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Descargar Template Excel
+                        </a>
+                    </div>
+                    
+                    <!-- Paso 2 -->
+                    <div>
+                        <h4 style="font-size: 1.125rem; margin-bottom: 0.5rem; color: var(--text-primary);">
+                            ✏️ Paso 2: Completa tus datos
+                        </h4>
+                        <p style="color: var(--text-secondary);">
+                            Abre el archivo y completa con los datos de tus clientes. 
+                            Las columnas obligatorias son: <strong>numero_documento</strong> y <strong>razon_social</strong>
+                        </p>
+                    </div>
+                    
+                    <!-- Paso 3 -->
+                    <div>
+                        <h4 style="font-size: 1.125rem; margin-bottom: 0.5rem; color: var(--text-primary);">
+                            📤 Paso 3: Sube tu archivo
+                        </h4>
+                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                            Selecciona tu archivo Excel completado y haz clic en "Importar"
+                        </p>
+                        
+                        <form id="form-importar" enctype="multipart/form-data">
+                            <div class="input-group">
+                                <label class="input-label" for="archivo">Archivo Excel o CSV</label>
+                                <input 
+                                    type="file" 
+                                    id="archivo" 
+                                    name="archivo" 
+                                    class="input" 
+                                    accept=".xlsx,.xls,.csv"
+                                    required
+                                >
+                                <span class="input-helper">Formatos soportados: .xlsx, .xls, .csv</span>
+                            </div>
+                            
+                            <div style="margin-top: 1.5rem;">
+                                <button type="submit" class="btn btn-primary btn-lg" id="btn-importar">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                    </svg>
+                                    Importar Clientes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Resultados -->
+                    <div id="resultados-importacion" style="display: none;">
+                        <h4 style="font-size: 1.125rem; margin-bottom: 0.5rem; color: var(--text-primary);">
+                            ✅ Resultados de la Importación
+                        </h4>
+                        <div id="contenido-resultados"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/theme.js') }}?v=4"></script>
+<script src="{{ url_for('static', path='/js/app.js') }}?v=4"></script>
+<script>
+// Importar clientes
+document.getElementById('form-importar').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const btn = document.getElementById('btn-importar');
+    const archivo = document.getElementById('archivo').files[0];
+    
+    if (!archivo) {
+        toast.error('Selecciona un archivo');
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.classList.add('loading');
+    
+    const toastId = toast.loading('Importando clientes...');
+    
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    formData.append('emisor_ruc', '{{ user_ruc }}');
+    
+    try {
+        const response = await fetch('/api/clientes/importar', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        toast.remove(toastId);
+        
+        if (data.exito) {
+            toast.success(
+                `Importación completada`,
+                `${data.importados} nuevos, ${data.actualizados} actualizados`
+            );
+            
+            // Mostrar resultados
+            const resultadosDiv = document.getElementById('resultados-importacion');
+            const contenidoDiv = document.getElementById('contenido-resultados');
+            
+            let html = `
+                <div style="padding: 1.5rem; background: var(--success-light); border-radius: 0.5rem; margin-bottom: 1rem;">
+                    <p style="color: var(--success-text); font-weight: 600; margin-bottom: 0.5rem;">
+                        ✓ ${data.importados} clientes nuevos importados
+                    </p>
+                    <p style="color: var(--success-text); font-weight: 600;">
+                        ✓ ${data.actualizados} clientes actualizados
+                    </p>
+                </div>
+            `;
+            
+            if (data.errores && data.errores.length > 0) {
+                html += `
+                    <div style="padding: 1.5rem; background: var(--warning-light); border-radius: 0.5rem;">
+                        <p style="color: var(--warning-text); font-weight: 600; margin-bottom: 0.5rem;">
+                            ⚠️ ${data.total_errores} errores encontrados
+                        </p>
+                        <ul style="color: var(--warning-text); margin-left: 1.5rem;">
+                            ${data.errores.map(err => `<li>${err}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            contenidoDiv.innerHTML = html;
+            resultadosDiv.style.display = 'block';
+            
+            // Reset form
+            document.getElementById('form-importar').reset();
+            
+        } else {
+            toast.error('Error en importación', data.error);
+        }
+        
+    } catch (error) {
+        toast.remove(toastId);
+        toast.error('Error de conexión', error.message);
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+    }
+});
+</script>
+{% endblock %}

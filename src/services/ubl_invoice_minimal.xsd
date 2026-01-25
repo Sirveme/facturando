@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Minimal XSD for basic UBL Invoice structure used for MVP validation -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+            xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+            xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+            xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+            elementFormDefault="qualified">
+
+  <xsd:element name="Invoice">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="cbc:UBLVersionID"/>
+        <xsd:element ref="cbc:CustomizationID"/>
+        <xsd:element ref="cbc:ID"/>
+        <xsd:element ref="cbc:IssueDate"/>
+        <xsd:element ref="cbc:InvoiceTypeCode"/>
+        <xsd:element ref="cbc:DocumentCurrencyCode"/>
+        <xsd:element ref="cac:AccountingSupplierParty"/>
+        <xsd:element ref="cac:AccountingCustomerParty"/>
+        <xsd:element ref="cac:LegalMonetaryTotal"/>
+        <xsd:element ref="cac:InvoiceLine" minOccurs="0" maxOccurs="unbounded"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="UBLVersionID" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:string"/>
+  <xsd:element name="CustomizationID" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:string"/>
+  <xsd:element name="ID" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:string"/>
+  <xsd:element name="IssueDate" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:date"/>
+  <xsd:element name="InvoiceTypeCode" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:string"/>
+  <xsd:element name="DocumentCurrencyCode" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:string"/>
+
+  <xsd:element name="AccountingSupplierParty" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="Party">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="PartyIdentification">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element ref="cbc:ID"/>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+              <xsd:element name="PartyName">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element ref="cbc:Name"/>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="AccountingCustomerParty" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"/>
+
+  <xsd:element name="LegalMonetaryTotal" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="cbc:LineExtensionAmount"/>
+        <xsd:element ref="cbc:TaxInclusiveAmount"/>
+        <xsd:element ref="cbc:PayableAmount"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="InvoiceLine" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="cbc:ID"/>
+        <xsd:element ref="cbc:InvoicedQuantity"/>
+        <xsd:element ref="cbc:LineExtensionAmount"/>
+        <xsd:element name="Item"/>
+        <xsd:element name="Price"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="Name" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:string"/>
+  <xsd:element name="LineExtensionAmount" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:decimal"/>
+  <xsd:element name="TaxInclusiveAmount" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:decimal"/>
+  <xsd:element name="PayableAmount" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:decimal"/>
+  <xsd:element name="InvoicedQuantity" namespace="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" type="xsd:decimal"/>
+
+</xsd:schema>

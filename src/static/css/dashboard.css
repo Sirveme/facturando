@@ -1,0 +1,366 @@
+/* ========================================
+   DASHBOARD - Diseño denso inspirado en trading apps
+   ======================================== */
+
+/* Stat Cards con micro-métricas */
+.stat-card {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  transition: all var(--transition-slow);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Header de la card */
+.stat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.stat-card-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-card-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.stat-card-icon.primary {
+  background: var(--primary-light);
+  color: var(--primary-bright);
+}
+
+.stat-card-icon.success {
+  background: var(--success-light);
+  color: var(--success-text);
+}
+
+.stat-card-icon.warning {
+  background: var(--warning-light);
+  color: var(--warning-text);
+}
+
+.stat-card-icon.danger {
+  background: var(--danger-light);
+  color: var(--danger-text);
+}
+
+/* Valor principal */
+.stat-card-value {
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary) !important;
+  margin-bottom: var(--space-2);
+  line-height: 1;
+}
+
+/* Cambio porcentual */
+.stat-card-change {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary) !important;
+}
+
+.stat-card-change.positive {
+  color: var(--success-text) !important;
+}
+
+.stat-card-change.negative {
+  color: var(--danger-text) !important;
+}
+
+.stat-card-change svg {
+  width: 16px;
+  height: 16px;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-hover);
+}
+
+/* Light mode - Borde superior visible */
+[data-theme="light"] .stat-card {
+  border-top: 4px solid var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .stat-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ========================================
+   TABLA DENSA DE 2 FILAS
+   ======================================== */
+
+.table-dense {
+  font-size: var(--text-sm);
+}
+
+.table-dense thead th {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.table-dense tbody td {
+  padding: var(--space-4);
+  vertical-align: middle;
+}
+
+.table-row-main:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Células de 2 líneas */
+.comprobante-cell,
+.cliente-cell,
+.monto-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comprobante-serie,
+.cliente-name,
+.monto-total {
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+.comprobante-date,
+.cliente-ruc,
+.monto-detalle {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.monto-total {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+/* Actions */
+.table-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.btn-icon-sm {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-icon-sm:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* ========================================
+   SIDEBAR ANIMATIONS
+   ======================================== */
+
+.sidebar {
+  transition: transform var(--transition-base);
+}
+
+.sidebar-footer {
+  padding: var(--space-6);
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+}
+
+.sidebar-link {
+  position: relative;
+}
+
+.sidebar-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background: var(--primary);
+  border-radius: 0 2px 2px 0;
+  transition: height var(--transition-base);
+}
+
+.sidebar-link.active::before {
+  height: 60%;
+}
+
+.sidebar-link:hover {
+  background: var(--bg-tertiary);
+}
+
+/* ========================================
+   CARDS
+   ======================================== */
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title {
+  color: var(--text-primary) !important;
+  font-size: var(--text-lg);
+}
+
+/* ========================================
+   BADGES CON MEJOR CONTRASTE
+   ======================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.badge-success {
+  background: rgba(61, 214, 140, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(61, 214, 140, 0.3);
+}
+
+.badge-warning {
+  background: rgba(242, 153, 74, 0.15);
+  color: var(--warning);
+  border: 1px solid rgba(242, 153, 74, 0.3);
+}
+
+.badge-danger {
+  background: rgba(242, 85, 90, 0.15);
+  color: var(--danger);
+  border: 1px solid rgba(242, 85, 90, 0.3);
+}
+
+.badge-info {
+  background: rgba(94, 106, 210, 0.15);
+  color: var(--primary-bright);
+  border: 1px solid rgba(94, 106, 210, 0.3);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .stat-card-value {
+    font-size: var(--text-2xl);
+  }
+  
+  .table-dense {
+    font-size: var(--text-xs);
+  }
+  
+  .comprobante-serie,
+  .cliente-name {
+    font-size: var(--text-xs);
+  }
+  
+  .monto-total {
+    font-size: var(--text-sm);
+  }
+}
+
+
+/* ========================================
+   MEJORAS DE CONTRASTE
+   ======================================== */
+
+/* Asegurar que TODO el texto sea legible */
+.stat-card-title,
+.comprobante-date,
+.cliente-ruc,
+.monto-detalle {
+  color: var(--text-secondary) !important;
+}
+
+.stat-card-change {
+  color: var(--text-secondary);
+}
+
+.stat-card-change.positive {
+  color: var(--success-text) !important;
+}
+
+.stat-card-change.negative {
+  color: var(--danger-text) !important;
+}
+
+/* Headers de tabla */
+.table thead th {
+  color: var(--text-secondary) !important;
+  background: var(--bg-primary);  /* Más contraste */
+}
+
+/* Badges con mejor visibilidad */
+.badge-success {
+  background: rgba(61, 214, 140, 0.2);
+  color: var(--success-text);
+  border: 1px solid rgba(61, 214, 140, 0.4);
+}
+
+.badge-warning {
+  background: rgba(251, 191, 36, 0.2);
+  color: var(--warning-text);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.badge-danger {
+  background: rgba(248, 113, 113, 0.2);
+  color: var(--danger-text);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+/* Card con más contraste */
+.card {
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 1px var(--border-color), var(--shadow-md);
+}
+
+.table-container {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}

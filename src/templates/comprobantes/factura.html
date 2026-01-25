@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ tipo_doc_nombre }} {{ serie }}-{{ numero }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 2cm 1.5cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #333;
+        }
+        
+        /* Header con Flexbox */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid {{ color_primario }};
+        }
+        
+        .header-left {
+            flex: 1;
+            padding-right: 20px;
+        }
+        
+        .header-right {
+            width: 280px;
+            flex-shrink: 0;
+        }
+        
+        .logo {
+            max-width: 180px;
+            max-height: 70px;
+            margin-bottom: 10px;
+        }
+        
+        .empresa-nombre {
+            font-size: 15pt;
+            font-weight: bold;
+            color: {{ color_primario }};
+            margin-bottom: 5px;
+        }
+        
+        .empresa-lema {
+            font-size: 9pt;
+            color: {{ color_secundario }};
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+        
+        .empresa-info {
+            font-size: 9pt;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        /* Cuadro de comprobante */
+        .tipo-comprobante {
+            border: 2px solid {{ color_secundario }};
+            padding: 12px;
+            text-align: center;
+            background: #fff;
+        }
+        
+        .tipo-comprobante-titulo {
+            font-size: 13pt;
+            font-weight: bold;
+            color: {{ color_secundario }};
+            margin-bottom: 5px;
+        }
+        
+        .tipo-comprobante-numero {
+            font-size: 16pt;
+            font-weight: bold;
+            color: {{ color_primario }};
+            margin-top: 8px;
+        }
+        
+        /* Info cliente */
+        .info-section {
+            background-color: #f8f9fa;
+            padding: 12px;
+            margin: 15px 0;
+            border-left: 4px solid {{ color_primario }};
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 8px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: {{ color_primario }};
+        }
+        
+        /* Tabla items */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 9pt;
+        }
+        
+        .items-table thead {
+            background-color: {{ color_primario }};
+            color: white;
+        }
+        
+        .items-table th {
+            padding: 10px 6px;
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        .items-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .items-table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .bonificacion {
+            color: {{ color_secundario }};
+            font-weight: bold;
+            font-size: 8pt;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            font-size: 8pt;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .badge-gravado {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-exonerado {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        /* Observaciones */
+        .observaciones-box {
+            background-color: #fff3cd;
+            padding: 12px;
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .observaciones-titulo {
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 5px;
+        }
+        
+        /* Totales */
+        .totales {
+            width: 300px;
+            margin-left: auto;
+            margin-top: 15px;
+        }
+        
+        .totales-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .totales-row.subtotal {
+            font-size: 9pt;
+            color: #6c757d;
+        }
+        
+        .totales-row.total {
+            background-color: {{ color_primario }};
+            color: white;
+            font-weight: bold;
+            font-size: 12pt;
+            margin-top: 5px;
+            border: none;
+        }
+        
+        /* Footer */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid {{ color_primario }};
+        }
+        
+        .footer-left {
+            flex: 1;
+            padding-right: 20px;
+        }
+        
+        .footer-right {
+            width: 140px;
+            text-align: center;
+        }
+        
+        .qr-code {
+            width: 130px;
+            height: 130px;
+        }
+        
+        .footer-titulo {
+            font-weight: bold;
+            color: {{ color_primario }};
+            margin-bottom: 5px;
+        }
+        
+        .footer-texto {
+            font-size: 8pt;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .hash-text {
+            font-size: 7pt;
+            color: #999;
+            margin-top: 10px;
+            word-wrap: break-word;
+        }
+        
+        /* Leyendas */
+        .leyenda {
+            margin-top: 12px;
+            padding: 10px;
+            border-left: 4px solid;
+            font-size: 9pt;
+        }
+        
+        .leyenda-success {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        
+        .leyenda-info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        
+        .leyenda-danger {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            {% if emisor_logo %}
+            <img src="{{ emisor_logo }}" alt="Logo" class="logo">
+            {% endif %}
+            <div class="empresa-nombre">{{ emisor_razon_social }}</div>
+            {% if emisor_lema %}
+            <div class="empresa-lema">{{ emisor_lema }}</div>
+            {% endif %}
+            <div class="empresa-info">
+                <div>RUC: {{ emisor_ruc }}</div>
+                <div>{{ emisor_direccion }}</div>
+                {% if emisor_establecimiento_anexo %}<div>{{ emisor_establecimiento_anexo }}</div>{% endif %}
+                {% if emisor_telefono %}<div>Tel: {{ emisor_telefono }}</div>{% endif %}
+                {% if emisor_email %}<div>Email: {{ emisor_email }}</div>{% endif %}
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="tipo-comprobante">
+                <div class="tipo-comprobante-titulo">{{ tipo_doc_nombre }}</div>
+                <div style="font-size: 9pt; margin: 5px 0;">RUC {{ emisor_ruc }}</div>
+                <div class="tipo-comprobante-numero">{{ serie }}-{{ numero }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Info cliente -->
+    <div class="info-section">
+        <div class="info-grid">
+            <span class="info-label">Fecha de Emisión:</span>
+            <span>{{ fecha_emision }}</span>
+            
+            <span class="info-label">Cliente:</span>
+            <span>{{ cliente_razon_social }}</span>
+            
+            <span class="info-label">{{ cliente_tipo_doc }}:</span>
+            <span>{{ cliente_ruc }}</span>
+            
+            <span class="info-label">Dirección:</span>
+            <span>{{ cliente_direccion }}</span>
+            
+            <span class="info-label">Moneda:</span>
+            <span>Soles (PEN)</span>
+        </div>
+    </div>
+    
+    <!-- Items -->
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;" class="text-center">#</th>
+                <th style="width: 42%;">Descripción</th>
+                <th style="width: 8%;" class="text-center">Cant.</th>
+                <th style="width: 8%;" class="text-center">Und.</th>
+                <th style="width: 12%;" class="text-right">P. Unit.</th>
+                <th style="width: 10%;" class="text-center">Afect.</th>
+                <th style="width: 15%;" class="text-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="text-center">{{ item.orden }}</td>
+                <td>
+                    {{ item.descripcion }}
+                    {% if item.es_bonificacion %}
+                    <span class="bonificacion">(BONIF.)</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">{{ item.cantidad }}</td>
+                <td class="text-center">{{ item.unidad }}</td>
+                <td class="text-right">{{ item.precio_unitario }}</td>
+                <td class="text-center">
+                    {% if item.tipo_afectacion == '20' %}
+                    <span class="badge badge-exonerado">Exon.</span>
+                    {% else %}
+                    <span class="badge badge-gravado">Grav.</span>
+                    {% endif %}
+                </td>
+                <td class="text-right">{{ item.total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Observaciones -->
+    {% if observaciones %}
+    <div class="observaciones-box">
+        <div class="observaciones-titulo">Observaciones:</div>
+        <div style="font-size: 9pt;">{{ observaciones }}</div>
+    </div>
+    {% endif %}
+    
+    <!-- Totales -->
+    <div class="totales">
+        {% if op_exoneradas and op_exoneradas != '0.00' %}
+        <div class="totales-row subtotal">
+            <span>Op. Exoneradas:</span>
+            <span>{{ moneda }} {{ op_exoneradas }}</span>
+        </div>
+        {% endif %}
+        <div class="totales-row subtotal">
+            <span>Sub Total:</span>
+            <span>{{ moneda }} {{ subtotal }}</span>
+        </div>
+        <div class="totales-row subtotal">
+            <span>IGV (18%):</span>
+            <span>{{ moneda }} {{ igv }}</span>
+        </div>
+        <div class="totales-row total">
+            <span>TOTAL:</span>
+            <span>{{ moneda }} {{ total }}</span>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-left">
+            <div class="footer-titulo">Información del Comprobante:</div>
+            <div class="footer-texto">
+                Representación impresa del comprobante electrónico.<br>
+                Para consultar el documento, escanee el código QR.
+                {% if emisor_web %}<br>Web: {{ emisor_web }}{% endif %}
+            </div>
+            {% if hash_cpe and hash_cpe != 'N/A' %}
+            <div class="hash-text">
+                <strong>Hash CPE:</strong> {{ hash_cpe }}
+            </div>
+            {% endif %}
+        </div>
+        <div class="footer-right">
+            <img src="{{ qr_code }}" alt="QR" class="qr-code">
+            <div style="font-size: 8pt; color: #666; margin-top: 5px;">Escanea para verificar</div>
+        </div>
+    </div>
+    
+    <!-- Leyendas -->
+    {% if estado == 'aceptado' %}
+    <div class="leyenda leyenda-success">
+        ✓ Este comprobante ha sido aceptado por SUNAT
+    </div>
+    {% elif estado == 'rechazado' %}
+    <div class="leyenda leyenda-danger">
+        ✗ Este comprobante fue rechazado por SUNAT
+    </div>
+    {% endif %}
+    
+    {% if es_agente_retencion %}
+    <div class="leyenda leyenda-info">
+        ℹ Agente de Retención del IGV - Resolución de Superintendencia N° 037-2002/SUNAT
+    </div>
+    {% endif %}
+    
+    {% if es_agente_percepcion %}
+    <div class="leyenda leyenda-info">
+        ℹ Agente de Percepción del IGV - Resolución de Superintendencia N° 058-2006/SUNAT
+    </div>
+    {% endif %}
+</body>
+</html>
