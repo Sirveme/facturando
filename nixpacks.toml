@@ -24,4 +24,5 @@ nixPkgs = [
   "ninja"
 ]
 [env]
-PKG_CONFIG_PATH = "/root/.nix-profile/lib/pkgconfig"
+PKG_CONFIG_PATH = "/root/.nix-profile/lib/pkgconfig:/root/.nix-profile/lib64/pkgconfig:/root/.nix-profile/share/pkgconfig"
+LD_LIBRARY_PATH = "/root/.nix-profile/lib:/root/.nix-profile/lib64"
