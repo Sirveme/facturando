@@ -10,15 +10,16 @@ WORKDIR /app
 # Copiar requirements primero (mejor cache)
 COPY requirements.txt .
 
-# Instalar dependencias Python (ReportLab es 100% Python, no necesita apt-get)
+# Instalar dependencias Python
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copiar código
 COPY . .
 
-# Puerto
+# Puerto por defecto
+ENV PORT=8080
 EXPOSE 8080
 
-# Comando
-CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT}"]
+# Comando - usar shell form para que interprete $PORT
+CMD uvicorn src.main:app --host 0.0.0.0 --port $PORT
