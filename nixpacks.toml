@@ -1,31 +1,7 @@
 [phases.setup]
 nixPkgs = [
-  "python312",
-
-  # toolchain
-  "gcc",
-  "binutils",
+  "python311",
   "pkg-config",
-
-  # cairo stack COMPLETO
   "cairo",
-  "cairo.dev",
-  "glib",
-  "glib.dev",
-  "pango",
-  "pango.dev",
-  "fontconfig",
-  "fontconfig.dev",
-  "freetype",
-  "freetype.dev",
-
-  # build tools
-  "meson",
-  "ninja",
-  "cmake"
+  "glib"
 ]
-
-[env]
-PKG_CONFIG_PATH = "/root/.nix-profile/lib/pkgconfig:/root/.nix-profile/share/pkgconfig"
-NIX_CFLAGS_COMPILE = "-I/root/.nix-profile/include"
-NIX_LDFLAGS = "-L/root/.nix-profile/lib"
