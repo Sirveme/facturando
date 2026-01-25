@@ -1,29 +1,25 @@
-# v2 - ReportLab - NO WEASYPRINT
+# v3 - ReportLab - Acepta dict como único argumento
 """
 Generador de PDF para comprobantes electrónicos
 Usando ReportLab (100% Python, sin dependencias del sistema)
 """
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm, cm
+from reportlab.lib.units import cm
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-from reportlab.pdfgen import canvas
 from io import BytesIO
 import qrcode
-import base64
 from datetime import datetime
 
 
-def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
+def generar_pdf_comprobante(comprobante_data: dict) -> bytes:
     """
     Genera PDF del comprobante electrónico
     
     Args:
-        comprobante: Objeto Comprobante
-        emisor: Objeto Emisor
-        lineas: Lista de LineaDetalle
+        comprobante_data: dict con todos los datos del comprobante
         
     Returns:
         bytes: Contenido del PDF
@@ -43,7 +39,6 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
     # Estilos
     styles = getSampleStyleSheet()
     
-    # Estilos personalizados
     style_title = ParagraphStyle(
         'Title',
         parent=styles['Heading1'],
@@ -74,33 +69,51 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
         fontName='Helvetica-Bold'
     )
     
-    style_right = ParagraphStyle(
-        'Right',
-        parent=styles['Normal'],
-        fontSize=9,
-        alignment=TA_RIGHT
-    )
+    # Extraer datos del dict
+    emisor_ruc = comprobante_data.get('emisor_ruc', '')
+    emisor_razon_social = comprobante_data.get('emisor_razon_social', 'EMPRESA')
+    emisor_direccion = comprobante_data.get('emisor_direccion', '')
+    emisor_telefono = comprobante_data.get('emisor_telefono', '')
+    emisor_email = comprobante_data.get('emisor_email', '')
+    
+    tipo_doc = comprobante_data.get('tipo_comprobante', '01')
+    serie = comprobante_data.get('serie', 'F001')
+    numero = comprobante_data.get('numero', 1)
+    fecha_emision = comprobante_data.get('fecha_emision')
+    moneda = comprobante_data.get('moneda', 'PEN')
+    
+    cliente_ruc = comprobante_data.get('cliente_ruc', '-')
+    cliente_razon_social = comprobante_data.get('cliente_razon_social', 'CLIENTE VARIOS')
+    cliente_direccion = comprobante_data.get('cliente_direccion', '-')
+    
+    items = comprobante_data.get('items', [])
+    
+    subtotal = float(comprobante_data.get('subtotal', 0) or 0)
+    igv = float(comprobante_data.get('igv', 0) or 0)
+    total = float(comprobante_data.get('total', 0) or 0)
+    
+    hash_cpe = comprobante_data.get('hash_cpe', '')
     
     # Elementos del documento
     elements = []
     
     # === ENCABEZADO EMISOR ===
-    tipo_doc_nombre = "FACTURA ELECTRÓNICA" if comprobante.tipo_documento == '01' else "BOLETA DE VENTA ELECTRÓNICA"
+    tipo_doc_nombre = "FACTURA ELECTRÓNICA" if tipo_doc == '01' else "BOLETA DE VENTA ELECTRÓNICA"
     
-    # Datos del emisor
-    elements.append(Paragraph(f"<b>{emisor.razon_social}</b>", style_title))
-    elements.append(Paragraph(f"RUC: {emisor.ruc}", style_subtitle))
-    if emisor.direccion:
-        elements.append(Paragraph(emisor.direccion, style_subtitle))
-    if emisor.telefono:
-        elements.append(Paragraph(f"Tel: {emisor.telefono}", style_subtitle))
-    if emisor.email:
-        elements.append(Paragraph(emisor.email, style_subtitle))
+    elements.append(Paragraph(f"<b>{emisor_razon_social}</b>", style_title))
+    elements.append(Paragraph(f"RUC: {emisor_ruc}", style_subtitle))
+    
+    if emisor_direccion:
+        elements.append(Paragraph(emisor_direccion, style_subtitle))
+    if emisor_telefono:
+        elements.append(Paragraph(f"Tel: {emisor_telefono}", style_subtitle))
+    if emisor_email:
+        elements.append(Paragraph(emisor_email, style_subtitle))
     
     elements.append(Spacer(1, 0.5*cm))
     
     # === TIPO DE DOCUMENTO Y NÚMERO ===
-    numero_formateado = f"{comprobante.serie}-{str(comprobante.numero).zfill(8)}"
+    numero_formateado = f"{serie}-{str(numero).zfill(8)}"
     
     doc_header_data = [
         [Paragraph(f"<b>{tipo_doc_nombre}</b>", style_title)],
@@ -121,11 +134,15 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
     elements.append(Spacer(1, 0.5*cm))
     
     # === DATOS DEL COMPROBANTE ===
-    fecha_emision = comprobante.fecha_emision.strftime('%d/%m/%Y') if comprobante.fecha_emision else ''
+    if isinstance(fecha_emision, str):
+        fecha_str = fecha_emision
+    elif fecha_emision:
+        fecha_str = fecha_emision.strftime('%d/%m/%Y')
+    else:
+        fecha_str = datetime.now().strftime('%d/%m/%Y')
     
     info_data = [
-        ['Fecha de Emisión:', fecha_emision, 'Moneda:', comprobante.moneda or 'PEN'],
-        ['Tipo de Operación:', 'Venta Interna', 'Condición:', 'Contado'],
+        ['Fecha de Emisión:', fecha_str, 'Moneda:', moneda],
     ]
     
     info_table = Table(info_data, colWidths=[4*cm, 5*cm, 3*cm, 4*cm])
@@ -133,7 +150,6 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
         ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
         ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
     ]))
     
     elements.append(info_table)
@@ -143,14 +159,9 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
     elements.append(Paragraph("<b>DATOS DEL CLIENTE</b>", style_bold))
     elements.append(Spacer(1, 0.2*cm))
     
-    # Obtener datos del cliente (si existe)
-    cliente_ruc = comprobante.cliente_ruc if hasattr(comprobante, 'cliente_ruc') and comprobante.cliente_ruc else '-'
-    cliente_nombre = comprobante.cliente_razon_social if hasattr(comprobante, 'cliente_razon_social') and comprobante.cliente_razon_social else 'CLIENTE VARIOS'
-    cliente_direccion = comprobante.cliente_direccion if hasattr(comprobante, 'cliente_direccion') and comprobante.cliente_direccion else '-'
-    
     cliente_data = [
         ['RUC/DNI:', cliente_ruc],
-        ['Razón Social:', cliente_nombre],
+        ['Razón Social:', cliente_razon_social],
         ['Dirección:', cliente_direccion],
     ]
     
@@ -158,8 +169,6 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
     cliente_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
     
     elements.append(cliente_table)
@@ -169,48 +178,39 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
     elements.append(Paragraph("<b>DETALLE</b>", style_bold))
     elements.append(Spacer(1, 0.2*cm))
     
-    # Encabezados de tabla
-    detalle_data = [
-        ['#', 'Descripción', 'Cant.', 'Unidad', 'P. Unit.', 'Total']
-    ]
+    detalle_data = [['#', 'Descripción', 'Cant.', 'Unidad', 'P. Unit.', 'Total']]
     
-    # Agregar líneas
-    for i, linea in enumerate(lineas, 1):
-        detalle_data.append([
-            str(i),
-            linea.descripcion or '-',
-            f"{linea.cantidad:.2f}" if linea.cantidad else '1.00',
-            linea.unidad_medida or 'NIU',
-            f"S/ {linea.precio_unitario:.2f}" if linea.precio_unitario else 'S/ 0.00',
-            f"S/ {linea.subtotal:.2f}" if linea.subtotal else 'S/ 0.00'
-        ])
-    
-    # Si no hay líneas, agregar una fila vacía
-    if not lineas:
-        detalle_data.append(['1', 'Producto/Servicio', '1.00', 'NIU', f"S/ {comprobante.monto_base:.2f}", f"S/ {comprobante.monto_base:.2f}"])
+    if items:
+        for i, item in enumerate(items, 1):
+            cantidad = float(item.get('cantidad', 1))
+            precio = float(item.get('precio_unitario', 0))
+            item_total = cantidad * precio
+            
+            detalle_data.append([
+                str(i),
+                item.get('descripcion', '-'),
+                f"{cantidad:.2f}",
+                item.get('unidad', 'NIU'),
+                f"S/ {precio:.2f}",
+                f"S/ {item_total:.2f}"
+            ])
+    else:
+        detalle_data.append(['1', 'Producto/Servicio', '1.00', 'NIU', f"S/ {subtotal:.2f}", f"S/ {subtotal:.2f}"])
     
     detalle_table = Table(detalle_data, colWidths=[1*cm, 8*cm, 1.5*cm, 1.5*cm, 2*cm, 2*cm])
     detalle_table.setStyle(TableStyle([
-        # Encabezado
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#5E6AD2')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 9),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        
-        # Cuerpo
         ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # #
-        ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # Cant
-        ('ALIGN', (3, 1), (3, -1), 'CENTER'),  # Unidad
-        ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),  # Precios
-        
-        # Bordes
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+        ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+        ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
         ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor('#5E6AD2')),
-        ('LINEBELOW', (0, 1), (-1, -2), 0.5, colors.HexColor('#EEEEEE')),
-        
-        # Padding
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
@@ -219,14 +219,10 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
     elements.append(Spacer(1, 0.5*cm))
     
     # === TOTALES ===
-    monto_base = comprobante.monto_base or 0
-    monto_igv = comprobante.monto_igv or 0
-    monto_total = comprobante.monto_total or 0
-    
     totales_data = [
-        ['', 'Op. Gravada:', f"S/ {monto_base:.2f}"],
-        ['', 'IGV (18%):', f"S/ {monto_igv:.2f}"],
-        ['', 'TOTAL:', f"S/ {monto_total:.2f}"],
+        ['', 'Op. Gravada:', f"S/ {subtotal:.2f}"],
+        ['', 'IGV (18%):', f"S/ {igv:.2f}"],
+        ['', 'TOTAL:', f"S/ {total:.2f}"],
     ]
     
     totales_table = Table(totales_data, colWidths=[10*cm, 3*cm, 3*cm])
@@ -238,8 +234,6 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
         ('FONTNAME', (1, -1), (-1, -1), 'Helvetica-Bold'),
         ('FONTSIZE', (1, -1), (-1, -1), 11),
         ('LINEABOVE', (1, -1), (-1, -1), 1, colors.HexColor('#5E6AD2')),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
     
     elements.append(totales_table)
@@ -247,7 +241,7 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
     
     # === CÓDIGO QR ===
     try:
-        qr_data = f"{emisor.ruc}|{comprobante.tipo_documento}|{comprobante.serie}|{comprobante.numero}|{monto_igv:.2f}|{monto_total:.2f}|{fecha_emision}|||"
+        qr_data = f"{emisor_ruc}|{tipo_doc}|{serie}|{numero}|{igv:.2f}|{total:.2f}|{fecha_str}|||"
         
         qr = qrcode.QRCode(version=1, box_size=3, border=1)
         qr.add_data(qr_data)
@@ -258,10 +252,9 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
         qr_img.save(qr_buffer, format='PNG')
         qr_buffer.seek(0)
         
-        # Tabla con QR y hash
         qr_section_data = [
             [Image(qr_buffer, width=2.5*cm, height=2.5*cm), 
-             Paragraph(f"<b>Hash:</b><br/>{comprobante.hash_cpe[:20] if comprobante.hash_cpe else 'N/A'}...", style_normal)]
+             Paragraph(f"<b>Hash:</b><br/>{hash_cpe[:20] if hash_cpe else 'N/A'}...", style_normal)]
         ]
         
         qr_table = Table(qr_section_data, colWidths=[3*cm, 13*cm])
@@ -288,53 +281,7 @@ def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
     return buffer.getvalue()
 
 
-def generar_pdf_simple(comprobante, emisor) -> bytes:
-    """
-    Genera un PDF simple sin dependencias de líneas detalle
-    Útil para testing o cuando no hay líneas
-    """
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    
-    # Título
-    c.setFont("Helvetica-Bold", 16)
-    c.drawCentredString(width/2, height - 2*cm, emisor.razon_social)
-    
-    c.setFont("Helvetica", 10)
-    c.drawCentredString(width/2, height - 2.5*cm, f"RUC: {emisor.ruc}")
-    
-    # Tipo documento
-    tipo_doc = "FACTURA ELECTRÓNICA" if comprobante.tipo_documento == '01' else "BOLETA ELECTRÓNICA"
-    c.setFont("Helvetica-Bold", 14)
-    c.drawCentredString(width/2, height - 4*cm, tipo_doc)
-    
-    c.setFont("Helvetica-Bold", 12)
-    c.drawCentredString(width/2, height - 4.8*cm, f"{comprobante.serie}-{str(comprobante.numero).zfill(8)}")
-    
-    # Datos
-    c.setFont("Helvetica", 10)
-    y = height - 6*cm
-    
-    c.drawString(2*cm, y, f"Fecha: {comprobante.fecha_emision.strftime('%d/%m/%Y')}")
-    y -= 0.6*cm
-    c.drawString(2*cm, y, f"Moneda: {comprobante.moneda or 'PEN'}")
-    
-    # Totales
-    y -= 2*cm
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(2*cm, y, "TOTALES:")
-    
-    c.setFont("Helvetica", 10)
-    y -= 0.6*cm
-    c.drawString(2*cm, y, f"Subtotal: S/ {comprobante.monto_base:.2f}")
-    y -= 0.5*cm
-    c.drawString(2*cm, y, f"IGV (18%): S/ {comprobante.monto_igv:.2f}")
-    y -= 0.5*cm
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(2*cm, y, f"TOTAL: S/ {comprobante.monto_total:.2f}")
-    
-    c.save()
-    buffer.seek(0)
-
-    return buffer.getvalue()
+# Alias para compatibilidad
+def generar_pdf_factura(comprobante_data: dict) -> bytes:
+    """Alias para compatibilidad"""
+    return generar_pdf_comprobante(comprobante_data)
