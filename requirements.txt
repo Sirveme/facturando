@@ -87,11 +87,12 @@ uvicorn==0.40.0
 vine==5.1.0
 watchfiles==1.1.1
 wcwidth==0.3.0
-weasyprint==68.0
+#weasyprint==68.0
 webencodings==0.5.1
 websockets==16.0
 zeep==4.3.2
 zopfli==0.4.0
+
 
 
 
