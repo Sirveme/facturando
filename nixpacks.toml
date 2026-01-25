@@ -2,27 +2,30 @@
 nixPkgs = [
   "python312",
 
-  # Toolchain
+  # toolchain
   "gcc",
   "binutils",
   "pkg-config",
 
-  # Cairo (AMBOS)
+  # cairo stack COMPLETO
   "cairo",
   "cairo.dev",
-
-  # Dependencias relacionadas
   "glib",
   "glib.dev",
   "pango",
   "pango.dev",
-  "gdk-pixbuf",
+  "fontconfig",
+  "fontconfig.dev",
+  "freetype",
+  "freetype.dev",
 
-  # Build tools
-  "cmake",
+  # build tools
   "meson",
-  "ninja"
+  "ninja",
+  "cmake"
 ]
+
 [env]
-PKG_CONFIG_PATH = "/root/.nix-profile/lib/pkgconfig:/root/.nix-profile/lib64/pkgconfig:/root/.nix-profile/share/pkgconfig"
-LD_LIBRARY_PATH = "/root/.nix-profile/lib:/root/.nix-profile/lib64"
+PKG_CONFIG_PATH = "/root/.nix-profile/lib/pkgconfig:/root/.nix-profile/share/pkgconfig"
+NIX_CFLAGS_COMPILE = "-I/root/.nix-profile/include"
+NIX_LDFLAGS = "-L/root/.nix-profile/lib"
