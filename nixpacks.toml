@@ -1,6 +1,11 @@
 [phases.setup]
 nixPkgs = [
+  "python312",
   "cairo",
   "pkg-config",
-  "cmake"
+  "cmake",
+  "pango",
+  "gdk-pixbuf",
+  "glib",
+  "libffi"
 ]
