@@ -2,19 +2,19 @@
 nixPkgs = [
   "python312",
 
-  # Toolchain C (OBLIGATORIO para pycairo)
+  # Toolchain C
   "gcc",
   "binutils",
   "pkg-config",
 
-  # Cairo / PDF stack
-  "cairo",
-  "pango",
+  # Cairo stack (IMPORTANTE: .dev)
+  "cairo.dev",
+  "pango.dev",
   "gdk-pixbuf",
   "glib",
   "libffi",
 
-  # Build tools usados por pycairo
+  # Build tools
   "cmake",
   "meson",
   "ninja"
