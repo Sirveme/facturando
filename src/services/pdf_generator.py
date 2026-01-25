@@ -1,178 +1,338 @@
-from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML, CSS
+"""
+Generador de PDF para comprobantes electrónicos
+Usando ReportLab (100% Python, sin dependencias del sistema)
+"""
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm, cm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.pdfgen import canvas
 from io import BytesIO
-from pathlib import Path
+import qrcode
+import base64
 from datetime import datetime
-from decimal import Decimal
-
-from src.services.qr_generator import generar_qr_sunat
 
 
-def generar_pdf_factura(
-    emisor_ruc: str,
-    emisor_razon_social: str,
-    emisor_direccion: str,
-    tipo_comprobante: str,
-    serie: str,
-    numero: int,
-    fecha_emision: datetime,
-    cliente_ruc: str,
-    cliente_razon_social: str,
-    cliente_direccion: str,
-    items: list,
-    subtotal: Decimal,
-    igv: Decimal,
-    total: Decimal,
-    moneda: str = "PEN",
-    hash_cpe: str = "",
-    estado: str = "aceptado",
-    emisor_logo: str = "",
-    emisor_telefono: str = "",
-    emisor_email: str = "",
-    emisor_web: str = "",
-    emisor_lema: str = "",
-    emisor_establecimiento_anexo: str = "",
-    es_agente_retencion: bool = False,
-    es_agente_percepcion: bool = False,
-    observaciones: str = "",
-    color_primario: str = "#2c3e50",
-    color_secundario: str = "#e74c3c"
-) -> bytes:
-    """Genera PDF de factura electrónica con WeasyPrint optimizado"""
+def generar_pdf_comprobante(comprobante, emisor, lineas) -> bytes:
+    """
+    Genera PDF del comprobante electrónico
     
-    # Configurar Jinja2
-    templates_path = Path(__file__).parent.parent / "templates"
-    env = Environment(loader=FileSystemLoader(str(templates_path)))
-    template = env.get_template("comprobantes/factura.html")
+    Args:
+        comprobante: Objeto Comprobante
+        emisor: Objeto Emisor
+        lineas: Lista de LineaDetalle
+        
+    Returns:
+        bytes: Contenido del PDF
+    """
+    buffer = BytesIO()
     
-    # Generar código QR
-    qr_base64 = generar_qr_sunat(
-        emisor_ruc=emisor_ruc,
-        tipo_comprobante=tipo_comprobante,
-        serie=serie,
-        numero=numero,
-        fecha_emision=fecha_emision.strftime("%Y-%m-%d"),
-        monto_total=float(total),
-        igv=float(igv),
-        cliente_documento=cliente_ruc,
-        cliente_tipo_doc="6" if len(cliente_ruc) == 11 else "1"
+    # Crear documento
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=1.5*cm,
+        leftMargin=1.5*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
     )
     
-    # Determinar nombre del tipo de documento
-    tipo_doc_nombre = "FACTURA ELECTRÓNICA" if tipo_comprobante == "01" else "BOLETA ELECTRÓNICA"
-    cliente_tipo_doc = "RUC" if len(cliente_ruc) == 11 else "DNI"
+    # Estilos
+    styles = getSampleStyleSheet()
     
-    # Calcular totales por tipo de afectación
-    op_gravadas = Decimal('0.00')
-    op_exoneradas = Decimal('0.00')
-    op_inafectas = Decimal('0.00')
+    # Estilos personalizados
+    style_title = ParagraphStyle(
+        'Title',
+        parent=styles['Heading1'],
+        fontSize=14,
+        alignment=TA_CENTER,
+        spaceAfter=6
+    )
     
-    for item in items:
-        tipo_afect = item.get('tipo_afectacion', '10')
-        item_total = Decimal(str(item.get('cantidad', 0))) * Decimal(str(item.get('precio_unitario', 0)))
-        
-        if tipo_afect == '10':
-            op_gravadas += item_total
-        elif tipo_afect == '20':
-            op_exoneradas += item_total
-        elif tipo_afect == '30':
-            op_inafectas += item_total
+    style_subtitle = ParagraphStyle(
+        'Subtitle',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=TA_CENTER,
+        spaceAfter=3
+    )
     
-    # Preparar items
-    items_preparados = [
-        {
-            "orden": item.get("orden", idx + 1),
-            "descripcion": item.get("descripcion", ""),
-            "cantidad": item.get("cantidad", 0),
-            "unidad": item.get("unidad", "NIU"),
-            "precio_unitario": f"{float(item.get('precio_unitario', 0)):.2f}",
-            "total": f"{float(item.get('cantidad', 0)) * float(item.get('precio_unitario', 0)):.2f}",
-            "tipo_afectacion": item.get("tipo_afectacion", "10"),
-            "es_bonificacion": item.get("es_bonificacion", False)
-        }
-        for idx, item in enumerate(items)
+    style_normal = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=3
+    )
+    
+    style_bold = ParagraphStyle(
+        'CustomBold',
+        parent=styles['Normal'],
+        fontSize=9,
+        fontName='Helvetica-Bold'
+    )
+    
+    style_right = ParagraphStyle(
+        'Right',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=TA_RIGHT
+    )
+    
+    # Elementos del documento
+    elements = []
+    
+    # === ENCABEZADO EMISOR ===
+    tipo_doc_nombre = "FACTURA ELECTRÓNICA" if comprobante.tipo_documento == '01' else "BOLETA DE VENTA ELECTRÓNICA"
+    
+    # Datos del emisor
+    elements.append(Paragraph(f"<b>{emisor.razon_social}</b>", style_title))
+    elements.append(Paragraph(f"RUC: {emisor.ruc}", style_subtitle))
+    if emisor.direccion:
+        elements.append(Paragraph(emisor.direccion, style_subtitle))
+    if emisor.telefono:
+        elements.append(Paragraph(f"Tel: {emisor.telefono}", style_subtitle))
+    if emisor.email:
+        elements.append(Paragraph(emisor.email, style_subtitle))
+    
+    elements.append(Spacer(1, 0.5*cm))
+    
+    # === TIPO DE DOCUMENTO Y NÚMERO ===
+    numero_formateado = f"{comprobante.serie}-{str(comprobante.numero).zfill(8)}"
+    
+    doc_header_data = [
+        [Paragraph(f"<b>{tipo_doc_nombre}</b>", style_title)],
+        [Paragraph(f"<b>{numero_formateado}</b>", style_title)]
     ]
     
-    # Context para template
-    context = {
-        "emisor_ruc": emisor_ruc,
-        "emisor_razon_social": emisor_razon_social,
-        "emisor_direccion": emisor_direccion,
-        "emisor_logo": emisor_logo,
-        "emisor_telefono": emisor_telefono,
-        "emisor_email": emisor_email,
-        "emisor_web": emisor_web,
-        "emisor_lema": emisor_lema,
-        "emisor_establecimiento_anexo": emisor_establecimiento_anexo,
-        "es_agente_retencion": es_agente_retencion,
-        "es_agente_percepcion": es_agente_percepcion,
-        "color_primario": color_primario,
-        "color_secundario": color_secundario,
-        "tipo_doc_nombre": tipo_doc_nombre,
-        "serie": serie,
-        "numero": str(numero).zfill(8),
-        "fecha_emision": fecha_emision.strftime("%d/%m/%Y"),
-        "cliente_ruc": cliente_ruc,
-        "cliente_razon_social": cliente_razon_social,
-        "cliente_direccion": cliente_direccion,
-        "cliente_tipo_doc": cliente_tipo_doc,
-        "moneda": "S/" if moneda == "PEN" else moneda,
-        "items": items_preparados,
-        "subtotal": f"{float(subtotal):.2f}",
-        "igv": f"{float(igv):.2f}",
-        "total": f"{float(total):.2f}",
-        "op_gravadas": f"{float(op_gravadas):.2f}",
-        "op_exoneradas": f"{float(op_exoneradas):.2f}",
-        "op_inafectas": f"{float(op_inafectas):.2f}",
-        "observaciones": observaciones,
-        "qr_code": qr_base64,
-        "hash_cpe": hash_cpe or "N/A",
-        "estado": estado
-    }
+    doc_header_table = Table(doc_header_data, colWidths=[8*cm])
+    doc_header_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#5E6AD2')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F0F1FF')),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
     
-    # Renderizar HTML
-    html_content = template.render(**context)
+    elements.append(doc_header_table)
+    elements.append(Spacer(1, 0.5*cm))
     
-    # Convertir a PDF con WeasyPrint (optimizado)
-    pdf_file = BytesIO()
-    HTML(string=html_content, base_url=str(templates_path)).write_pdf(
-        pdf_file,
-        optimize_size=('fonts', 'images')  # Optimización
-    )
+    # === DATOS DEL COMPROBANTE ===
+    fecha_emision = comprobante.fecha_emision.strftime('%d/%m/%Y') if comprobante.fecha_emision else ''
     
-    pdf_file.seek(0)
-    return pdf_file.getvalue()
+    info_data = [
+        ['Fecha de Emisión:', fecha_emision, 'Moneda:', comprobante.moneda or 'PEN'],
+        ['Tipo de Operación:', 'Venta Interna', 'Condición:', 'Contado'],
+    ]
+    
+    info_table = Table(info_data, colWidths=[4*cm, 5*cm, 3*cm, 4*cm])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    
+    elements.append(info_table)
+    elements.append(Spacer(1, 0.3*cm))
+    
+    # === DATOS DEL CLIENTE ===
+    elements.append(Paragraph("<b>DATOS DEL CLIENTE</b>", style_bold))
+    elements.append(Spacer(1, 0.2*cm))
+    
+    # Obtener datos del cliente (si existe)
+    cliente_ruc = comprobante.cliente_ruc if hasattr(comprobante, 'cliente_ruc') and comprobante.cliente_ruc else '-'
+    cliente_nombre = comprobante.cliente_razon_social if hasattr(comprobante, 'cliente_razon_social') and comprobante.cliente_razon_social else 'CLIENTE VARIOS'
+    cliente_direccion = comprobante.cliente_direccion if hasattr(comprobante, 'cliente_direccion') and comprobante.cliente_direccion else '-'
+    
+    cliente_data = [
+        ['RUC/DNI:', cliente_ruc],
+        ['Razón Social:', cliente_nombre],
+        ['Dirección:', cliente_direccion],
+    ]
+    
+    cliente_table = Table(cliente_data, colWidths=[3*cm, 13*cm])
+    cliente_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    
+    elements.append(cliente_table)
+    elements.append(Spacer(1, 0.5*cm))
+    
+    # === DETALLE DE ITEMS ===
+    elements.append(Paragraph("<b>DETALLE</b>", style_bold))
+    elements.append(Spacer(1, 0.2*cm))
+    
+    # Encabezados de tabla
+    detalle_data = [
+        ['#', 'Descripción', 'Cant.', 'Unidad', 'P. Unit.', 'Total']
+    ]
+    
+    # Agregar líneas
+    for i, linea in enumerate(lineas, 1):
+        detalle_data.append([
+            str(i),
+            linea.descripcion or '-',
+            f"{linea.cantidad:.2f}" if linea.cantidad else '1.00',
+            linea.unidad_medida or 'NIU',
+            f"S/ {linea.precio_unitario:.2f}" if linea.precio_unitario else 'S/ 0.00',
+            f"S/ {linea.subtotal:.2f}" if linea.subtotal else 'S/ 0.00'
+        ])
+    
+    # Si no hay líneas, agregar una fila vacía
+    if not lineas:
+        detalle_data.append(['1', 'Producto/Servicio', '1.00', 'NIU', f"S/ {comprobante.monto_base:.2f}", f"S/ {comprobante.monto_base:.2f}"])
+    
+    detalle_table = Table(detalle_data, colWidths=[1*cm, 8*cm, 1.5*cm, 1.5*cm, 2*cm, 2*cm])
+    detalle_table.setStyle(TableStyle([
+        # Encabezado
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#5E6AD2')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        
+        # Cuerpo
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # #
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # Cant
+        ('ALIGN', (3, 1), (3, -1), 'CENTER'),  # Unidad
+        ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),  # Precios
+        
+        # Bordes
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+        ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor('#5E6AD2')),
+        ('LINEBELOW', (0, 1), (-1, -2), 0.5, colors.HexColor('#EEEEEE')),
+        
+        # Padding
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    
+    elements.append(detalle_table)
+    elements.append(Spacer(1, 0.5*cm))
+    
+    # === TOTALES ===
+    monto_base = comprobante.monto_base or 0
+    monto_igv = comprobante.monto_igv or 0
+    monto_total = comprobante.monto_total or 0
+    
+    totales_data = [
+        ['', 'Op. Gravada:', f"S/ {monto_base:.2f}"],
+        ['', 'IGV (18%):', f"S/ {monto_igv:.2f}"],
+        ['', 'TOTAL:', f"S/ {monto_total:.2f}"],
+    ]
+    
+    totales_table = Table(totales_data, colWidths=[10*cm, 3*cm, 3*cm])
+    totales_table.setStyle(TableStyle([
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('FONTNAME', (1, -1), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (1, -1), (-1, -1), 11),
+        ('LINEABOVE', (1, -1), (-1, -1), 1, colors.HexColor('#5E6AD2')),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    
+    elements.append(totales_table)
+    elements.append(Spacer(1, 0.5*cm))
+    
+    # === CÓDIGO QR ===
+    try:
+        qr_data = f"{emisor.ruc}|{comprobante.tipo_documento}|{comprobante.serie}|{comprobante.numero}|{monto_igv:.2f}|{monto_total:.2f}|{fecha_emision}|||"
+        
+        qr = qrcode.QRCode(version=1, box_size=3, border=1)
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        
+        qr_buffer = BytesIO()
+        qr_img.save(qr_buffer, format='PNG')
+        qr_buffer.seek(0)
+        
+        # Tabla con QR y hash
+        qr_section_data = [
+            [Image(qr_buffer, width=2.5*cm, height=2.5*cm), 
+             Paragraph(f"<b>Hash:</b><br/>{comprobante.hash_cpe[:20] if comprobante.hash_cpe else 'N/A'}...", style_normal)]
+        ]
+        
+        qr_table = Table(qr_section_data, colWidths=[3*cm, 13*cm])
+        qr_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        
+        elements.append(qr_table)
+    except Exception as e:
+        print(f"Error generando QR: {e}")
+    
+    elements.append(Spacer(1, 0.3*cm))
+    
+    # === PIE DE PÁGINA ===
+    elements.append(Paragraph(
+        "Representación impresa de la Factura Electrónica. Consulte en: https://facturalo.pro",
+        ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, alignment=TA_CENTER, textColor=colors.gray)
+    ))
+    
+    # Construir PDF
+    doc.build(elements)
+    
+    buffer.seek(0)
+    return buffer.getvalue()
 
 
-def generar_pdf_comprobante(comprobante_data: dict) -> bytes:
-    """Wrapper conveniente"""
-    return generar_pdf_factura(
-        emisor_ruc=comprobante_data["emisor_ruc"],
-        emisor_razon_social=comprobante_data["emisor_razon_social"],
-        emisor_direccion=comprobante_data["emisor_direccion"],
-        tipo_comprobante=comprobante_data["tipo_comprobante"],
-        serie=comprobante_data["serie"],
-        numero=comprobante_data["numero"],
-        fecha_emision=comprobante_data["fecha_emision"],
-        cliente_ruc=comprobante_data["cliente_ruc"],
-        cliente_razon_social=comprobante_data["cliente_razon_social"],
-        cliente_direccion=comprobante_data["cliente_direccion"],
-        items=comprobante_data["items"],
-        subtotal=comprobante_data["subtotal"],
-        igv=comprobante_data["igv"],
-        total=comprobante_data["total"],
-        moneda=comprobante_data.get("moneda", "PEN"),
-        hash_cpe=comprobante_data.get("hash_cpe", ""),
-        estado=comprobante_data.get("estado", "aceptado"),
-        emisor_logo=comprobante_data.get("emisor_logo", ""),
-        emisor_telefono=comprobante_data.get("emisor_telefono", ""),
-        emisor_email=comprobante_data.get("emisor_email", ""),
-        emisor_web=comprobante_data.get("emisor_web", ""),
-        emisor_lema=comprobante_data.get("emisor_lema", ""),
-        emisor_establecimiento_anexo=comprobante_data.get("emisor_establecimiento_anexo", ""),
-        es_agente_retencion=comprobante_data.get("es_agente_retencion", False),
-        es_agente_percepcion=comprobante_data.get("es_agente_percepcion", False),
-        observaciones=comprobante_data.get("observaciones", ""),
-        color_primario=comprobante_data.get("color_primario", "#2c3e50"),
-        color_secundario=comprobante_data.get("color_secundario", "#e74c3c")
-    )
+def generar_pdf_simple(comprobante, emisor) -> bytes:
+    """
+    Genera un PDF simple sin dependencias de líneas detalle
+    Útil para testing o cuando no hay líneas
+    """
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    
+    # Título
+    c.setFont("Helvetica-Bold", 16)
+    c.drawCentredString(width/2, height - 2*cm, emisor.razon_social)
+    
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(width/2, height - 2.5*cm, f"RUC: {emisor.ruc}")
+    
+    # Tipo documento
+    tipo_doc = "FACTURA ELECTRÓNICA" if comprobante.tipo_documento == '01' else "BOLETA ELECTRÓNICA"
+    c.setFont("Helvetica-Bold", 14)
+    c.drawCentredString(width/2, height - 4*cm, tipo_doc)
+    
+    c.setFont("Helvetica-Bold", 12)
+    c.drawCentredString(width/2, height - 4.8*cm, f"{comprobante.serie}-{str(comprobante.numero).zfill(8)}")
+    
+    # Datos
+    c.setFont("Helvetica", 10)
+    y = height - 6*cm
+    
+    c.drawString(2*cm, y, f"Fecha: {comprobante.fecha_emision.strftime('%d/%m/%Y')}")
+    y -= 0.6*cm
+    c.drawString(2*cm, y, f"Moneda: {comprobante.moneda or 'PEN'}")
+    
+    # Totales
+    y -= 2*cm
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(2*cm, y, "TOTALES:")
+    
+    c.setFont("Helvetica", 10)
+    y -= 0.6*cm
+    c.drawString(2*cm, y, f"Subtotal: S/ {comprobante.monto_base:.2f}")
+    y -= 0.5*cm
+    c.drawString(2*cm, y, f"IGV (18%): S/ {comprobante.monto_igv:.2f}")
+    y -= 0.5*cm
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(2*cm, y, f"TOTAL: S/ {comprobante.monto_total:.2f}")
+    
+    c.save()
+    buffer.seek(0)
+    return buffer.getvalue()
