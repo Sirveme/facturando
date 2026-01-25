@@ -1,11 +1,21 @@
 [phases.setup]
 nixPkgs = [
   "python312",
-  "cairo",
+
+  # Toolchain C (OBLIGATORIO para pycairo)
+  "gcc",
+  "binutils",
   "pkg-config",
-  "cmake",
+
+  # Cairo / PDF stack
+  "cairo",
   "pango",
   "gdk-pixbuf",
   "glib",
-  "libffi"
+  "libffi",
+
+  # Build tools usados por pycairo
+  "cmake",
+  "meson",
+  "ninja"
 ]
