@@ -1,3 +1,4 @@
+# v2 - ReportLab - NO WEASYPRINT
 """
 Generador de PDF para comprobantes electrónicos
 Usando ReportLab (100% Python, sin dependencias del sistema)
@@ -335,4 +336,5 @@ def generar_pdf_simple(comprobante, emisor) -> bytes:
     
     c.save()
     buffer.seek(0)
+
     return buffer.getvalue()
