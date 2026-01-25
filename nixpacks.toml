@@ -1,0 +1,6 @@
+[phases.setup]
+nixPkgs = [
+  "cairo",
+  "pkg-config",
+  "cmake"
+]
