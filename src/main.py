@@ -7,6 +7,12 @@ from src.api.frontend import router as frontend_router
 from src.models.models import Base
 from src.api.dependencies import engine
 
+from src.api.productos import router as productos_router
+from src.api.clientes import router as clientes_router
+
+from src.api.v1.router import router as api_v1_router
+from src.api.admin import router as admin_router
+
 app = FastAPI(
     title='facturalo.pro',
     version='0.1.0',
@@ -27,6 +33,10 @@ if static_path.exists():
 # Incluir routers
 app.include_router(api_router, prefix='/api')
 app.include_router(frontend_router)
+app.include_router(productos_router)
+app.include_router(clientes_router)
+app.include_router(api_v1_router)
+app.include_router(admin_router)
 
 @app.get("/health")
 def health_check():
