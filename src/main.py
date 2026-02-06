@@ -36,14 +36,14 @@ if static_path.exists():
 #app.include_router(productos_router)
 #app.include_router(clientes_router)
 app.include_router(api_v1_router)
-#app.include_router(admin_router)
+app.include_router(admin_router)
 
 
 app.include_router(api_router, prefix='/api', include_in_schema=False)
 app.include_router(frontend_router, include_in_schema=False)
 app.include_router(productos_router, include_in_schema=False)
 app.include_router(clientes_router, include_in_schema=False)
-app.include_router(admin_router, include_in_schema=False)
+#app.include_router(admin_router, include_in_schema=False)
 
 @app.get("/health")
 def health_check():
