@@ -1,5 +1,6 @@
 import uuid
-from datetime import datetime, timezone
+from uuid import uuid4
+from datetime import datetime, timezone, date
 from decimal import Decimal
 from sqlalchemy import (
     Column, String, Integer, Boolean, Date, DateTime, Text, Numeric, LargeBinary, JSON, ForeignKey, Index
@@ -39,6 +40,21 @@ class Emisor(Base):
     telefono = Column(String(20))
     email = Column(String(100))
     web = Column(String(200))
+    usuario_sol = Column(String(20))
+    clave_sol = Column(Text)  # Encriptado
+    formato_factura = Column(String(10), default='A4')
+    formato_boleta = Column(String(10), default='A4')
+    formato_ticket = Column(String(10), default='TICKET')
+    formato_nc_nd = Column(String(10), default='A4')
+
+    # API
+    api_key = Column(String(64), unique=True)
+    api_secret = Column(String(64))
+    api_activa = Column(Boolean, default=False)
+    plan = Column(String(50), default='free')
+    docs_mes_limite = Column(Integer, default=50)
+    docs_mes_usados = Column(Integer, default=0)
+    fecha_reset_contador = Column(Date, default=date.today)
 
     certificados = relationship('Certificado', back_populates='emisor', cascade='all, delete-orphan')
     comprobantes = relationship('Comprobante', back_populates='emisor', cascade='all, delete-orphan')
@@ -46,6 +62,8 @@ class Emisor(Base):
     productos = relationship('Producto', back_populates='emisor', cascade='all, delete-orphan')
     usuarios = relationship('Usuario', back_populates='emisor', cascade='all, delete-orphan')
     establecimientos = relationship('Establecimiento', back_populates='emisor', cascade='all, delete-orphan')
+    categorias = relationship("Categoria", back_populates="emisor")
+    productos = relationship("Producto", back_populates="emisor")
 
 class Certificado(Base):
     __tablename__ = 'certificado'
@@ -88,6 +106,18 @@ class Comprobante(Base):
     intentos_envio = Column(Integer, default=0)
     ultimo_intento_envio = Column(DateTime)
     procesando_desde = Column(DateTime)
+    cliente_tipo_documento = Column(String(1))
+    cliente_numero_documento = Column(String(15))
+    cliente_razon_social = Column(String(500))
+    cliente_direccion = Column(String(500))
+    cliente_departamento = Column(String(100))
+    cliente_provincia = Column(String(100))
+    cliente_distrito = Column(String(100))
+    cliente_ubigeo = Column(String(6))
+    doc_referencia_tipo = Column(String(2))      # Tipo doc referencia (01, 03)
+    doc_referencia_numero = Column(String(20))   # Número del doc referencia
+    motivo_nota = Column(String(2))              # Motivo NC/ND (01-07)
+    referencia_externa = Column(String(100), index=True)
 
     emisor = relationship('Emisor', back_populates='comprobantes')
     lineas = relationship('LineaDetalle', back_populates='comprobante', cascade='all, delete-orphan')
@@ -198,7 +228,6 @@ class Cliente(Base):
         Index('idx_cliente_emisor_documento', 'emisor_id', 'numero_documento'),
         Index('idx_cliente_razon_social', 'razon_social'),
     )
-
 
 
 # ========================================
@@ -515,3 +544,37 @@ class ComprobanteTemplate(Base):
 # Agregar columna a Comprobante (si no existe)
 # Comprobante.cliente_id = Column(String, ForeignKey('cliente.id'))
 # Comprobante.cliente = relationship("Cliente", back_populates="comprobantes")
+
+
+class Categoria(Base):
+    __tablename__ = "categoria"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    emisor_id = Column(String(36), ForeignKey("emisor.id"), nullable=False)
+    nombre = Column(String(100), nullable=False)
+    descripcion = Column(Text)
+    activo = Column(Boolean, default=True)
+    creado_en = Column(DateTime, default=datetime.utcnow)
+    
+    # Relaciones
+    emisor = relationship("Emisor", back_populates="categorias")
+
+
+
+class ApiLog(Base):
+    """Log de llamadas a la API pública"""
+    __tablename__ = "api_log"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    emisor_id = Column(String(36), ForeignKey("emisor.id"))
+    endpoint = Column(String(100))
+    metodo = Column(String(10))
+    request_body = Column(Text)
+    response_code = Column(Integer)
+    response_body = Column(Text)
+    ip_origen = Column(String(50))
+    duracion_ms = Column(Integer)
+    creado_en = Column(DateTime, default=datetime.utcnow)
+    
+    # Relación
+    emisor = relationship("Emisor")
