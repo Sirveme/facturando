@@ -62,39 +62,44 @@ class SunatService:
                 }
             
             # Guardar XML en BD
-            comprobante.xml = xml_content
+            # Asegurar que xml sea bytes
+            if isinstance(xml_content, str):
+                comprobante.xml = xml_content.encode('utf-8')
+            else:
+                comprobante.xml = xml_content
             
-            # 2. Generar hash y QR
-            comprobante.hash_cpe = self._generar_hash(xml_content)
-            comprobante.codigo_qr = self._generar_qr(comprobante, emisor)
+            # 2. Generar hash
+            hash_cpe = self._generar_hash(xml_content)
             
             # 3. Firmar XML (si hay certificado)
-            if emisor.certificado:
-                xml_firmado = self._firmar_xml(xml_content, emisor.certificado)
+            if emisor.certificados and len(emisor.certificados) > 0:
+                certificado = emisor.certificados[0]
+                xml_firmado = self._firmar_xml(xml_content, certificado)
             else:
                 xml_firmado = xml_content
             
             # 4. Enviar a SUNAT (simulado por ahora)
-            # TODO: Implementar envío real con requests/SOAP
             resultado_sunat = self._enviar_a_sunat_mock(comprobante, emisor)
             
             # 5. Guardar respuesta
+            # Asegurar que cdr_xml sea bytes
+            cdr_xml_data = resultado_sunat.get('cdr_xml', b'')
+            if isinstance(cdr_xml_data, str):
+                cdr_xml_data = cdr_xml_data.encode('utf-8')
+
             respuesta = RespuestaSunat(
                 comprobante_id=comprobante.id,
-                codigo_respuesta=resultado_sunat.get('codigo', '0'),
-                descripcion_respuesta=resultado_sunat.get('descripcion', ''),
-                cdr_xml=resultado_sunat.get('cdr_xml', ''),
-                fecha_respuesta=datetime.now()
+                codigo_cdr=resultado_sunat.get('codigo', '0'),
+                descripcion=resultado_sunat.get('descripcion', ''),
+                cdr_xml=cdr_xml_data,
+                hash_documento=hash_cpe if isinstance(hash_cpe, str) else ''
             )
             
             self.db.add(respuesta)
             
-            # Actualizar comprobante
+            # Actualizar estado del comprobante
             comprobante.estado = resultado_sunat.get('estado', 'aceptado')
-            comprobante.codigo_respuesta = resultado_sunat.get('codigo', '0')
-            comprobante.descripcion_respuesta = resultado_sunat.get('descripcion', '')
-            comprobante.cdr_xml = resultado_sunat.get('cdr_xml', '')
-            comprobante.fecha_envio_sunat = datetime.now()
+            comprobante.enviado_en = datetime.now()
             
             self.db.commit()
             
@@ -193,13 +198,28 @@ class SunatService:
         """
         import random
         
+        # Determinar tipo de documento con artículo correcto
+        tipos_doc = {
+            '01': ('La', 'Factura'),
+            '03': ('La', 'Boleta de Venta'),
+            '07': ('La', 'Nota de Crédito'),
+            '08': ('La', 'Nota de Débito'),
+            '12': ('El', 'Ticket'),
+        }
+        
+        articulo, tipo_nombre = tipos_doc.get(comprobante.tipo_documento, ('El', 'Comprobante'))
+        numero_formato = comprobante.numero_formato or f"{comprobante.serie}-{str(comprobante.numero).zfill(8)}"
+        
+        # Concordancia: aceptada/aceptado
+        aceptado = "aceptada" if articulo == "La" else "aceptado"
+        
         # Simular respuesta SUNAT (90% éxito, 10% rechazo)
         if random.random() < 0.9:
             return {
                 "estado": "aceptado",
                 "codigo": "0",
-                "descripcion": "La Factura numero F001-00000001, ha sido aceptada",
-                "cdr_xml": "<?xml version='1.0'?><CDR>Aceptado</CDR>"
+                "descripcion": f"{articulo} {tipo_nombre} numero {numero_formato}, ha sido {aceptado}",
+                "cdr_xml": b"<?xml version='1.0'?><CDR>Aceptado</CDR>"
             }
         else:
             # Errores comunes SUNAT
@@ -216,5 +236,5 @@ class SunatService:
                 "estado": "rechazado",
                 "codigo": error[0],
                 "descripcion": error[1],
-                "cdr_xml": f"<?xml version='1.0'?><CDR>Rechazado: {error[1]}</CDR>"
+                "cdr_xml": f"<?xml version='1.0'?><CDR>Rechazado: {error[1]}</CDR>".encode('utf-8')
             }
