@@ -7,7 +7,7 @@ from datetime import datetime
 from src.api.v1.comprobantes import router as comprobantes_router
 from src.api.v1.consultas import router as consultas_router
 
-router = APIRouter(prefix="/api/v1", tags=["API v1"])
+router = APIRouter(prefix="/api/v1")
 
 # Incluir sub-routers
 router.include_router(comprobantes_router)
