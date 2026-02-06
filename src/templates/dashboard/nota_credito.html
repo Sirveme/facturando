@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block title %}Nota de Crédito - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/nota_credito.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            
+            <a href="/dashboard" class="header-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
+                    <path d="M16 8L20 16H12L16 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" style="stop-color:#d4af37"/>
+                            <stop offset="100%" style="stop-color:#b8860b"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>facturalo.pro</span>
+            </a>
+        </div>
+        
+        <div class="header-right">
+            <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
+                <svg class="icon-sun" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg class="icon-moon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            </button>
+            
+            <div class="header-user">
+                <div class="avatar">
+                    <span>{{ user_ruc[:2] if user_ruc else '??' }}</span>
+                </div>
+                <div class="header-user-info">
+                    <div class="header-user-name">{{ emisor.razon_social[:20] if emisor and emisor.razon_social else 'Usuario' }}{% if emisor and emisor.razon_social and emisor.razon_social|length > 20 %}...{% endif %}</div>
+                    <div class="header-user-role">RUC {{ user_ruc if user_ruc else '' }}</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <a href="/dashboard" class="sidebar-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+                    <span class="sidebar-link-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/comprobantes" class="sidebar-link {% if '/comprobantes' in request.url.path and 'emitir' not in request.url.path and 'nota' not in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📄</span>
+                    <span>Comprobantes</span>
+                </a>
+                <a href="/comprobantes/emitir" class="sidebar-link {% if request.url.path == '/comprobantes/emitir' %}active{% endif %}">
+                    <span class="sidebar-link-icon">➕</span>
+                    <span>Emitir</span>
+                </a>
+                <a href="/productos" class="sidebar-link {% if '/productos' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📦</span>
+                    <span>Productos</span>
+                </a>
+                <a href="/clientes" class="sidebar-link {% if '/clientes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">👥</span>
+                    <span>Clientes</span>
+                </a>
+                <a href="/reportes" class="sidebar-link {% if '/reportes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📈</span>
+                    <span>Reportes</span>
+                </a>
+                <a href="/configuracion" class="sidebar-link {% if '/configuracion' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">⚙️</span>
+                    <span>Configuración</span>
+                </a>
+            </div>
+            <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
+                <a href="/logout" class="sidebar-link">
+                    <span class="sidebar-link-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+    
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+    
+    <!-- Main -->
+    <main class="main">
+        <div class="page-header">
+            <h1 class="page-title">📝 Nota de Crédito</h1>
+            <p class="page-description">Emite una nota de crédito referenciando una factura o boleta</p>
+        </div>
+        
+        <form id="form-nota-credito">
+            <!-- Paso 1: Seleccionar Comprobante -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">1️⃣ Comprobante de Referencia</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-row" style="display: flex; gap: var(--space-4); flex-wrap: wrap;">
+                        <div class="input-group" style="flex: 1; min-width: 200px;">
+                            <label class="input-label">Buscar</label>
+                            <input type="text" id="buscar-comprobante" class="input" placeholder="Número, cliente o RUC...">
+                        </div>
+                        <div class="input-group" style="flex: 0 0 150px;">
+                            <label class="input-label">Tipo</label>
+                            <select id="filtro-tipo" class="input">
+                                <option value="">Todos</option>
+                                <option value="01">Facturas</option>
+                                <option value="03">Boletas</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="lista-comprobantes" style="margin-top: var(--space-4); max-height: 350px; overflow-y: auto;">
+                        {% if comprobantes_disponibles %}
+                            <p class="text-secondary" style="margin-bottom: var(--space-3); font-size: var(--text-sm);">
+                                📋 {{ comprobantes_disponibles|length }} comprobantes disponibles. Haz clic para seleccionar.
+                            </p>
+                            {% for c in comprobantes_disponibles %}
+                            <div class="ref-card" data-id="{{ c.id }}" 
+                                 data-numero="{{ c.numero_formato or (c.serie ~ '-' ~ '%08d'|format(c.numero)) }}" 
+                                 data-tipo="{{ c.tipo_documento }}" data-serie="{{ c.serie }}"
+                                 data-cliente="{{ c.cliente_razon_social or '' }}" 
+                                 data-cliente-doc="{{ c.cliente_numero_documento or '' }}"
+                                 data-cliente-tipo-doc="{{ c.cliente_tipo_documento or '' }}"
+                                 data-cliente-direccion="{{ c.cliente_direccion or '' }}"
+                                 data-total="{{ c.monto_total or 0 }}" 
+                                 data-base="{{ c.monto_base or 0 }}" 
+                                 data-igv="{{ c.monto_igv or 0 }}">
+                                <div class="ref-card-header">
+                                    <div>
+                                        <span class="ref-card-numero">{{ c.numero_formato or (c.serie ~ '-' ~ '%08d'|format(c.numero)) }}</span>
+                                        <span class="badge badge-{{ 'primary' if c.tipo_documento == '01' else 'info' }}" style="margin-left: 8px;">
+                                            {{ 'Factura' if c.tipo_documento == '01' else 'Boleta' }}
+                                        </span>
+                                    </div>
+                                    <span class="ref-card-monto">S/ {{ "%.2f"|format(c.monto_total or 0) }}</span>
+                                </div>
+                                <div class="ref-info">
+                                    <div class="ref-info-item">
+                                        <span class="ref-info-label">Fecha</span>
+                                        <span class="ref-info-value">{{ c.fecha_emision.strftime('%d/%m/%Y') if c.fecha_emision else '-' }}</span>
+                                    </div>
+                                    <div class="ref-info-item">
+                                        <span class="ref-info-label">Cliente</span>
+                                        <span class="ref-info-value">{{ (c.cliente_razon_social or 'Sin cliente')[:25] }}{% if c.cliente_razon_social and c.cliente_razon_social|length > 25 %}...{% endif %}</span>
+                                    </div>
+                                    <div class="ref-info-item">
+                                        <span class="ref-info-label">RUC/DNI</span>
+                                        <span class="ref-info-value">{{ c.cliente_numero_documento or '-' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state" style="text-align: center; padding: var(--space-8);">
+                                <div style="font-size: 48px; margin-bottom: var(--space-4);">📄</div>
+                                <p style="color: var(--text-primary);">No hay comprobantes disponibles</p>
+                                <p class="text-secondary">Emite una Factura o Boleta primero</p>
+                                <a href="/comprobantes/emitir" class="btn btn-primary btn-sm" style="margin-top: var(--space-4);">Emitir Comprobante</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <input type="hidden" id="comprobante_ref_id" name="comprobante_ref_id" required>
+                    <input type="hidden" id="comprobante_ref_numero" name="comprobante_ref_numero">
+                    <input type="hidden" id="comprobante_ref_tipo" name="comprobante_ref_tipo">
+                </div>
+            </div>
+            <!-- Paso 2: Motivo -->
+            <div class="card" style="margin-top: var(--space-6);">
+                <div class="card-header">
+                    <h3 class="card-title">2️⃣ Motivo de la Nota de Crédito</h3>
+                </div>
+                <div class="card-body">
+                    <div class="motivo-options">
+                        <label class="motivo-option">
+                            <input type="radio" name="motivo" value="01" checked>
+                            <div>
+                                <strong>Anulación de operación</strong>
+                                <p>Anula totalmente el comprobante</p>
+                            </div>
+                        </label>
+                        <label class="motivo-option">
+                            <input type="radio" name="motivo" value="02">
+                            <div>
+                                <strong>Anulación por error en RUC</strong>
+                                <p>Error en datos del cliente</p>
+                            </div>
+                        </label>
+                        <label class="motivo-option">
+                            <input type="radio" name="motivo" value="03">
+                            <div>
+                                <strong>Corrección por error en descripción</strong>
+                                <p>Error en detalle de productos</p>
+                            </div>
+                        </label>
+                        <label class="motivo-option">
+                            <input type="radio" name="motivo" value="04">
+                            <div>
+                                <strong>Descuento global</strong>
+                                <p>Descuento posterior a la venta</p>
+                            </div>
+                        </label>
+                        <label class="motivo-option">
+                            <input type="radio" name="motivo" value="05">
+                            <div>
+                                <strong>Descuento por ítem</strong>
+                                <p>Descuento en productos específicos</p>
+                            </div>
+                        </label>
+                        <label class="motivo-option">
+                            <input type="radio" name="motivo" value="06">
+                            <div>
+                                <strong>Devolución total</strong>
+                                <p>Cliente devuelve todo</p>
+                            </div>
+                        </label>
+                        <label class="motivo-option">
+                            <input type="radio" name="motivo" value="07">
+                            <div>
+                                <strong>Devolución parcial</strong>
+                                <p>Cliente devuelve algunos productos</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <!-- Paso 3: Detalle (dinámico según motivo) -->
+            <div class="card" style="margin-top: var(--space-6);">
+                <div class="card-header">
+                    <h3 class="card-title">3️⃣ Detalle de la NC</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-secondary" id="msg-seleccionar">
+                        Selecciona un comprobante de referencia para continuar
+                    </p>
+                    
+                    <div id="detalle-container" style="display: none;">
+                        
+                        <!-- Panel: Total (motivos 01, 02, 06) -->
+                        <div class="detalle-panel" id="panel-total">
+                            <div class="info-message">
+                                ℹ️ Se anulará/devolverá el 100% del comprobante original
+                            </div>
+                            <div class="nc-items" id="items-total">
+                                <!-- Items se cargan dinámicamente -->
+                            </div>
+                        </div>
+                        
+                        <!-- Panel: Editable (motivo 03) -->
+                        <div class="detalle-panel" id="panel-editable">
+                            <div class="info-message warning">
+                                ✏️ Puedes editar la descripción de cada ítem. Los montos permanecen igual.
+                            </div>
+                            <div class="nc-items" id="items-editable">
+                                <!-- Items se cargan dinámicamente -->
+                            </div>
+                        </div>
+                        
+                        <!-- Panel: Descuento Global (motivo 04) -->
+                        <div class="detalle-panel" id="panel-descuento_global">
+                            <div class="info-message">
+                                💰 Ingresa el porcentaje o monto fijo del descuento
+                            </div>
+                            <div class="descuento-global-form">
+                                <div class="input-group">
+                                    <label class="input-label">Total Original</label>
+                                    <div id="dg-total-original" style="font-size: var(--text-lg); font-weight: bold; color: var(--text-primary);">S/ 0.00</div>
+                                    <div id="dg-base-original" class="text-secondary" style="font-size: var(--text-sm);">Base: S/ 0.00</div>
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Tipo</label>
+                                    <select id="dg-tipo" class="input" onchange="calcularDescuentoGlobal()">
+                                        <option value="porcentaje">Porcentaje %</option>
+                                        <option value="monto">Monto fijo S/</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Valor</label>
+                                    <input type="number" id="dg-valor" class="input" min="0.01" step="0.01" placeholder="10" onchange="calcularDescuentoGlobal()" oninput="calcularDescuentoGlobal()">
+                                </div>
+                            </div>
+                            <div class="descuento-preview">
+                                <div class="descuento-preview-row">
+                                    <span>Descuento Base:</span>
+                                    <span id="dg-descuento-base">S/ 0.00</span>
+                                </div>
+                                <div class="descuento-preview-row">
+                                    <span>IGV (18%):</span>
+                                    <span id="dg-descuento-igv">S/ 0.00</span>
+                                </div>
+                                <div class="descuento-preview-row total">
+                                    <span>Total Descuento:</span>
+                                    <span id="dg-descuento-total">S/ 0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Panel: Descuento por Ítem (motivo 05) -->
+                        <div class="detalle-panel" id="panel-descuento_item">
+                            <div class="info-message">
+                                🏷️ Ingresa el descuento para cada ítem (porcentaje o monto fijo)
+                            </div>
+                            <div class="nc-items" id="items-descuento">
+                                <!-- Items se cargan dinámicamente -->
+                            </div>
+                            <div class="nc-actions">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="seleccionarTodos('items-descuento')">✓ Seleccionar todos</button>
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="deseleccionarTodos('items-descuento')">✕ Deseleccionar</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Panel: Parcial (motivo 07) -->
+                        <div class="detalle-panel" id="panel-parcial">
+                            <div class="info-message">
+                                📦 Selecciona los ítems y cantidades a devolver
+                            </div>
+                            <div class="nc-items" id="items-parcial">
+                                <!-- Items se cargan dinámicamente -->
+                            </div>
+                            <div class="nc-actions">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="seleccionarTodos('items-parcial')">✓ Seleccionar todos</button>
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="deseleccionarTodos('items-parcial')">✕ Deseleccionar</button>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+            <!-- Paso 4: Observaciones y Totales -->
+            <div class="card" style="margin-top: var(--space-6);">
+                <div class="card-header">
+                    <h3 class="card-title">4️⃣ Observaciones y Totales</h3>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <label class="input-label">Observaciones (opcional)</label>
+                        <textarea id="observaciones" name="observaciones" class="input" rows="2" placeholder="Motivo detallado de la nota de crédito..."></textarea>
+                    </div>
+                    
+                    <div class="totales-box" style="margin-top: var(--space-6);">
+                        <div class="total-row">
+                            <span>Op. Gravada:</span>
+                            <span id="nc-subtotal">S/ 0.00</span>
+                        </div>
+                        <div class="total-row">
+                            <span>IGV (18%):</span>
+                            <span id="nc-igv">S/ 0.00</span>
+                        </div>
+                        <div class="total-row total-final">
+                            <span>TOTAL NC:</span>
+                            <span id="nc-total">S/ 0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Acciones -->
+            <div class="form-actions" style="margin-top: var(--space-6); display: flex; justify-content: flex-end; gap: var(--space-4);">
+                <a href="/comprobantes" class="btn btn-ghost">Cancelar</a>
+                <button type="submit" class="btn btn-primary" id="btn-emitir-nc">
+                    📝 Emitir Nota de Crédito
+                </button>
+            </div>
+        </form>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/toast.js') }}?v=5"></script>
+<script src="{{ url_for('static', path='/js/nota_credito.js') }}?v=1"></script>
+{% endblock %}

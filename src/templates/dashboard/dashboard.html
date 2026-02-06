@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
+<style>
+    /* Stats Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: var(--space-6);
+        margin-bottom: var(--space-8);
+    }
+    
+    .stat-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+        transition: all var(--transition-base);
+    }
+    
+    .stat-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .stat-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-4);
+    }
+    
+    .stat-card-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md);
+        font-size: 24px;
+    }
+    
+    .stat-card-icon.primary { background: rgba(212, 175, 55, 0.15); }
+    .stat-card-icon.success { background: rgba(34, 197, 94, 0.15); }
+    .stat-card-icon.danger { background: rgba(239, 68, 68, 0.15); }
+    .stat-card-icon.info { background: rgba(59, 130, 246, 0.15); }
+    
+    .stat-card-label {
+        font-size: var(--text-sm);
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-card-value {
+        font-size: var(--text-3xl);
+        font-weight: var(--weight-bold);
+        color: var(--text-primary);
+        line-height: 1.2;
+    }
+    
+    .stat-card-value.currency::before {
+        content: "S/ ";
+        font-size: var(--text-lg);
+        color: var(--text-secondary);
+    }
+    
+    .stat-card-footer {
+        margin-top: var(--space-4);
+        padding-top: var(--space-4);
+        border-top: 1px solid var(--border-color);
+        font-size: var(--text-sm);
+        color: var(--text-secondary);
+    }
+    
+    /* Quick Actions */
+    .quick-actions {
+        display: flex;
+        gap: var(--space-4);
+        margin-bottom: var(--space-8);
+        flex-wrap: wrap;
+    }
+    
+    .quick-action-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-6);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: var(--weight-medium);
+        transition: all var(--transition-base);
+    }
+    
+    .quick-action-btn:hover {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: var(--bg-primary);
+    }
+    
+    .quick-action-btn .icon {
+        font-size: 20px;
+    }
+    
+    /* Content Grid */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--space-6);
+    }
+    
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Recent Table */
+    .recent-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    
+    .recent-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4) var(--space-6);
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .recent-card-title {
+        font-size: var(--text-lg);
+        font-weight: var(--weight-semibold);
+        color: var(--text-primary);
+        margin: 0;
+    }
+    
+    .recent-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .recent-table th,
+    .recent-table td {
+        padding: var(--space-3) var(--space-4);
+        text-align: left;
+    }
+    
+    .recent-table th {
+        background: var(--bg-tertiary);
+        font-size: var(--text-xs);
+        font-weight: var(--weight-semibold);
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .recent-table td {
+        border-bottom: 1px solid var(--border-color);
+        font-size: var(--text-sm);
+        color: var(--text-primary);
+    }
+    
+    .recent-table tbody tr:hover {
+        background: var(--bg-tertiary);
+    }
+    
+    .recent-table .monto {
+        text-align: right;
+        font-weight: var(--weight-medium);
+    }
+    
+    /* Status Cards */
+    .status-grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+    
+    .status-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+    }
+    
+    .status-card-title {
+        font-size: var(--text-sm);
+        font-weight: var(--weight-semibold);
+        color: var(--text-primary);
+        margin: 0 0 var(--space-4);
+    }
+    
+    .status-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-2) 0;
+    }
+    
+    .status-item-label {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: var(--text-sm);
+        color: var(--text-secondary);
+    }
+    
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    
+    .status-dot.success { background: var(--success); }
+    .status-dot.danger { background: var(--danger); }
+    .status-dot.warning { background: var(--warning); }
+    .status-dot.info { background: var(--info); }
+    
+    .status-item-value {
+        font-weight: var(--weight-bold);
+        color: var(--text-primary);
+    }
+    
+    /* Certificate Alert */
+    .cert-alert {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4);
+        border-radius: var(--radius-md);
+        font-size: var(--text-sm);
+    }
+    
+    .cert-alert.success {
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: var(--success-text);
+    }
+    
+    .cert-alert.warning {
+        background: rgba(234, 179, 8, 0.1);
+        border: 1px solid rgba(234, 179, 8, 0.3);
+        color: var(--warning-text);
+    }
+    
+    .cert-alert.danger {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: var(--danger-text);
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: var(--space-8);
+        color: var(--text-secondary);
+    }
+    
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: var(--space-4);
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            
+            <a href="/dashboard" class="header-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
+                    <path d="M16 8L20 16H12L16 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" style="stop-color:#d4af37"/>
+                            <stop offset="100%" style="stop-color:#b8860b"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>facturalo.pro</span>
+            </a>
+        </div>
+        
+        <div class="header-right">
+            <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
+                <svg class="icon-sun" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg class="icon-moon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            </button>
+            
+            <div class="header-user">
+                <div class="avatar">
+                    <span>{{ user_ruc[:2] if user_ruc else '??' }}</span>
+                </div>
+                <div class="header-user-info">
+                    <div class="header-user-name">{{ emisor.razon_social[:20] if emisor and emisor.razon_social else 'Usuario' }}{% if emisor and emisor.razon_social and emisor.razon_social|length > 20 %}...{% endif %}</div>
+                    <div class="header-user-role">RUC {{ user_ruc if user_ruc else '' }}</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <a href="/dashboard" class="sidebar-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+                    <span class="sidebar-link-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/comprobantes" class="sidebar-link {% if '/comprobantes' in request.url.path and 'emitir' not in request.url.path and 'nota' not in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📄</span>
+                    <span>Comprobantes</span>
+                </a>
+                <a href="/comprobantes/emitir" class="sidebar-link {% if request.url.path == '/comprobantes/emitir' %}active{% endif %}">
+                    <span class="sidebar-link-icon">➕</span>
+                    <span>Emitir</span>
+                </a>
+                <a href="/productos" class="sidebar-link {% if '/productos' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📦</span>
+                    <span>Productos</span>
+                </a>
+                <a href="/clientes" class="sidebar-link {% if '/clientes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">👥</span>
+                    <span>Clientes</span>
+                </a>
+                <a href="/reportes" class="sidebar-link {% if '/reportes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📈</span>
+                    <span>Reportes</span>
+                </a>
+                <a href="/configuracion" class="sidebar-link {% if '/configuracion' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">⚙️</span>
+                    <span>Configuración</span>
+                </a>
+            </div>
+            <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
+                <a href="/logout" class="sidebar-link">
+                    <span class="sidebar-link-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+    
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+    
+    <!-- Main Content -->
+    <main class="main">
+        <div class="page-header">
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-description">Resumen de tu actividad de facturación</p>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <a href="/comprobantes/emitir" class="quick-action-btn">
+                <span class="icon">➕</span>
+                <span>Nueva Factura</span>
+            </a>
+            <a href="/comprobantes" class="quick-action-btn">
+                <span class="icon">📄</span>
+                <span>Ver Comprobantes</span>
+            </a>
+            <a href="/clientes" class="quick-action-btn">
+                <span class="icon">👥</span>
+                <span>Clientes</span>
+            </a>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-card-label">Facturado Hoy</div>
+                        <div class="stat-card-value currency">{{ "%.2f"|format(total_hoy) }}</div>
+                    </div>
+                    <div class="stat-card-icon primary">💰</div>
+                </div>
+                <div class="stat-card-footer">
+                    {{ comprobantes_hoy }} comprobante{% if comprobantes_hoy != 1 %}s{% endif %} emitido{% if comprobantes_hoy != 1 %}s{% endif %}
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-card-label">Esta Semana</div>
+                        <div class="stat-card-value currency">{{ "%.2f"|format(total_semana) }}</div>
+                    </div>
+                    <div class="stat-card-icon success">📈</div>
+                </div>
+                <div class="stat-card-footer">
+                    Desde el lunes
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-card-label">Este Mes</div>
+                        <div class="stat-card-value currency">{{ "%.2f"|format(total_mes) }}</div>
+                    </div>
+                    <div class="stat-card-icon info">📊</div>
+                </div>
+                <div class="stat-card-footer">
+                    {{ count_total }} comprobantes en total
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-card-label">Aceptados</div>
+                        <div class="stat-card-value">{{ count_aceptados }}</div>
+                    </div>
+                    <div class="stat-card-icon success">✅</div>
+                </div>
+                <div class="stat-card-footer">
+                    {% if count_rechazados > 0 %}
+                        {{ count_rechazados }} rechazado{% if count_rechazados != 1 %}s{% endif %}
+                    {% else %}
+                        Sin rechazos
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Recent Comprobantes -->
+            <div class="recent-card">
+                <div class="recent-card-header">
+                    <h3 class="recent-card-title">Últimos Comprobantes</h3>
+                    <a href="/comprobantes" class="btn btn-ghost btn-sm">Ver todos</a>
+                </div>
+                {% if ultimos_comprobantes %}
+                <table class="recent-table">
+                    <thead>
+                        <tr>
+                            <th>Comprobante</th>
+                            <th>Cliente</th>
+                            <th>Estado</th>
+                            <th class="monto">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in ultimos_comprobantes %}
+                        <tr>
+                            <td>
+                                <strong>{{ c.numero_formato or (c.serie ~ '-' ~ '%08d'|format(c.numero)) }}</strong>
+                                <br>
+                                <span class="text-secondary" style="font-size: 12px;">{{ c.fecha_emision.strftime('%d/%m/%Y') if c.fecha_emision else '-' }}</span>
+                            </td>
+                            <td>{{ (c.cliente_razon_social or 'Sin cliente')[:25] }}{% if c.cliente_razon_social and c.cliente_razon_social|length > 25 %}...{% endif %}</td>
+                            <td><span class="badge badge-{{ c.estado }}">{{ c.estado|capitalize }}</span></td>
+                            <td class="monto">S/ {{ "%.2f"|format(c.monto_total or 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📄</div>
+                    <p>No hay comprobantes emitidos</p>
+                    <a href="/comprobantes/emitir" class="btn btn-primary btn-sm">Emitir primer comprobante</a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Sidebar Stats -->
+            <div class="status-grid">
+                <!-- Por Estado -->
+                <div class="status-card">
+                    <h4 class="status-card-title">📊 Por Estado</h4>
+                    <div class="status-item">
+                        <span class="status-item-label">
+                            <span class="status-dot success"></span>
+                            Aceptados
+                        </span>
+                        <span class="status-item-value">{{ count_aceptados }}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-item-label">
+                            <span class="status-dot danger"></span>
+                            Rechazados
+                        </span>
+                        <span class="status-item-value">{{ count_rechazados }}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-item-label">
+                            <span class="status-dot warning"></span>
+                            Pendientes
+                        </span>
+                        <span class="status-item-value">{{ count_pendientes }}</span>
+                    </div>
+                </div>
+                
+                <!-- Por Tipo -->
+                <div class="status-card">
+                    <h4 class="status-card-title">📋 Por Tipo</h4>
+                    <div class="status-item">
+                        <span class="status-item-label">Facturas</span>
+                        <span class="status-item-value">{{ count_facturas }}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-item-label">Boletas</span>
+                        <span class="status-item-value">{{ count_boletas }}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-item-label">Notas de Crédito</span>
+                        <span class="status-item-value">{{ count_nc }}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-item-label">Notas de Débito</span>
+                        <span class="status-item-value">{{ count_nd }}</span>
+                    </div>
+                </div>
+                
+                <!-- Certificado -->
+                <div class="status-card">
+                    <h4 class="status-card-title">🔐 Certificado Digital</h4>
+                    {% if certificado %}
+                        {% if certificado_dias_restantes > 30 %}
+                        <div class="cert-alert success">
+                            ✅ Vigente hasta {{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                        </div>
+                        {% elif certificado_dias_restantes > 0 %}
+                        <div class="cert-alert warning">
+                            ⚠️ Vence en {{ certificado_dias_restantes }} días
+                        </div>
+                        {% else %}
+                        <div class="cert-alert danger">
+                            ❌ Certificado vencido
+                        </div>
+                        {% endif %}
+                    {% else %}
+                    <div class="cert-alert danger">
+                        ❌ No configurado
+                        <a href="/configuracion" style="margin-left: auto;">Configurar</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+{% endblock %}

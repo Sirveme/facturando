@@ -3,8 +3,8 @@
 {% block title %}Comprobantes - facturalo.pro{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=3">
-<link rel="stylesheet" href="{{ url_for('static', path='/css/comprobantes.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=4">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/comprobantes.css') }}?v=4">
 {% endblock %}
 
 {% block body %}
@@ -12,7 +12,7 @@
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
                 <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
@@ -20,12 +20,12 @@
             
             <a href="/dashboard" class="header-logo">
                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <rect width="32" height="32" rx="8" fill="url(#gradient)"/>
+                    <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
                     <path d="M16 8L20 16H12L16 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <defs>
-                        <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
-                            <stop offset="0%" style="stop-color:var(--primary)"/>
-                            <stop offset="100%" style="stop-color:var(--secondary)"/>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" style="stop-color:#d4af37"/>
+                            <stop offset="100%" style="stop-color:#b8860b"/>
                         </linearGradient>
                     </defs>
                 </svg>
@@ -35,75 +35,66 @@
         
         <div class="header-right">
             <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="icon-sun" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg class="icon-moon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                 </svg>
             </button>
             
             <div class="header-user">
                 <div class="avatar">
-                    <span>{{ user_ruc[:2] }}</span>
+                    <span>{{ user_ruc[:2] if user_ruc else '??' }}</span>
                 </div>
                 <div class="header-user-info">
-                    <div class="header-user-name">{{ emisor.razon_social[:20] }}</div>
-                    <div class="header-user-role">RUC {{ user_ruc }}</div>
+                    <div class="header-user-name">{{ emisor.razon_social[:20] if emisor and emisor.razon_social else 'Usuario' }}{% if emisor and emisor.razon_social and emisor.razon_social|length > 20 %}...{% endif %}</div>
+                    <div class="header-user-role">RUC {{ user_ruc if user_ruc else '' }}</div>
                 </div>
             </div>
         </div>
     </header>
     
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <nav class="sidebar-nav">
             <div class="sidebar-section">
-                <a href="/dashboard" class="sidebar-link">
-                    <span class="sidebar-link-icon">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                        </svg>
-                    </span>
+                <a href="/dashboard" class="sidebar-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+                    <span class="sidebar-link-icon">📊</span>
                     <span>Dashboard</span>
                 </a>
-                
-                <a href="/comprobantes" class="sidebar-link active">
-                    <span class="sidebar-link-icon">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                    </span>
+                <a href="/comprobantes" class="sidebar-link {% if '/comprobantes' in request.url.path and 'emitir' not in request.url.path and 'nota' not in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📄</span>
                     <span>Comprobantes</span>
-                    <span class="sidebar-link-badge">{{ total }}</span>
                 </a>
-                
-                <a href="/configuracion" class="sidebar-link">
-                    <span class="sidebar-link-icon">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                    </span>
+                <a href="/comprobantes/emitir" class="sidebar-link {% if request.url.path == '/comprobantes/emitir' %}active{% endif %}">
+                    <span class="sidebar-link-icon">➕</span>
+                    <span>Emitir</span>
+                </a>
+                <a href="/productos" class="sidebar-link {% if '/productos' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📦</span>
+                    <span>Productos</span>
+                </a>
+                <a href="/clientes" class="sidebar-link {% if '/clientes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">👥</span>
+                    <span>Clientes</span>
+                </a>
+                <a href="/reportes" class="sidebar-link {% if '/reportes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📈</span>
+                    <span>Reportes</span>
+                </a>
+                <a href="/configuracion" class="sidebar-link {% if '/configuracion' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">⚙️</span>
                     <span>Configuración</span>
                 </a>
-                
+            </div>
+            <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
                 <a href="/logout" class="sidebar-link">
-                    <span class="sidebar-link-icon">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                        </svg>
-                    </span>
-                    <span>Salir</span>
+                    <span class="sidebar-link-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
                 </a>
             </div>
         </nav>
-        
-        <div class="sidebar-footer">
-            <a href="/comprobantes/emitir" class="btn btn-primary btn-block">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Nueva Factura
-            </a>
-        </div>
     </aside>
     
     <!-- Mobile Overlay -->
@@ -172,7 +163,7 @@
                     </thead>
                     <tbody>
                         {% for comp in comprobantes %}
-                        <tr class="table-row-main">
+                        <tr class="table-row-main" data-comprobante-id="{{ comp.id }}" data-estado="{{ comp.estado }}">
                             <td>
                                 <div class="row-number">
                                     {{ ((page - 1) * per_page) + loop.index }}
@@ -186,8 +177,8 @@
                             </td>
                             <td>
                                 <div class="cliente-cell">
-                                    <span class="cliente-name">Cliente</span>
-                                    <span class="cliente-ruc">-</span>
+                                    <span class="cliente-nombre">{{ comp.cliente_razon_social or 'Sin cliente' }}</span>
+                                    <span class="cliente-doc">{{ comp.cliente_numero_documento or '-' }}</span>
                                 </div>
                             </td>
                             <td class="text-right">
@@ -219,11 +210,15 @@
                                     Enviando
                                 </span>
                                 {% else %}
-                                <span class="badge badge-info">{{ comp.estado }}</span>
+                                <span class="badge badge-{{ comp.estado }}" data-estado="{{ comp.estado }}">
                                 {% endif %}
                             </td>
                             <td>
                                 <div class="table-actions">
+                                    <button class="btn-icon" title="Ver comprobante" onclick="verComprobante('{{ comp.id }}')">
+                                        👁️
+                                    </button>    
+
                                     <a href="/api/comprobantes/{{ comp.id }}/xml" class="btn-icon-sm" title="Descargar XML" download>
                                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -449,11 +444,29 @@
         </form>
     </div>
 </div>
+
+<!-- Modal Ver Comprobante -->
+<div class="modal-overlay" id="modal-ver">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-ver-titulo">Comprobante</h3>
+            <button class="modal-close" onclick="cerrarModalVer()">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-ver-contenido">
+            <div class="loading">Cargando...</div>
+        </div>
+        <div class="modal-footer">
+            <a href="#" id="btn-descargar-pdf" class="btn btn-primary">📄 Descargar PDF</a>
+            <a href="#" id="btn-descargar-xml" class="btn btn-ghost">📋 Descargar XML</a>
+            <button class="btn btn-ghost" onclick="cerrarModalVer()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', path='/js/theme.js') }}?v=3"></script>
-<script src="{{ url_for('static', path='/js/app.js') }}?v=3"></script>
+
 <script>
 
 // Variables globales para tracking
@@ -666,6 +679,213 @@ function iniciarMonitoreoProgreso() {
     }, 1000); // Cada 1 segundo
 }
 
+// =============================================
+// ACTUALIZACIÓN AUTOMÁTICA DE ESTADOS
+// =============================================
+(function() {
+    // Comprobantes en estado "enviando"
+    let comprobantesEnviando = [];
+    
+    function detectarEnviando() {
+        comprobantesEnviando = [];
+        document.querySelectorAll('[data-estado="enviando"]').forEach(el => {
+            const id = el.dataset.comprobanteId;
+            if (id) comprobantesEnviando.push(id);
+        });
+        return comprobantesEnviando.length > 0;
+    }
+    
+    async function verificarEstados() {
+        if (comprobantesEnviando.length === 0) return;
+        
+        for (const id of comprobantesEnviando) {
+            try {
+                const response = await fetch(`/api/comprobantes/${id}`);
+                const result = await response.json();
+                
+                if (result.exito && result.datos) {
+                    const estado = result.datos.estado;
+                    
+                    // Si ya no está "enviando", actualizar UI
+                    if (estado !== 'enviando') {
+                        actualizarEstadoUI(id, estado, result.datos.error_mensaje);
+                        
+                        // Remover de la lista
+                        comprobantesEnviando = comprobantesEnviando.filter(c => c !== id);
+                        
+                        // Mostrar toast
+                        if (estado === 'aceptado') {
+                            toast.success('¡Comprobante aceptado!', 'SUNAT aceptó el comprobante');
+                        } else if (estado === 'rechazado') {
+                            toast.error('Comprobante rechazado', result.datos.error_mensaje || 'Error de SUNAT');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error verificando estado:', error);
+            }
+        }
+    }
+    
+    function actualizarEstadoUI(id, estado, mensaje) {
+        const fila = document.querySelector(`[data-comprobante-id="${id}"]`);
+        if (!fila) return;
+        
+        const badge = fila.querySelector('.badge');
+        if (badge) {
+            // Actualizar clase y texto
+            badge.className = 'badge';
+            badge.classList.add(`badge-${estado}`);
+            badge.textContent = estado.charAt(0).toUpperCase() + estado.slice(1);
+            badge.dataset.estado = estado;
+        }
+        
+        // Actualizar data-estado del contenedor
+        fila.dataset.estado = estado;
+    }
+    
+    // Iniciar polling si hay comprobantes enviando
+    if (detectarEnviando()) {
+        console.log('📡 Iniciando polling para', comprobantesEnviando.length, 'comprobantes');
+        
+        // Verificar cada 3 segundos
+        const intervalo = setInterval(() => {
+            if (comprobantesEnviando.length === 0) {
+                console.log('✅ Todos los comprobantes procesados');
+                clearInterval(intervalo);
+                return;
+            }
+            verificarEstados();
+        }, 3000);
+    }
+})();
+
+// =============================================
+// MODAL VER COMPROBANTE
+// =============================================
+async function verComprobante(id) {
+    const modal = document.getElementById('modal-ver');
+    const contenido = document.getElementById('modal-ver-contenido');
+    const titulo = document.getElementById('modal-ver-titulo');
+    
+    console.log('Modal antes:', modal.style.display);
+    modal.classList.add('active');
+    console.log('Modal después:', modal.style.display);
+
+    contenido.innerHTML = '<div class="loading"><span class="spinner"></span> Cargando...</div>';
+    
+    try {
+        const response = await fetch(`/api/comprobantes/${id}/detalle`);
+        const result = await response.json();
+        
+        if (result.exito && result.datos) {
+            const c = result.datos;
+            
+            titulo.textContent = `${c.tipo_documento_nombre} ${c.numero_formato}`;
+            
+            contenido.innerHTML = `
+                <div class="comprobante-preview">
+                    <div class="preview-header">
+                        <div class="preview-emisor">
+                            <h4>${c.emisor_razon_social}</h4>
+                            <p>RUC: ${c.emisor_ruc}</p>
+                            <p>${c.emisor_direccion || ''}</p>
+                        </div>
+                        <div class="preview-doc">
+                            <div class="preview-doc-tipo">${c.tipo_documento_nombre}</div>
+                            <div class="preview-doc-numero">${c.numero_formato}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-info">
+                        <div class="preview-row">
+                            <span class="label">Fecha de Emisión:</span>
+                            <span>${c.fecha_emision}</span>
+                        </div>
+                        <div class="preview-row">
+                            <span class="label">Cliente:</span>
+                            <span>${c.cliente_razon_social || 'No especificado'}</span>
+                        </div>
+                        <div class="preview-row">
+                            <span class="label">RUC/DNI:</span>
+                            <span>${c.cliente_numero_documento || '-'}</span>
+                        </div>
+                        <div class="preview-row">
+                            <span class="label">Dirección:</span>
+                            <span>${c.cliente_direccion || '-'}</span>
+                        </div>
+                    </div>
+                    
+                    <table class="preview-items">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Descripción</th>
+                                <th>Cant.</th>
+                                <th>P. Unit.</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${c.items.map((item, i) => `
+                                <tr>
+                                    <td>${i + 1}</td>
+                                    <td>${item.descripcion}</td>
+                                    <td>${item.cantidad}</td>
+                                    <td>S/ ${parseFloat(item.precio_unitario).toFixed(2)}</td>
+                                    <td>S/ ${parseFloat(item.monto_linea).toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div class="preview-totales">
+                        <div class="total-row">
+                            <span>Op. Gravada:</span>
+                            <span>S/ ${parseFloat(c.monto_base).toFixed(2)}</span>
+                        </div>
+                        <div class="total-row">
+                            <span>IGV (18%):</span>
+                            <span>S/ ${parseFloat(c.monto_igv).toFixed(2)}</span>
+                        </div>
+                        <div class="total-row total-final">
+                            <span>TOTAL:</span>
+                            <span>S/ ${parseFloat(c.monto_total).toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-estado">
+                        <span class="badge badge-${c.estado}">${c.estado.toUpperCase()}</span>
+                        ${c.respuesta_sunat ? `<p class="text-secondary">${c.respuesta_sunat}</p>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            // Actualizar links de descarga
+            document.getElementById('btn-descargar-pdf').href = `/api/comprobantes/${id}/pdf`;
+            document.getElementById('btn-descargar-xml').href = `/api/comprobantes/${id}/xml`;
+        } else {
+            contenido.innerHTML = '<p class="text-danger">Error al cargar el comprobante</p>';
+        }
+    } catch (error) {
+        contenido.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+    }
+}
+
+function cerrarModalVer() {
+    document.getElementById('modal-ver').classList.remove('active');
+}
+
+// Cerrar modal con Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') cerrarModalVer();
+});
+
+
+// TEST: Verificar que el modal existe
+console.log('Modal element:', document.getElementById('modal-ver'));
+console.log('Modal content:', document.getElementById('modal-ver-contenido'));
 
 </script>
+
 {% endblock %}

@@ -1,0 +1,665 @@
+{% extends "base.html" %}
+
+{% block title %}Configuración - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
+<style>
+    .config-section {
+        margin-bottom: var(--space-8);
+    }
+    .config-section .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .status-badge {
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-full);
+        font-size: var(--text-sm);
+        font-weight: var(--weight-medium);
+    }
+    .status-success {
+        background: var(--success-light);
+        color: var(--success-text);
+    }
+    .status-error {
+        background: var(--danger-light);
+        color: var(--danger-text);
+    }
+    .status-warning {
+        background: var(--warning-light);
+        color: var(--warning-text);
+    }
+    .cert-info {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: var(--space-2) var(--space-4);
+        font-size: var(--text-sm);
+    }
+    .cert-info dt {
+        color: var(--text-secondary);
+    }
+    .cert-info dd {
+        color: var(--text-primary);
+        font-weight: var(--weight-medium);
+    }
+    .upload-area {
+        border: 2px dashed var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: var(--space-8);
+        text-align: center;
+        transition: all var(--transition-base);
+    }
+    .upload-area:hover {
+        border-color: var(--primary);
+        background: var(--bg-tertiary);
+    }
+    .upload-area input[type="file"] {
+        display: none;
+    }
+    .upload-icon {
+        font-size: 48px;
+        margin-bottom: var(--space-4);
+    }
+
+    /* Formato Options */
+    .formato-options {
+        display: flex;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+    }
+
+    .formato-option {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4);
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        min-width: 160px;
+    }
+
+    .formato-option:hover {
+        border-color: var(--primary);
+    }
+
+    .formato-option.active,
+    .formato-option:has(input:checked) {
+        border-color: var(--primary);
+        background: rgba(212, 175, 55, 0.1);
+    }
+
+    .formato-option input {
+        display: none;
+    }
+
+    .formato-icon {
+        font-size: 32px;
+    }
+
+    .formato-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .formato-info strong {
+        color: var(--text-primary);
+    }
+
+    .formato-info span {
+        font-size: var(--text-sm);
+        color: var(--text-secondary);
+    }
+
+    /* Formato Grid */
+    .formato-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--space-6);
+    }
+
+    .formato-item {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+    }
+
+    .formato-label {
+        display: block;
+        font-weight: var(--weight-semibold);
+        color: var(--text-primary);
+        margin-bottom: var(--space-3);
+    }
+
+    .formato-radios {
+        display: flex;
+        gap: var(--space-3);
+    }
+
+    .formato-radio {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-3);
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        font-size: var(--text-sm);
+        color: var(--text-primary);
+    }
+
+    .formato-radio:hover {
+        border-color: var(--primary);
+    }
+
+    .formato-radio:has(input:checked) {
+        border-color: var(--primary);
+        background: rgba(212, 175, 55, 0.15);
+    }
+
+    .formato-radio input {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            
+            <a href="/dashboard" class="header-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
+                    <path d="M16 8L20 16H12L16 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" style="stop-color:#d4af37"/>
+                            <stop offset="100%" style="stop-color:#b8860b"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>facturalo.pro</span>
+            </a>
+        </div>
+        
+        <div class="header-right">
+            <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
+                <svg class="icon-sun" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg class="icon-moon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            </button>
+            
+            <div class="header-user">
+                <div class="avatar">
+                    <span>{{ user_ruc[:2] if user_ruc else '??' }}</span>
+                </div>
+                <div class="header-user-info">
+                    <div class="header-user-name">{{ emisor.razon_social[:20] if emisor and emisor.razon_social else 'Usuario' }}{% if emisor and emisor.razon_social and emisor.razon_social|length > 20 %}...{% endif %}</div>
+                    <div class="header-user-role">RUC {{ user_ruc if user_ruc else '' }}</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <a href="/dashboard" class="sidebar-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+                    <span class="sidebar-link-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/comprobantes" class="sidebar-link {% if '/comprobantes' in request.url.path and 'emitir' not in request.url.path and 'nota' not in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📄</span>
+                    <span>Comprobantes</span>
+                </a>
+                <a href="/comprobantes/emitir" class="sidebar-link {% if request.url.path == '/comprobantes/emitir' %}active{% endif %}">
+                    <span class="sidebar-link-icon">➕</span>
+                    <span>Emitir</span>
+                </a>
+                <a href="/productos" class="sidebar-link {% if '/productos' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📦</span>
+                    <span>Productos</span>
+                </a>
+                <a href="/clientes" class="sidebar-link {% if '/clientes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">👥</span>
+                    <span>Clientes</span>
+                </a>
+                <a href="/reportes" class="sidebar-link {% if '/reportes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📈</span>
+                    <span>Reportes</span>
+                </a>
+                <a href="/configuracion" class="sidebar-link {% if '/configuracion' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">⚙️</span>
+                    <span>Configuración</span>
+                </a>
+            </div>
+            <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
+                <a href="/logout" class="sidebar-link">
+                    <span class="sidebar-link-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+    
+    <!-- Main -->
+    <main class="main">
+        <div class="page-header">
+            <h1 class="page-title" style="color: var(--primary) !important;">Configuración</h1>
+            <p class="page-description" style="color: var(--primary) !important;">Configura tu certificado digital y credenciales SUNAT</p>
+        </div>
+        
+        <!-- Datos del Emisor -->
+        <section class="config-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">📋 Datos del Emisor</h3>
+                </div>
+                <div class="card-body">
+                    <dl class="cert-info">
+                        <dt>RUC:</dt>
+                        <dd>{{ emisor.ruc }}</dd>
+                        <dt>Razón Social:</dt>
+                        <dd>{{ emisor.razon_social }}</dd>
+                        <dt>Dirección:</dt>
+                        <dd>{{ emisor.direccion or 'No configurada' }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </section>
+
+        <!-- Certificado Digital -->
+        <section class="config-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🔐 Certificado Digital</h3>
+                    {% if certificado and certificado.activo %}
+                        {% if certificado_dias_restantes is not none and certificado_dias_restantes > 30 %}
+                            <span class="status-badge status-success">✅ Vigente hasta {{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>
+                        {% elif certificado_dias_restantes is not none and certificado_dias_restantes > 0 %}
+                            <span class="status-badge status-warning">⚠️ Vence en {{ certificado_dias_restantes }} días</span>
+                        {% elif certificado_dias_restantes is not none %}
+                            <span class="status-badge status-error">❌ Vencido</span>
+                        {% else %}
+                            <span class="status-badge status-success">✅ Vigente hasta {{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') if certificado.fecha_vencimiento else 'N/A' }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="status-badge status-error">❌ No configurado</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if certificado and certificado.activo %}
+                    <dl class="cert-info" style="margin-bottom: var(--space-6);">
+                        <dt>Serial:</dt>
+                        <dd>{{ certificado.serial_number[:30] }}...</dd>
+                        <dt>Válido hasta:</dt>
+                        <dd>{{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') if certificado.fecha_vencimiento else 'N/A' }}</dd>
+                        <dt>Cargado:</dt>
+                        <dd>{{ certificado.creado_en.strftime('%d/%m/%Y %H:%M') if certificado.creado_en else 'N/A' }}</dd>
+                    </dl>
+                    {% endif %}
+                    
+                    <form id="form-certificado" enctype="multipart/form-data">
+                        <div class="upload-area" id="upload-area">
+                            <div class="upload-icon">📁</div>
+                            <p style="color: var(--primary);"><strong>Arrastra tu certificado aquí</strong></p>
+                            <p class="text-tertiary" style="color: var(--text-tertiary);">o haz clic para seleccionar</p>
+                            <p class="text-tertiary" style="color: var(--text-tertiary); font-size: 12px; margin-top: 8px;">Formatos: .pfx, .p12</p>
+                            <input type="file" id="archivo-cert" name="archivo" accept=".pfx,.p12">
+                        </div>
+                        
+                        <div id="archivo-seleccionado" style="display: none; margin-top: var(--space-4);">
+                            <p><strong>Archivo:</strong> <span id="nombre-archivo"></span></p>
+                        </div>
+                        
+                        <div class="input-group" style="margin-top: var(--space-4);">
+                            <label class="input-label">Contraseña del certificado</label>
+                            <input type="password" id="password-cert" name="password" class="input" placeholder="Ingresa la contraseña del .pfx">
+                        </div>
+                        
+                        <div style="margin-top: var(--space-4);">
+                            <button type="submit" class="btn btn-primary" id="btn-subir-cert">
+                                🔐 Cargar Certificado
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Credenciales SOL -->
+        <section class="config-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🔑 Credenciales SUNAT (SOL)</h3>
+                    {% if emisor.usuario_sol %}
+                        <span class="status-badge status-success">✅ Configurado</span>
+                    {% else %}
+                        <span class="status-badge status-error">❌ No configurado</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form id="form-credenciales">
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label class="input-label">Usuario SOL</label>
+                                <input type="text" id="usuario-sol" name="usuario_sol" class="input" 
+                                       placeholder="MODDATOS" value="{{ emisor.usuario_sol or '' }}">
+                                <small class="text-secondary">Ej: MODDATOS (sin el RUC)</small>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Clave SOL</label>
+                                <input type="password" id="clave-sol" name="clave_sol" class="input" 
+                                       placeholder="••••••••">
+                                <small class="text-secondary">{{ 'Ya configurada' if emisor.clave_sol else 'No configurada' }}</small>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: var(--space-4);">
+                            <button type="submit" class="btn btn-primary" id="btn-guardar-sol">
+                                💾 Guardar Credenciales
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Formato de Impresión -->
+        <section class="config-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🖨️ Formato de Impresión</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-secondary" style="margin-bottom: var(--space-6);">
+                        Configura el formato de impresión para cada tipo de comprobante
+                    </p>
+                    <form id="form-formato">
+                        <div class="formato-grid">
+                            <!-- Facturas -->
+                            <div class="formato-item">
+                                <label class="formato-label">📄 Facturas</label>
+                                <div class="formato-radios">
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_factura" value="A4" {% if emisor.formato_factura == 'A4' or not emisor.formato_factura %}checked{% endif %}>
+                                        <span>A4</span>
+                                    </label>
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_factura" value="A5" {% if emisor.formato_factura == 'A5' %}checked{% endif %}>
+                                        <span>A5</span>
+                                    </label>
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_factura" value="TICKET" {% if emisor.formato_factura == 'TICKET' %}checked{% endif %}>
+                                        <span>Ticket</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Boletas -->
+                            <div class="formato-item">
+                                <label class="formato-label">🧾 Boletas</label>
+                                <div class="formato-radios">
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_boleta" value="A4" {% if emisor.formato_boleta == 'A4' or not emisor.formato_boleta %}checked{% endif %}>
+                                        <span>A4</span>
+                                    </label>
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_boleta" value="A5" {% if emisor.formato_boleta == 'A5' %}checked{% endif %}>
+                                        <span>A5</span>
+                                    </label>
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_boleta" value="TICKET" {% if emisor.formato_boleta == 'TICKET' %}checked{% endif %}>
+                                        <span>Ticket</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Tickets -->
+                            <div class="formato-item">
+                                <label class="formato-label">🎫 Tickets</label>
+                                <div class="formato-radios">
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_ticket" value="TICKET" {% if emisor.formato_ticket == 'TICKET' or not emisor.formato_ticket %}checked{% endif %}>
+                                        <span>Ticket</span>
+                                    </label>
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_ticket" value="A5" {% if emisor.formato_ticket == 'A5' %}checked{% endif %}>
+                                        <span>A5</span>
+                                    </label>
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_ticket" value="A4" {% if emisor.formato_ticket == 'A4' %}checked{% endif %}>
+                                        <span>A4</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- NC/ND -->
+                            <div class="formato-item">
+                                <label class="formato-label">📝 Notas C/D</label>
+                                <div class="formato-radios">
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_nc_nd" value="A4" {% if emisor.formato_nc_nd == 'A4' or not emisor.formato_nc_nd %}checked{% endif %}>
+                                        <span>A4</span>
+                                    </label>
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_nc_nd" value="A5" {% if emisor.formato_nc_nd == 'A5' %}checked{% endif %}>
+                                        <span>A5</span>
+                                    </label>
+                                    <label class="formato-radio">
+                                        <input type="radio" name="formato_nc_nd" value="TICKET" {% if emisor.formato_nc_nd == 'TICKET' %}checked{% endif %}>
+                                        <span>Ticket</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: var(--space-6);">
+                            <button type="submit" class="btn btn-primary" id="btn-guardar-formato">
+                                💾 Guardar Formatos
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/toast.js') }}"></script>
+<script>
+// Upload area click
+document.getElementById('upload-area').addEventListener('click', () => {
+    document.getElementById('archivo-cert').click();
+});
+
+// Drag and drop
+const uploadArea = document.getElementById('upload-area');
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.style.borderColor = 'var(--primary)';
+    uploadArea.style.background = 'var(--bg-tertiary)';
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.style.borderColor = 'var(--border-color)';
+    uploadArea.style.background = 'transparent';
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.style.borderColor = 'var(--border-color)';
+    uploadArea.style.background = 'transparent';
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        document.getElementById('archivo-cert').files = files;
+        mostrarArchivoSeleccionado(files[0].name);
+    }
+});
+
+// File selected
+document.getElementById('archivo-cert').addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        mostrarArchivoSeleccionado(e.target.files[0].name);
+    }
+});
+
+function mostrarArchivoSeleccionado(nombre) {
+    document.getElementById('archivo-seleccionado').style.display = 'block';
+    document.getElementById('nombre-archivo').textContent = nombre;
+}
+
+// Submit certificado
+document.getElementById('form-certificado').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const archivo = document.getElementById('archivo-cert').files[0];
+    const password = document.getElementById('password-cert').value;
+    
+    if (!archivo) {
+        toast.warning('Selecciona un archivo', 'Debes seleccionar un archivo .pfx o .p12');
+        return;
+    }
+    
+    if (!password) {
+        toast.warning('Ingresa la contraseña', 'La contraseña del certificado es requerida');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    formData.append('password', password);
+    
+    const btn = document.getElementById('btn-subir-cert');
+    btn.disabled = true;
+    btn.textContent = 'Cargando...';
+    
+    try {
+        const response = await fetch('/api/configuracion/certificado', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.exito) {
+            toast.success('¡Certificado cargado!', result.mensaje);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            toast.error('Error', result.detail || result.mensaje || 'Error al cargar certificado');
+        }
+    } catch (error) {
+        toast.error('Error de conexión', error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔐 Cargar Certificado';
+    }
+});
+
+// Submit credenciales SOL
+document.getElementById('form-credenciales').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const usuario = document.getElementById('usuario-sol').value;
+    const clave = document.getElementById('clave-sol').value;
+    
+    if (!usuario) {
+        toast.warning('Usuario requerido', 'Ingresa el usuario SOL');
+        return;
+    }
+    
+    const btn = document.getElementById('btn-guardar-sol');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    
+    try {
+        const response = await fetch('/api/configuracion/credenciales-sol', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_sol: usuario, clave_sol: clave })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.exito) {
+            toast.success('¡Credenciales guardadas!', result.mensaje);
+        } else {
+            toast.error('Error', result.detail || result.mensaje || 'Error al guardar');
+        }
+    } catch (error) {
+        toast.error('Error de conexión', error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Guardar Credenciales';
+    }
+});
+
+
+    // Submit formato
+    document.getElementById('form-formato').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const data = {
+            formato_factura: document.querySelector('input[name="formato_factura"]:checked').value,
+            formato_boleta: document.querySelector('input[name="formato_boleta"]:checked').value,
+            formato_ticket: document.querySelector('input[name="formato_ticket"]:checked').value,
+            formato_nc_nd: document.querySelector('input[name="formato_nc_nd"]:checked').value
+        };
+        
+        const btn = document.getElementById('btn-guardar-formato');
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+        
+        try {
+            const response = await fetch('/api/configuracion/formato', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.exito) {
+                toast.success('¡Formatos guardados!', result.mensaje);
+            } else {
+                toast.error('Error', result.detail || result.mensaje || 'Error al guardar');
+            }
+        } catch (error) {
+            toast.error('Error de conexión', error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '💾 Guardar Formatos';
+        }
+    });
+
+    // Actualizar visual al cambiar opción
+    document.querySelectorAll('.formato-option input').forEach(input => {
+        input.addEventListener('change', () => {
+            document.querySelectorAll('.formato-option').forEach(opt => opt.classList.remove('active'));
+            input.closest('.formato-option').classList.add('active');
+        });
+    });
+</script>
+{% endblock %}

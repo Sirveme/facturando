@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}Productos - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=6">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/productos.css') }}?v=1">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            <a href="/dashboard" class="header-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
+                    <path d="M16 8L20 16H12L16 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" style="stop-color:#d4af37"/>
+                            <stop offset="100%" style="stop-color:#b8860b"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>facturalo.pro</span>
+            </a>
+        </div>
+        <div class="header-right">
+            <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
+                <svg class="icon-sun" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg class="icon-moon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            </button>
+            <div class="header-user">
+                <div class="avatar">
+                    <span>{{ user_ruc[:2] if user_ruc else '??' }}</span>
+                </div>
+                <div class="header-user-info">
+                    <div class="header-user-name">{{ emisor.razon_social[:20] if emisor and emisor.razon_social else 'Usuario' }}{% if emisor and emisor.razon_social and emisor.razon_social|length > 20 %}...{% endif %}</div>
+                    <div class="header-user-role">RUC {{ user_ruc if user_ruc else '' }}</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <a href="/dashboard" class="sidebar-link">
+                    <span class="sidebar-link-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/comprobantes" class="sidebar-link">
+                    <span class="sidebar-link-icon">📄</span>
+                    <span>Comprobantes</span>
+                </a>
+                <a href="/comprobantes/emitir" class="sidebar-link">
+                    <span class="sidebar-link-icon">➕</span>
+                    <span>Emitir</span>
+                </a>
+                <a href="/productos" class="sidebar-link active">
+                    <span class="sidebar-link-icon">📦</span>
+                    <span>Productos</span>
+                </a>
+                <a href="/clientes" class="sidebar-link">
+                    <span class="sidebar-link-icon">👥</span>
+                    <span>Clientes</span>
+                </a>
+                <a href="/reportes" class="sidebar-link">
+                    <span class="sidebar-link-icon">📈</span>
+                    <span>Reportes</span>
+                </a>
+                <a href="/configuracion" class="sidebar-link">
+                    <span class="sidebar-link-icon">⚙️</span>
+                    <span>Configuración</span>
+                </a>
+            </div>
+            <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
+                <a href="/logout" class="sidebar-link">
+                    <span class="sidebar-link-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">📦 Productos y Servicios</h1>
+                <p class="page-description">Gestiona tu catálogo de productos y servicios</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-ghost" style="color: black !important;" onclick="abrirModalImportar()">
+                    📥 Importar
+                </button>
+                <button class="btn btn-primary" onclick="abrirModalProducto()">
+                    ➕ Nuevo Producto
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtros y búsqueda -->
+        <div class="card" style="margin-bottom: var(--space-4);">
+            <div class="card-body" style="padding: var(--space-3) var(--space-4);">
+                <div class="filtros-row">
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <input type="text" id="buscar" class="input" placeholder="Buscar por código, descripción..." oninput="buscarProductos()">
+                    </div>
+                    <div class="input-group" style="width: 180px; margin-bottom: 0;">
+                        <select id="filtro-categoria" class="input" onchange="cargarProductos()">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="width: 140px; margin-bottom: 0;">
+                        <select id="filtro-estado" class="input" onchange="cargarProductos()">
+                            <option value="true">Activos</option>
+                            <option value="false">Inactivos</option>
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas rápidas -->
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <span class="stat-mini-value" id="stat-total">0</span>
+                <span class="stat-mini-label">Total</span>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-value" id="stat-favoritos">0</span>
+                <span class="stat-mini-label">Favoritos</span>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-value" id="stat-stock-bajo">0</span>
+                <span class="stat-mini-label">Stock bajo</span>
+            </div>
+        </div>
+
+        <!-- Tabla de productos -->
+        <div class="card">
+            <div class="card-body" style="padding: 0;">
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"></th>
+                                <th>Código</th>
+                                <th>Descripción</th>
+                                <th>Categoría</th>
+                                <th class="text-right">Precio</th>
+                                <th class="text-right">Stock</th>
+                                <th class="text-center">Estado</th>
+                                <th style="width: 100px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-productos">
+                            <tr>
+                                <td colspan="8" class="text-center" style="padding: var(--space-8);">
+                                    <div class="loading-spinner"></div>
+                                    <p class="text-secondary" style="margin-top: var(--space-2);">Cargando productos...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        <div class="paginacion" id="paginacion"></div>
+    </main>
+</div>
+
+<!-- Modal Producto -->
+<div class="modal-overlay" id="modal-producto">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3 id="modal-producto-titulo">Nuevo Producto</h3>
+            <button class="modal-close" onclick="cerrarModalProducto()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="form-producto">
+                <input type="hidden" id="producto-id">
+                
+                <div class="form-section">
+                    <h4 class="form-section-title">Identificación</h4>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label class="input-label">Código interno *</label>
+                            <input type="text" id="codigo_interno" class="input" required placeholder="SKU001">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Código de barras</label>
+                            <input type="text" id="codigo_barras" class="input" placeholder="7751234567890">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="form-section-title">Descripción</h4>
+                    <div class="input-group">
+                        <label class="input-label">Descripción completa *</label>
+                        <input type="text" id="descripcion" class="input" required placeholder="Nombre del producto o servicio">
+                    </div>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label class="input-label">Categoría</label>
+                            <input type="text" id="categoria" class="input" list="categorias-list" placeholder="Ej: Bebidas, Servicios">
+                            <datalist id="categorias-list"></datalist>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Marca</label>
+                            <input type="text" id="marca" class="input" placeholder="Ej: Gloria, Samsung">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="form-section-title">Precios</h4>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label class="input-label">Precio de venta *</label>
+                            <input type="number" id="precio_venta" class="input" required step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Precio de compra</label>
+                            <input type="number" id="precio_compra" class="input" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Unidad de medida</label>
+                            <select id="unidad_medida" class="input">
+                                <option value="NIU">NIU - Unidad</option>
+                                <option value="ZZ">ZZ - Servicio</option>
+                                <option value="KGM">KGM - Kilogramo</option>
+                                <option value="LTR">LTR - Litro</option>
+                                <option value="MTR">MTR - Metro</option>
+                                <option value="GLL">GLL - Galón</option>
+                                <option value="BOX">BOX - Caja</option>
+                                <option value="PK">PK - Paquete</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Afecto a IGV</label>
+                            <select id="afecto_igv" class="input">
+                                <option value="true">Sí - Gravado (18%)</option>
+                                <option value="false">No - Exonerado</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="form-section-title">Stock</h4>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label class="input-label">
+                                <input type="checkbox" id="maneja_stock" style="margin-right: 8px;">
+                                Manejar stock
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-grid" id="campos-stock" style="display: none;">
+                        <div class="input-group">
+                            <label class="input-label">Stock actual</label>
+                            <input type="number" id="stock_actual" class="input" step="0.001" min="0" value="0">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Stock mínimo</label>
+                            <input type="number" id="stock_minimo" class="input" step="0.001" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="cerrarModalProducto()">Cancelar</button>
+            <button class="btn btn-primary" onclick="guardarProducto()">💾 Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Importar -->
+<div class="modal-overlay" id="modal-importar">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>📥 Importar Productos</h3>
+            <button class="modal-close" onclick="cerrarModalImportar()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="info-message" style="margin-bottom: var(--space-4);">
+                ℹ️ Sube un archivo CSV o Excel con tus productos. Si el código ya existe, se actualizará.
+            </div>
+            
+            <div class="upload-area" id="upload-area-importar">
+                <div class="upload-icon">📁</div>
+                <p><strong>Arrastra tu archivo aquí</strong></p>
+                <p class="text-secondary">o haz clic para seleccionar</p>
+                <p class="text-secondary" style="font-size: 12px; margin-top: 8px;">Formatos: .csv, .xlsx</p>
+                <input type="file" id="archivo-importar" accept=".csv,.xlsx,.xls" style="display: none;">
+            </div>
+            
+            <div id="archivo-seleccionado-importar" style="display: none; margin-top: var(--space-4);">
+                <p><strong>Archivo:</strong> <span id="nombre-archivo-importar"></span></p>
+            </div>
+            
+            <div style="margin-top: var(--space-4);">
+                <a href="/api/productos/plantilla/descargar" class="btn btn-ghost btn-sm">
+                    📄 Descargar plantilla CSV
+                </a>
+            </div>
+            
+            <div id="resultado-importacion" style="display: none; margin-top: var(--space-4);"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="cerrarModalImportar()">Cancelar</button>
+            <button class="btn btn-primary" onclick="importarProductos()" id="btn-importar">
+                📥 Importar
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/productos.js') }}?v=1"></script>
+{% endblock %}

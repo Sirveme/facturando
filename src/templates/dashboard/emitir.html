@@ -3,16 +3,16 @@
 {% block title %}Emitir Comprobante - facturalo.pro{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', path='/css/emitir.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/emitir.css') }}?v=5">
 {% endblock %}
 
 {% block body %}
 <div class="dashboard-layout">
-    <!-- Header (igual que comprobantes.html) -->
+    <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
                 <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
@@ -20,12 +20,12 @@
             
             <a href="/dashboard" class="header-logo">
                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <rect width="32" height="32" rx="8" fill="url(#gradient)"/>
+                    <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
                     <path d="M16 8L20 16H12L16 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <defs>
-                        <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
-                            <stop offset="0%" style="stop-color:var(--primary)"/>
-                            <stop offset="100%" style="stop-color:var(--secondary)"/>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" style="stop-color:#d4af37"/>
+                            <stop offset="100%" style="stop-color:#b8860b"/>
                         </linearGradient>
                     </defs>
                 </svg>
@@ -34,44 +34,64 @@
         </div>
         
         <div class="header-right">
-            <button class="theme-toggle" id="theme-toggle">
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
+                <svg class="icon-sun" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg class="icon-moon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                 </svg>
             </button>
             
             <div class="header-user">
                 <div class="avatar">
-                    <span>{{ user_ruc[:2] }}</span>
+                    <span>{{ user_ruc[:2] if user_ruc else '??' }}</span>
                 </div>
                 <div class="header-user-info">
-                    <div class="header-user-name">Mi Empresa</div>
-                    <div class="header-user-role">RUC {{ user_ruc }}</div>
+                    <div class="header-user-name">{{ emisor.razon_social[:20] if emisor and emisor.razon_social else 'Usuario' }}{% if emisor and emisor.razon_social and emisor.razon_social|length > 20 %}...{% endif %}</div>
+                    <div class="header-user-role">RUC {{ user_ruc if user_ruc else '' }}</div>
                 </div>
             </div>
         </div>
     </header>
     
-    <!-- Sidebar (igual que comprobantes.html) -->
-    <aside class="sidebar">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
         <nav class="sidebar-nav">
             <div class="sidebar-section">
-                <a href="/dashboard" class="sidebar-link">
-                    <span class="sidebar-link-icon">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                        </svg>
-                    </span>
+                <a href="/dashboard" class="sidebar-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+                    <span class="sidebar-link-icon">📊</span>
                     <span>Dashboard</span>
                 </a>
-                
-                <a href="/comprobantes" class="sidebar-link">
-                    <span class="sidebar-link-icon">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                    </span>
+                <a href="/comprobantes" class="sidebar-link {% if '/comprobantes' in request.url.path and 'emitir' not in request.url.path and 'nota' not in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📄</span>
                     <span>Comprobantes</span>
+                </a>
+                <a href="/comprobantes/emitir" class="sidebar-link {% if request.url.path == '/comprobantes/emitir' %}active{% endif %}">
+                    <span class="sidebar-link-icon">➕</span>
+                    <span>Emitir</span>
+                </a>
+                <a href="/productos" class="sidebar-link {% if '/productos' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📦</span>
+                    <span>Productos</span>
+                </a>
+                <a href="/clientes" class="sidebar-link {% if '/clientes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">👥</span>
+                    <span>Clientes</span>
+                </a>
+                <a href="/reportes" class="sidebar-link {% if '/reportes' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">📈</span>
+                    <span>Reportes</span>
+                </a>
+                <a href="/configuracion" class="sidebar-link {% if '/configuracion' in request.url.path %}active{% endif %}">
+                    <span class="sidebar-link-icon">⚙️</span>
+                    <span>Configuración</span>
+                </a>
+            </div>
+            <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
+                <a href="/logout" class="sidebar-link">
+                    <span class="sidebar-link-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
                 </a>
             </div>
         </nav>
@@ -79,137 +99,101 @@
     
     <div class="mobile-overlay" id="mobile-overlay"></div>
     
-    <!-- Main Content -->
+    <!-- Main -->
     <main class="main">
         <div class="page-header">
             <div>
                 <h1 class="page-title">Emitir Comprobante</h1>
-                <p class="page-description">Complete los datos para emitir su factura o boleta electrónica</p>
+                <p class="page-description">Crea una nueva factura o boleta electrónica</p>
             </div>
         </div>
         
-        <!-- Alerts -->
-        <div id="alert-container"></div>
-        
-        <!-- Form -->
-        <form id="emitir-form" class="emitir-form">
-            <div class="form-grid">
-                <!-- Tipo y Serie -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Tipo de Comprobante</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-row">
-                            <div class="input-group">
-                                <label class="input-label" for="tipo_documento">Tipo</label>
-                                <select id="tipo_documento" name="tipo_documento" class="input" required>
-                                    <option value="01">Factura</option>
-                                    <option value="03">Boleta</option>
-                                </select>
-                            </div>
-                            
-                            <div class="input-group">
-                                <label class="input-label" for="serie">Serie</label>
-                                <input 
-                                    type="text" 
-                                    id="serie" 
-                                    name="serie" 
-                                    class="input" 
-                                    placeholder="F001"
-                                    value="F001"
-                                    required
-                                    pattern="[FB][0-9]{3}"
-                                    maxlength="4"
-                                >
-                                <span class="input-helper">F001 para facturas, B001 para boletas</span>
-                            </div>
-                            
-                            <div class="input-group">
-                                <label class="input-label" for="numero">Número</label>
-                                <input 
-                                    type="number" 
-                                    id="numero" 
-                                    name="numero" 
-                                    class="input" 
-                                    placeholder="Autoincremental"
-                                    min="1"
-                                >
-                                <span class="input-helper">Dejar vacío para autoincremental</span>
-                            </div>
-                            
-                            <div class="input-group">
-                                <label class="input-label" for="fecha_emision">Fecha</label>
-                                <input 
-                                    type="date" 
-                                    id="fecha_emision" 
-                                    name="fecha_emision" 
-                                    class="input" 
-                                    required
-                                >
-                            </div>
+        <form id="form-emitir" class="emitir-form">
+            <!-- Tipo de Comprobante -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Tipo de Comprobante</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label class="input-label">Tipo</label>
+                            <select id="tipo_documento" name="tipo_documento" class="input" required>
+                                <option value="01">Factura</option>
+                                <option value="03">Boleta de Venta</option>
+                                <option value="12">Ticket</option>
+                                <option value="07">Nota de Crédito</option>
+                                <option value="08">Nota de Débito</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Serie</label>
+                            <select id="serie" name="serie" class="input" required>
+                                <option value="F001">F001</option>
+                                <option value="F002">F002</option>
+                                <option value="B001">B001</option>
+                                <option value="B002">B002</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Fecha</label>
+                            <input type="date" id="fecha_emision" class="input">
                         </div>
                     </div>
                 </div>
-                
-                <!-- Datos del Cliente -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Datos del Cliente</h3>
+            </div>
+            
+            <!-- Datos del Cliente -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Datos del Cliente</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="input-group" style="flex: 0 0 150px;">
+                            <label class="input-label">Tipo Doc.</label>
+                            <select id="cliente_tipo_doc" name="cliente_tipo_doc" class="input" required>
+                                <option value="6">RUC</option>
+                                <option value="1">DNI</option>
+                                <option value="4">C. Extranjería</option>
+                                <option value="0">Otros</option>
+                            </select>
+                        </div>
+                        <div class="input-group" style="flex: 0 0 200px;">
+                            <label class="input-label">Número</label>
+                            <div class="input-with-button">
+                                <input type="text" id="cliente_numero_doc" name="cliente_numero_doc" class="input" placeholder="20123456789" required>
+                                <button type="button" class="btn btn-ghost btn-sm" id="btn-buscar-cliente" title="Buscar en SUNAT">
+                                    🔍
+                                </button>
+                            </div>
+                        </div>
+                        <div class="input-group" style="flex: 1;">
+                            <label class="input-label">Razón Social / Nombre</label>
+                            <input type="text" id="cliente_razon_social" name="cliente_razon_social" class="input" placeholder="EMPRESA SAC" required>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="form-row">
-                            <div class="input-group">
-                                <label class="input-label" for="cliente_tipo_doc">Tipo Doc.</label>
-                                <select id="cliente_tipo_doc" name="cliente_tipo_doc" class="input" required>
-                                    <option value="6">RUC</option>
-                                    <option value="1">DNI</option>
-                                </select>
-                            </div>
-                            
-                            <div class="input-group" style="flex: 2;">
-                                <label class="input-label" for="cliente_ruc">Documento</label>
-                                <div class="input-with-button">
-                                    <input 
-                                        type="text" 
-                                        id="cliente_ruc" 
-                                        name="cliente_ruc" 
-                                        class="input" 
-                                        placeholder="20123456789"
-                                        required
-                                        maxlength="11"
-                                    >
-                                    <button type="button" class="btn btn-ghost btn-sm" id="btn-buscar-cliente" title="Buscar en SUNAT">
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
+                    <div class="input-group">
+                        <label class="input-label">Dirección</label>
+                        <input type="text" id="cliente_direccion" name="cliente_direccion" class="input" placeholder="Av. Principal 123">
+                    </div>
+
+                    <div class="form-row">
                         <div class="input-group">
-                            <label class="input-label" for="cliente_razon_social">Razón Social / Nombre</label>
-                            <input 
-                                type="text" 
-                                id="cliente_razon_social" 
-                                name="cliente_razon_social" 
-                                class="input" 
-                                placeholder="EMPRESA SAC"
-                                required
-                            >
+                            <label class="input-label">Departamento</label>
+                            <input type="text" id="cliente_departamento" name="cliente_departamento" class="input" placeholder="Lima">
                         </div>
-                        
                         <div class="input-group">
-                            <label class="input-label" for="cliente_direccion">Dirección</label>
-                            <input 
-                                type="text" 
-                                id="cliente_direccion" 
-                                name="cliente_direccion" 
-                                class="input" 
-                                placeholder="Av. Principal 123, Iquitos"
-                                required
-                            >
+                            <label class="input-label">Provincia</label>
+                            <input type="text" id="cliente_provincia" name="cliente_provincia" class="input" placeholder="Lima">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Distrito</label>
+                            <input type="text" id="cliente_distrito" name="cliente_distrito" class="input" placeholder="Miraflores">
+                        </div>
+                        <div class="input-group" style="flex: 0 0 120px;">
+                            <label class="input-label">Ubigeo</label>
+                            <input type="text" id="cliente_ubigeo" name="cliente_ubigeo" class="input" placeholder="150122" maxlength="6">
                         </div>
                     </div>
                 </div>
@@ -219,47 +203,66 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Detalle de Items</h3>
-                    <button type="button" class="btn btn-primary btn-sm" id="btn-agregar-item">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Agregar Item
+                    <button type="button" class="btn btn-ghost btn-sm" id="btn-agregar-item">
+                        + Agregar Item
                     </button>
                 </div>
                 <div class="card-body">
                     <div id="items-container">
-                        <!-- Items se agregan aquí dinámicamente -->
+                        <!-- Items dinámicos -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Observaciones - AGREGAR ANTES de Totales -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Observaciones</h3>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <textarea id="observaciones" name="observaciones" class="input" rows="2" placeholder="Notas adicionales para el comprobante (opcional)"></textarea>
                     </div>
                 </div>
             </div>
             
             <!-- Totales -->
-            <div class="form-grid">
-                <div></div>
-                <div class="card totales-card">
-                    <div class="card-body">
-                        <div class="totales-row">
-                            <span>Sub Total (Base Imponible):</span>
-                            <span class="totales-value" id="subtotal">S/ 0.00</span>
-                        </div>
-                        <div class="totales-row">
-                            <span>IGV (18%):</span>
-                            <span class="totales-value" id="igv">S/ 0.00</span>
-                        </div>
-                        <div class="totales-row total">
-                            <span>TOTAL:</span>
-                            <span class="totales-value" id="total">S/ 0.00</span>
+            <div class="card">
+                <div class="card-body">
+                    <div class="totales-grid">
+                        <div></div>
+                        <div class="totales-box">
+                            <div class="total-row">
+                                <span>Op. Gravada:</span>
+                                <span id="subtotal-gravado">S/ 0.00</span>
+                            </div>
+                            <div class="total-row" id="row-exonerado" style="display: none;">
+                                <span>Op. Exonerada:</span>
+                                <span id="subtotal-exonerado">S/ 0.00</span>
+                            </div>
+                            <div class="total-row" id="row-inafecto" style="display: none;">
+                                <span>Op. Inafecta:</span>
+                                <span id="subtotal-inafecto">S/ 0.00</span>
+                            </div>
+                            <div class="total-row">
+                                <span>IGV (18%):</span>
+                                <span id="igv">S/ 0.00</span>
+                            </div>
+                            <div class="total-row total-final">
+                                <span>TOTAL:</span>
+                                <span id="total">S/ 0.00</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Actions -->
+            <!-- Acciones -->
             <div class="form-actions">
                 <a href="/comprobantes" class="btn btn-ghost">Cancelar</a>
                 <button type="submit" class="btn btn-primary btn-lg" id="btn-emitir">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     Emitir Comprobante
                 </button>
@@ -270,7 +273,332 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', path='/js/theme.js') }}"></script>
-<script src="{{ url_for('static', path='/js/app.js') }}"></script>
-<script src="{{ url_for('static', path='/js/emitir.js') }}"></script>
+<script>
+// Fecha actual
+// Fecha actual en zona horaria Perú (UTC-5)
+function getFechaPeru() {
+    // Usar Intl.DateTimeFormat con zona horaria de Perú
+    const options = { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' };
+    const formatter = new Intl.DateTimeFormat('en-CA', options); // en-CA = formato YYYY-MM-DD
+    return formatter.format(new Date());
+}
+
+const fechaPeru = getFechaPeru();
+const fechaInput = document.getElementById('fecha_emision');
+fechaInput.value = fechaPeru;
+
+// Calcular límites (hoy y 7 días antes)
+const hoy = new Date(fechaPeru);
+const minFecha = new Date(hoy);
+minFecha.setDate(minFecha.getDate() - 7);
+
+// Hacer editable con restricciones
+fechaInput.removeAttribute('readonly');
+fechaInput.setAttribute('max', fechaPeru); // No futuro
+fechaInput.setAttribute('min', minFecha.toISOString().split('T')[0]); // Máx 7 días antes
+
+// Validación al cambiar
+fechaInput.addEventListener('change', function() {
+    const seleccionada = new Date(this.value);
+    const limite = new Date(fechaPeru);
+    
+    if (seleccionada > limite) {
+        toast.warning('Fecha inválida', 'SUNAT no acepta fechas futuras');
+        this.value = fechaPeru;
+    }
+});
+
+// Template de item
+function crearItemHTML(index) {
+    return `
+        <div class="item-row" data-index="${index}">
+            <div class="input-group" style="flex: 2;">
+                <label class="input-label">Descripción</label>
+                <input type="text" name="items[${index}][descripcion]" class="input" placeholder="Producto o servicio" required>
+            </div>
+            <div class="input-group" style="flex: 0 0 90px;">
+                <label class="input-label">Cantidad</label>
+                <input type="number" name="items[${index}][cantidad]" class="input item-cantidad" value="1" min="0.01" step="0.01" placeholder="1.00" required>
+            </div>
+            <div class="input-group" style="flex: 0 0 80px;">
+                <label class="input-label">Unidad</label>
+                <select name="items[${index}][unidad]" class="input">
+                    <option value="NIU">NIU</option>
+                    <option value="ZZ">ZZ</option>
+                    <option value="KGM">KG</option>
+                    <option value="MTR">MT</option>
+                    <option value="LTR">LT</option>
+                    <option value="HUR">HR</option>
+                </select>
+            </div>
+            <div class="input-group" style="flex: 0 0 110px;">
+                <label class="input-label">Precio Unit.</label>
+                <input type="number" name="items[${index}][precio]" class="input item-precio" placeholder="0.00" min="0" step="0.01" required>
+            </div>
+            <div class="input-group" style="flex: 0 0 110px;">
+                <label class="input-label">Afectación</label>
+                <select name="items[${index}][tipo_igv]" class="input item-tipo-igv">
+                    <option value="10">Gravado</option>
+                    <option value="20">Exonerado</option>
+                    <option value="30">Inafecto</option>
+                </select>
+            </div>
+            <div class="input-group" style="flex: 0 0 110px;">
+                <label class="input-label">Total</label>
+                <input type="text" class="input item-total" value="S/ 0.00" readonly>
+            </div>
+            <button type="button" class="btn-icon-danger btn-eliminar-item" title="Eliminar" style="margin-top: 24px;">
+                ✕
+            </button>
+        </div>
+    `;
+}
+
+// Agregar primer item
+let itemIndex = 0;
+document.getElementById('items-container').innerHTML = crearItemHTML(itemIndex++);
+
+// Agregar item
+document.getElementById('btn-agregar-item').addEventListener('click', () => {
+    document.getElementById('items-container').insertAdjacentHTML('beforeend', crearItemHTML(itemIndex++));
+    actualizarEventosItems();
+    calcularTotales();
+});
+
+// Eliminar item
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('btn-eliminar-item')) {
+        const rows = document.querySelectorAll('.item-row');
+        if (rows.length > 1) {
+            e.target.closest('.item-row').remove();
+            calcularTotales();
+        } else {
+            toast.warning('Mínimo un item', 'Debe haber al menos un item');
+        }
+    }
+});
+
+// Calcular totales
+function calcularTotales() {
+    let subtotalGravado = 0;
+    let subtotalExonerado = 0;
+    let subtotalInafecto = 0;
+    
+    document.querySelectorAll('.item-row').forEach(row => {
+        const cantidad = parseFloat(row.querySelector('.item-cantidad').value) || 0;
+        const precio = parseFloat(row.querySelector('.item-precio').value) || 0;
+        const tipoIgv = row.querySelector('.item-tipo-igv').value;
+        const itemTotal = cantidad * precio;
+        
+        row.querySelector('.item-total').value = `S/ ${itemTotal.toFixed(2)}`;
+        
+        if (tipoIgv === '10') {
+            subtotalGravado += itemTotal;
+        } else if (tipoIgv === '20') {
+            subtotalExonerado += itemTotal;
+        } else {
+            subtotalInafecto += itemTotal;
+        }
+    });
+    
+    const igv = subtotalGravado * 0.18;
+    const total = subtotalGravado + igv + subtotalExonerado + subtotalInafecto;
+    
+    // Actualizar UI
+    document.getElementById('subtotal-gravado').textContent = `S/ ${subtotalGravado.toFixed(2)}`;
+    document.getElementById('subtotal-exonerado').textContent = `S/ ${subtotalExonerado.toFixed(2)}`;
+    document.getElementById('subtotal-inafecto').textContent = `S/ ${subtotalInafecto.toFixed(2)}`;
+    document.getElementById('igv').textContent = `S/ ${igv.toFixed(2)}`;
+    document.getElementById('total').textContent = `S/ ${total.toFixed(2)}`;
+    
+    // Mostrar/ocultar filas según corresponda
+    document.getElementById('row-exonerado').style.display = subtotalExonerado > 0 ? 'flex' : 'none';
+    document.getElementById('row-inafecto').style.display = subtotalInafecto > 0 ? 'flex' : 'none';
+}
+
+function actualizarEventosItems() {
+    document.querySelectorAll('.item-cantidad, .item-precio, .item-tipo-igv').forEach(input => {
+        input.removeEventListener('input', calcularTotales);
+        input.removeEventListener('change', calcularTotales);
+        input.addEventListener('input', calcularTotales);
+        input.addEventListener('change', calcularTotales);
+    });
+}
+
+actualizarEventosItems();
+
+// Cambiar serie según tipo de documento
+document.getElementById('tipo_documento').addEventListener('change', (e) => {
+    const tipo = e.target.value;
+    
+    // Redirigir a formularios especiales para NC/ND
+    if (tipo === '07') {
+        window.location.href = '/comprobantes/nota-credito';
+        return;
+    }
+    if (tipo === '08') {
+        window.location.href = '/comprobantes/nota-debito';
+        return;
+    }
+    
+    const serieSelect = document.getElementById('serie');
+    const series = {
+        '01': ['F001', 'F002'],
+        '03': ['B001', 'B002'],
+        '12': ['T001', 'T002'],
+        '07': ['FC01', 'BC01'],
+        '08': ['FD01', 'BD01']
+    };
+    
+    const opciones = series[tipo] || ['F001'];
+    serieSelect.innerHTML = opciones.map(s => `<option value="${s}">${s}</option>`).join('');
+});
+
+// Buscar cliente (placeholder - puedes conectar a API de SUNAT)
+// Buscar cliente en SUNAT/RENIEC
+document.getElementById('btn-buscar-cliente').addEventListener('click', async () => {
+    const tipoDoc = document.getElementById('cliente_tipo_doc').value;
+    const numero = document.getElementById('cliente_numero_doc').value.trim();
+    
+    if (!numero) {
+        toast.warning('Ingresa un número', 'Escribe el RUC o DNI a consultar');
+        return;
+    }
+    
+    // Validar longitud
+    if (tipoDoc === '6' && numero.length !== 11) {
+        toast.warning('RUC inválido', 'El RUC debe tener 11 dígitos');
+        return;
+    }
+    if (tipoDoc === '1' && numero.length !== 8) {
+        toast.warning('DNI inválido', 'El DNI debe tener 8 dígitos');
+        return;
+    }
+    
+    const btn = document.getElementById('btn-buscar-cliente');
+    btn.disabled = true;
+    btn.textContent = '⏳';
+    
+    try {
+        const endpoint = tipoDoc === '6' ? `/api/consulta/ruc/${numero}` : `/api/consulta/dni/${numero}`;
+        const response = await fetch(endpoint);
+        const result = await response.json();
+        
+        if (result.exito && result.datos) {
+            const datos = result.datos;
+            
+            // Llenar campos
+            if (tipoDoc === '6') {
+            // RUC
+            document.getElementById('cliente_razon_social').value = datos.razon_social || '';
+            document.getElementById('cliente_direccion').value = datos.direccion || '';
+            document.getElementById('cliente_departamento').value = datos.departamento || '';
+            document.getElementById('cliente_provincia').value = datos.provincia || '';
+            document.getElementById('cliente_distrito').value = datos.distrito || '';
+            document.getElementById('cliente_ubigeo').value = datos.ubigeo || '';
+        } else {
+            // DNI
+            document.getElementById('cliente_razon_social').value = datos.nombre_completo || '';
+            // DNI no trae dirección, limpiar campos
+            document.getElementById('cliente_direccion').value = '';
+            document.getElementById('cliente_departamento').value = '';
+            document.getElementById('cliente_provincia').value = '';
+            document.getElementById('cliente_distrito').value = '';
+            document.getElementById('cliente_ubigeo').value = '';
+        }
+            
+            toast.success('Encontrado', datos.razon_social || datos.nombre_completo);
+        } else {
+            toast.error('No encontrado', result.mensaje || 'No se encontró información');
+        }
+    } catch (error) {
+        toast.error('Error de conexión', error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍';
+    }
+});
+
+// Enviar formulario
+document.getElementById('form-emitir').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const btn = document.getElementById('btn-emitir');
+    btn.disabled = true;
+    
+    // Recopilar items
+    const items = [];
+    document.querySelectorAll('.item-row').forEach((row, index) => {
+        items.push({
+            descripcion: row.querySelector('input[name*="descripcion"]').value,
+            cantidad: parseFloat(row.querySelector('.item-cantidad').value),
+            unidad_medida: row.querySelector('select[name*="unidad"]').value,
+            precio_unitario: parseFloat(row.querySelector('.item-precio').value),
+            tipo_afectacion_igv: row.querySelector('.item-tipo-igv').value
+        });
+    });
+    
+    if (items.length === 0 || items.some(i => !i.descripcion || !i.cantidad || !i.precio_unitario)) {
+        toast.error('Items incompletos', 'Completa todos los campos de los items');
+        btn.disabled = false;
+        return;
+    }
+    
+    const data = {
+        tipo_documento: document.getElementById('tipo_documento').value,
+        serie: document.getElementById('serie').value,
+        cliente_tipo_doc: document.getElementById('cliente_tipo_doc').value,
+        cliente_numero_doc: document.getElementById('cliente_numero_doc').value,
+        cliente_razon_social: document.getElementById('cliente_razon_social').value,
+        cliente_direccion: document.getElementById('cliente_direccion').value,
+        cliente_departamento: document.getElementById('cliente_departamento').value,
+        cliente_provincia: document.getElementById('cliente_provincia').value,
+        cliente_distrito: document.getElementById('cliente_distrito').value,
+        cliente_ubigeo: document.getElementById('cliente_ubigeo').value,
+        items: items,
+        moneda: 'PEN',
+        observaciones: document.getElementById('observaciones').value
+    };
+    
+    const toastId = toast.loading('Emitiendo comprobante...');
+    
+    try {
+        const response = await fetch('/api/comprobantes/emitir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        toast.remove(toastId);
+        
+        if (response.ok && result.exito) {
+            toast.success('¡Comprobante emitido!', result.mensaje);
+            setTimeout(() => {
+                window.location.href = '/comprobantes';
+            }, 2000);
+        } else {
+            // Manejar errores de validación (422)
+            let errorMsg = 'Error al emitir';
+            if (result.detail) {
+                if (Array.isArray(result.detail)) {
+                    // Errores de validación Pydantic
+                    errorMsg = result.detail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+                } else if (typeof result.detail === 'string') {
+                    errorMsg = result.detail;
+                } else {
+                    errorMsg = JSON.stringify(result.detail);
+                }
+            }
+            toast.error('Error', errorMsg);
+            btn.disabled = false;
+        }
+    } catch (error) {
+        toast.remove(toastId);
+        toast.error('Error de conexión', error.message);
+        btn.disabled = false;
+    }
+});
+</script>
 {% endblock %}
