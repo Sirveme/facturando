@@ -10,7 +10,7 @@ import json
 import time
 
 from src.api.dependencies import get_db
-from src.models.models import Emisor, Comprobante, ComprobanteItem, Cliente, ApiLog
+from src.models.models import Emisor, Comprobante, LineaDetalle, Cliente, ApiLog
 from src.api.v1.auth import verificar_api_key
 from src.api.v1.schemas import (
     ComprobanteRequest, ComprobanteResponse, ErrorResponse,
@@ -233,7 +233,7 @@ async def emitir_comprobante(
         
         # === CREAR ITEMS ===
         for i, item_data in enumerate(items_data, 1):
-            item = ComprobanteItem(
+            item = LineaDetalle(
                 id=str(uuid4()),
                 comprobante_id=comprobante_id,
                 item_orden=i,
@@ -357,9 +357,9 @@ async def consultar_comprobante(
     
     cliente = db.query(Cliente).filter(Cliente.id == comprobante.cliente_id).first()
     
-    items = db.query(ComprobanteItem).filter(
-        ComprobanteItem.comprobante_id == comprobante_id
-    ).order_by(ComprobanteItem.item_orden).all()
+    items = db.query(LineaDetalle).filter(
+        LineaDetalle.comprobante_id == comprobante_id
+    ).order_by(LineaDetalle.item_orden).all()
     
     return {
         "exito": True,
