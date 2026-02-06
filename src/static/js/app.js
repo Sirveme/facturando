@@ -1,69 +1,65 @@
-// App JS - Funcionalidad del dashboard
+/**
+ * APP.JS - Menú móvil y funcionalidades globales
+ */
 console.log('📱 App JS cargado');
 
-// ========================================
-// MOBILE MENU
-// ========================================
-// Mobile menu
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🔄 DOM cargado, inicializando...');
-  
-  const menuToggle = document.getElementById('mobile-menu-toggle');
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('mobile-overlay');
-  
-  console.log('Elementos encontrados:', {
-    menuToggle: !!menuToggle,
-    sidebar: !!sidebar,
-    overlay: !!overlay
-  });
-  
-  if (menuToggle && sidebar && overlay) {
-    // Toggle menú
-    menuToggle.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      console.log('🍔 Toggle menu clicked');
-      
-      const isActive = sidebar.classList.contains('active');
-      
-      if (isActive) {
-        sidebar.classList.remove('active');
-        overlay.classList.remove('active');
-        document.body.style.overflow = '';
-      } else {
-        sidebar.classList.add('active');
-        overlay.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Prevenir scroll
-      }
-      
-      console.log('Sidebar active:', sidebar.classList.contains('active'));
+    console.log('🔄 DOM cargado, inicializando...');
+    
+    // =============================================
+    // MENÚ MÓVIL
+    // =============================================
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    
+    console.log('Elementos menú:', {
+        menuToggle: !!menuToggle,
+        sidebar: !!sidebar,
+        overlay: !!overlay
     });
     
-    // Cerrar con overlay
-    overlay.addEventListener('click', function() {
-      console.log('📱 Overlay clicked - closing');
-      sidebar.classList.remove('active');
-      overlay.classList.remove('active');
-      document.body.style.overflow = '';
-    });
-    
-    // Cerrar con links (solo móvil)
-    const sidebarLinks = sidebar.querySelectorAll('.sidebar-link');
-    sidebarLinks.forEach(link => {
-      link.addEventListener('click', function() {
-        if (window.innerWidth <= 768) {
-          console.log('🔗 Link clicked - closing mobile menu');
-          sidebar.classList.remove('active');
-          overlay.classList.remove('active');
-          document.body.style.overflow = '';
+    if (menuToggle && sidebar) {
+        menuToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🍔 Menu toggle clicked');
+            
+            const isActive = sidebar.classList.toggle('active');
+            menuToggle.classList.toggle('active');
+            
+            if (overlay) {
+                overlay.classList.toggle('active');
+            }
+            
+            document.body.classList.toggle('menu-open');
+            console.log('Sidebar active:', isActive);
+        });
+        
+        // Cerrar al hacer clic en overlay
+        if (overlay) {
+            overlay.addEventListener('click', function() {
+                console.log('🔲 Overlay clicked');
+                cerrarMenu();
+            });
         }
-      });
-    });
-    
-    console.log('✅ Mobile menu initialized');
-  } else {
-    console.error('❌ Mobile menu elements not found');
-  }
+        
+        // Cerrar con Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                cerrarMenu();
+            }
+        });
+        
+        function cerrarMenu() {
+            sidebar.classList.remove('active');
+            menuToggle.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+            document.body.classList.remove('menu-open');
+        }
+        
+        console.log('✅ Mobile menu initialized');
+    } else {
+        console.log('❌ Mobile menu elements not found');
+    }
 });
