@@ -17,6 +17,7 @@ app = FastAPI(title='facturalo.pro API')
 # Create tables if not exist (for MVP convenience)
 Base.metadata.create_all(bind=engine)
 
+"""
 @app.post('/api/comprobantes/emitir', response_model=StandardResponse)
 def emitir_comprobante(payload: ComprobanteCreate):
     session = SessionLocal()
@@ -42,6 +43,8 @@ def emitir_comprobante(payload: ComprobanteCreate):
         return JSONResponse({'exito': True, 'datos': {'id': comp.id}, 'mensaje': 'Comprobante encolado'})
     finally:
         session.close()
+
+"""
 
 @app.get('/api/comprobantes/{comprobante_id}', response_model=StandardResponse)
 def get_comprobante(comprobante_id: str):

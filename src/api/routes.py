@@ -1,11 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
+from fastapi import Request as FastAPIRequest
+from fastapi import Cookie
 
 from sqlalchemy import or_
 
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+from cryptography import x509
+import base64
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 import io
 
 import pandas as pd
@@ -42,135 +49,26 @@ class ReenviarRechazadosRequest(BaseModel):
 
 router = APIRouter()
 
-@router.post('/certificado/upload', response_model=StandardResponse)
-async def upload_certificado(emisor_ruc: str = Form(...), password: str = Form(...), archivo: UploadFile = File(...), sol_usuario: str | None = Form(None), sol_password: str | None = Form(None), db: Session = Depends(get_db)):
-    # Buscar emisor
-    emisor = db.query(Emisor).filter_by(ruc=emisor_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail='Emisor no encontrado')
-    # read uploaded PFX
-    content = await archivo.read()
-    # deactivate existing active certificates
-    db.query(Certificado).filter_by(emisor_id=emisor.id, activo=True).update({'activo': False})
-    # attempt to extract serial and expiration
-    try:
-        from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
-        pk, cert, add = load_key_and_certificates(content, password.encode() if password else None)
-        serial = str(cert.serial_number) if cert else None
-        fecha_venc = cert.not_valid_after_utc.date() if cert else None
-    except Exception:
-        serial = None
-        fecha_venc = None
-    # encrypt and store
-    from cryptography.fernet import Fernet
-    f = Fernet(settings.encryption_key.encode())
-    pfx_enc = f.encrypt(content)
-    pwd_enc = f.encrypt(password.encode() if password else b'')
-    cert_obj = Certificado(emisor_id=emisor.id, pfx_encriptado=pfx_enc, password_encriptado=pwd_enc, serial_number=serial, fecha_vencimiento=fecha_venc, activo=True)
-    db.add(cert_obj)
-    # update emisor SOL credentials if provided
-    if sol_usuario is not None:
-        emisor.sol_usuario = sol_usuario
-    if sol_password is not None:
-        emisor.sol_password = sol_password
-    db.commit()
-    db.refresh(cert_obj)
-    return {"exito": True, "datos": {"id": cert_obj.id}, "mensaje": "Certificado cargado"}
-
-@router.post('/comprobantes/emitir', response_model=StandardResponse)
-def emitir_comprobante_endpoint(
-    payload: ComprobanteCreate,
-    db: Session = Depends(get_db)
-):
-    """Emite un comprobante electrónico"""
-    
-    # Buscar emisor
-    emisor = db.query(Emisor).filter_by(ruc=payload.emisor_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail='Emisor no encontrado')
-
-    # Parse fecha dd/mm/YYYY -> date
-    if '/' in payload.fecha_emision:
-        d, m, y = payload.fecha_emision.split('/')
-        fecha_obj = datetime(int(y), int(m), int(d)).date()
-    else:
-        fecha_obj = datetime.fromisoformat(payload.fecha_emision).date()
-
-    # Calcular totales
-    monto_base = Decimal('0.00')
-    for it in payload.items:
-        monto_base += (Decimal(it.cantidad) * Decimal(it.precio_unitario))
-
-    # Calcular IGV (18%)
-    monto_igv = monto_base * Decimal('0.18')
-    monto_total = monto_base + monto_igv
-
-    # Crear comprobante
-    comp = Comprobante(
-        emisor_id=emisor.id,
-        tipo_documento=payload.tipo_documento,
-        serie=payload.serie,
-        numero=payload.numero or 1,
-        numero_formato=f"{payload.serie}-{(payload.numero or 1)}",
-        fecha_emision=fecha_obj,
-        moneda=payload.moneda or 'PEN',
-        monto_base=monto_base,
-        monto_igv=monto_igv,
-        monto_total=monto_total,
-        estado='encolado'
-    )
-    db.add(comp)
-    db.commit()
-    db.refresh(comp)
-
-    # Insert lineas
-    orden = 1
-    for it in payload.items:
-        monto_linea = Decimal(it.cantidad) * Decimal(it.precio_unitario)
-        linea = LineaDetalle(
-            comprobante_id=comp.id,
-            orden=orden,
-            cantidad=it.cantidad,
-            unidad=it.unidad,
-            descripcion=it.descripcion,
-            precio_unitario=it.precio_unitario,
-            monto_linea=monto_linea
-        )
-        db.add(linea)
-        orden += 1
-    db.commit()
-
-    # Encolar en Celery
-    try:
-        from src.tasks.tasks import emitir_comprobante_task
-        emitir_comprobante_task.delay(str(comp.id), settings.test_mode)
-    except Exception as e:
-        # If Celery not available, log but don't fail
-        print(f"Warning: Could not enqueue task: {e}")
-
-    return {
-        "exito": True, 
-        "datos": {"id": str(comp.id)}, 
-        "mensaje": "Encolado"
-    }
-
-
 @router.get('/comprobantes/{comprobante_id}', response_model=StandardResponse)
 def get_comprobante(comprobante_id: str, db: Session = Depends(get_db)):
     comp = db.query(Comprobante).filter_by(id=comprobante_id).first()
     if not comp:
         raise HTTPException(status_code=404, detail='Comprobante no encontrado')
+    
+    # Obtener mensaje de error si fue rechazado
+    error_msg = None
+    if comp.respuesta:
+        error_msg = comp.respuesta.descripcion
+    
     datos = {
         'id': comp.id,
         'estado': comp.estado,
         'fecha_emision': comp.fecha_emision.strftime('%d/%m/%Y') if comp.fecha_emision else None,
         'monto_total': str(comp.monto_total),
-        'error_mensaje': comp.respuesta.descripcion if comp.respuesta is not None else None
+        'error_mensaje': error_msg
     }
     return {"exito": True, "datos": datos, "mensaje": None}
 
-
-from fastapi.responses import Response
 
 # Agregar este endpoint si no existe
 @router.get("/comprobantes/{comprobante_id}/xml")
@@ -392,16 +290,11 @@ async def reenviar_comprobante(
     db: Session = Depends(get_db)
 ):
     """Reenvía un comprobante rechazado o con error"""
-    from src.tasks.tasks import reenviar_comprobante_task
-    from src.api.auth import verificar_emisor
     
     # Verificar que el comprobante existe
     comprobante = db.query(Comprobante).filter(Comprobante.id == comprobante_id).first()
     if not comprobante:
         raise HTTPException(status_code=404, detail="Comprobante no encontrado")
-    
-    # Verificar autorización
-    await verificar_emisor(comprobante.emisor_ruc)
     
     # Validar que no esté aceptado
     if comprobante.estado == "aceptado":
@@ -410,17 +303,33 @@ async def reenviar_comprobante(
             detail="El comprobante ya fue aceptado, no se puede reenviar"
         )
     
-    # Encolar tarea
-    task = reenviar_comprobante_task.delay(comprobante_id)
+    # Actualizar estado
+    comprobante.estado = "enviando"
+    db.commit()
     
-    return {
-        "exito": True,
-        "datos": {
-            "comprobante_id": str(comprobante_id),
-            "task_id": task.id
-        },
-        "mensaje": "Comprobante encolado para reenvío"
-    }
+    # Encolar tarea (usar la misma que emitir)
+    try:
+        if CELERY_DISPONIBLE:
+            from src.tasks.celery_app import celery_app
+            celery_app.send_task('enviar_comprobante_sunat', args=[comprobante_id])
+            return {
+                "exito": True,
+                "mensaje": "Comprobante encolado para reenvío"
+            }
+        else:
+            # Envío síncrono
+            from src.services.sunat_service import SunatService
+            sunat = SunatService(db)
+            resultado = sunat.enviar_comprobante(comprobante_id)
+            return {
+                "exito": resultado.get('exito', False),
+                "mensaje": resultado.get('mensaje', 'Procesado')
+            }
+    except Exception as e:
+        return {
+            "exito": False,
+            "mensaje": f"Error: {str(e)}"
+        }
 
 
 @router.post("/comprobantes/reenviar-rechazados")
@@ -717,4 +626,609 @@ def obtener_progreso_reenvio(
         "atorados": len(atorados),
         "total_original": procesando + total_rechazados + aceptados_hoy,
         "progreso_porcentaje": int((aceptados_hoy / (procesando + total_rechazados + aceptados_hoy)) * 100) if (procesando + total_rechazados + aceptados_hoy) > 0 else 0
+    }
+
+class ItemEmitir(BaseModel):
+    descripcion: str
+    cantidad: float
+    precio_unitario: float
+    unidad_medida: str = "NIU"
+    orden: Optional[int] = None
+    unidad: Optional[str] = None
+
+class EmitirComprobanteRequest(BaseModel):
+    tipo_documento: str
+    serie: str
+    cliente_tipo_doc: str = "6"
+    cliente_numero_doc: str
+    cliente_razon_social: str
+    items: list[ItemEmitir]
+    cliente_direccion: str = ""
+    moneda: str = "PEN"
+    observaciones: str = ""
+    # Opcionales - se generan en backend
+    emisor_ruc: Optional[str] = None
+    numero: Optional[int] = None
+    fecha_emision: Optional[str] = None
+
+@router.post("/comprobantes/emitir")
+async def emitir_comprobante(
+    request: FastAPIRequest,
+    db: Session = Depends(get_db)
+):
+    """Emitir nuevo comprobante electrónico"""
+    from uuid import uuid4
+    
+    # Recibir JSON directamente (sin Pydantic)
+    data = await request.json()
+
+    # DEBUG: Ver qué datos llegan
+    print(f"DEBUG EMITIR - Data recibida: {data}")
+    print(f"DEBUG EMITIR - Items: {data.get('items', [])}")
+    
+    # Extraer campos
+    tipo_documento = data.get('tipo_documento', '01')
+    serie = data.get('serie', 'F001')
+    cliente_tipo_doc = data.get('cliente_tipo_doc', '6')
+    cliente_numero_doc = data.get('cliente_numero_doc', '')
+    cliente_razon_social = data.get('cliente_razon_social', '')
+    cliente_direccion = data.get('cliente_direccion', '')
+    items = data.get('items', [])
+    moneda = data.get('moneda', 'PEN')
+    observaciones = data.get('observaciones', '')
+    
+    # Validar campos requeridos
+    if not cliente_numero_doc:
+        raise HTTPException(status_code=400, detail="Número de documento del cliente es requerido")
+    if not cliente_razon_social:
+        raise HTTPException(status_code=400, detail="Razón social del cliente es requerida")
+    if not items:
+        raise HTTPException(status_code=400, detail="Debe incluir al menos un item")
+    
+    # Intentar obtener RUC de la sesión (cookie)
+    session_ruc = request.cookies.get("session")
+        
+    if session_ruc:
+        emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc, Emisor.activo == True).first()
+    else:
+        # Fallback: primer emisor activo
+        emisor = db.query(Emisor).filter(Emisor.activo == True).first()
+
+    if not emisor:
+        raise HTTPException(status_code=404, detail="No hay emisor configurado")
+    
+    # Obtener siguiente número (máximo actual + 1)
+    from sqlalchemy import func
+    
+    max_numero = db.query(func.max(Comprobante.numero)).filter(
+        Comprobante.emisor_id == emisor.id,
+        Comprobante.serie == serie,
+        Comprobante.tipo_documento == tipo_documento
+    ).scalar()
+    
+    siguiente_numero = (max_numero + 1) if max_numero else 1
+
+    # Verificar que no exista (prevenir duplicados por concurrencia)
+    existe = db.query(Comprobante).filter(
+        Comprobante.emisor_id == emisor.id,
+        Comprobante.serie == serie,
+        Comprobante.tipo_documento == tipo_documento,
+        Comprobante.numero == siguiente_numero
+    ).first()
+
+    if existe:
+        # Si existe, buscar el siguiente disponible
+        max_real = db.query(func.max(Comprobante.numero)).filter(
+            Comprobante.emisor_id == emisor.id,
+            Comprobante.serie == serie,
+            Comprobante.tipo_documento == tipo_documento
+        ).scalar()
+        siguiente_numero = (max_real + 1) if max_real else 1
+        print(f"WARNING: Número duplicado detectado, usando {siguiente_numero}")
+    
+    # Log para debug
+    print(f"DEBUG: Serie={serie}, Tipo={tipo_documento}, MaxActual={max_numero}, Siguiente={siguiente_numero}")
+    
+    # Calcular totales
+    # Calcular totales según tipo de afectación
+    subtotal_gravado = 0
+    subtotal_exonerado = 0
+    subtotal_inafecto = 0
+    
+    for item in items:
+        cantidad = float(item.get('cantidad', 0))
+        precio = float(item.get('precio_unitario', 0))
+        tipo_igv = item.get('tipo_afectacion_igv', '10')
+        monto = cantidad * precio
+
+        print(f"DEBUG ITEM: cant={cantidad}, precio={precio}, tipo={tipo_igv}, monto={monto}")
+        
+        if tipo_igv == '10':  # Gravado
+            subtotal_gravado += monto
+        elif tipo_igv == '20':  # Exonerado
+            subtotal_exonerado += monto
+        else:  # Inafecto
+            subtotal_inafecto += monto
+    
+    subtotal = subtotal_gravado  # Base imponible solo gravado
+    igv = round(subtotal_gravado * 0.18, 2)
+    total = round(subtotal_gravado + igv + subtotal_exonerado + subtotal_inafecto, 2)
+    
+    igv = round(subtotal * 0.18, 2)
+    total = round(subtotal + igv, 2)
+    
+    peru_tz = timezone(timedelta(hours=-5))
+    fecha_peru = datetime.now(peru_tz).date()
+
+    # Crear comprobante
+    comprobante = Comprobante(
+        id=str(uuid4()),
+        emisor_id=emisor.id,
+        tipo_documento=tipo_documento,
+        serie=serie,
+        numero=siguiente_numero,
+        numero_formato=f"{serie}-{str(siguiente_numero).zfill(8)}",
+        fecha_emision=fecha_peru,
+        cliente_tipo_documento=cliente_tipo_doc,
+        cliente_numero_documento=cliente_numero_doc,
+        cliente_razon_social=cliente_razon_social,
+        cliente_direccion=cliente_direccion,
+        cliente_departamento=data.get('cliente_departamento', ''),
+        cliente_provincia=data.get('cliente_provincia', ''),
+        cliente_distrito=data.get('cliente_distrito', ''),
+        cliente_ubigeo=data.get('cliente_ubigeo', ''),
+        moneda=moneda,
+        monto_base=subtotal,
+        monto_igv=igv,
+        monto_total=total,
+        estado='pendiente',
+        observaciones=observaciones
+    )
+    
+    db.add(comprobante)
+    
+    # Crear líneas de detalle
+    for i, item in enumerate(items, 1):
+        cantidad = float(item.get('cantidad', 1))
+        precio = float(item.get('precio_unitario', 0))
+        monto_linea = round(cantidad * precio, 2)
+        
+        linea = LineaDetalle(
+            id=str(uuid4()),
+            comprobante_id=comprobante.id,
+            orden=i,
+            descripcion=item.get('descripcion', ''),
+            cantidad=cantidad,
+            unidad=item.get('unidad_medida', 'NIU'),
+            precio_unitario=precio,
+            monto_linea=monto_linea,
+            tipo_afectacion_igv=item.get('tipo_afectacion_igv', '10'),  # ← Del formulario
+            es_bonificacion=False
+        )
+        db.add(linea)
+    
+    db.commit()
+    
+    # Encolar envío a SUNAT automáticamente
+    # Encolar envío a SUNAT automáticamente
+    try:
+        if CELERY_DISPONIBLE:
+            from src.tasks.celery_app import celery_app
+            celery_app.send_task('enviar_comprobante_sunat', args=[comprobante.id])
+            comprobante.estado = 'enviando'
+            db.commit()
+            print(f"DEBUG: Tarea enviar_comprobante_sunat encolada para {comprobante.id}")
+        else:
+            # Envío síncrono si no hay Celery
+            from src.services.sunat_service import SunatService
+            sunat_service = SunatService(db)
+            resultado = sunat_service.enviar_comprobante(comprobante.id)
+            if resultado.get('exito'):
+                comprobante.estado = 'aceptado'
+            else:
+                comprobante.estado = 'rechazado'
+            db.commit()
+            print(f"DEBUG: Envío síncrono resultado: {resultado}")
+    except Exception as e:
+        print(f"ERROR al encolar envío SUNAT: {e}")
+        # No fallar la emisión si falla el envío
+    
+    return {
+        "exito": True,
+        "mensaje": f"Comprobante {serie}-{str(siguiente_numero).zfill(8)} creado y enviado a SUNAT",
+        "comprobante_id": comprobante.id,
+        "serie": serie,
+        "numero": siguiente_numero
+    }
+
+
+from src.services.consulta_ruc import consultar_ruc, consultar_dni
+
+@router.get("/consulta/ruc/{numero}")
+def api_consultar_ruc(numero: str):
+    """Consulta RUC en SUNAT"""
+    resultado = consultar_ruc(numero)
+    if resultado and resultado.get('encontrado'):
+        return {"exito": True, "datos": resultado}
+    return {"exito": False, "mensaje": "RUC no encontrado"}
+
+
+@router.get("/consulta/dni/{numero}")
+def api_consultar_dni(numero: str):
+    """Consulta DNI en RENIEC"""
+    resultado = consultar_dni(numero)
+    if resultado and resultado.get('encontrado'):
+        return {"exito": True, "datos": resultado}
+    return {"exito": False, "mensaje": "DNI no encontrado"}
+
+
+
+@router.post("/configuracion/certificado")
+async def subir_certificado(
+    request: FastAPIRequest,
+    db: Session = Depends(get_db)
+):
+    """Sube y valida un certificado digital"""
+    from uuid import uuid4
+    import io
+    
+    # Obtener datos del form
+    form = await request.form()
+    archivo = form.get("archivo")
+    password = form.get("password")
+    
+    if not archivo or not password:
+        raise HTTPException(status_code=400, detail="Archivo y contraseña son requeridos")
+    
+    # Obtener emisor de la sesión
+    session_ruc = request.cookies.get("session")
+    if not session_ruc:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    
+    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
+    if not emisor:
+        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    
+    # Leer archivo
+    contenido = await archivo.read()
+    
+    # Validar certificado
+    try:
+        from cryptography.hazmat.primitives.serialization import pkcs12
+        
+        # Intentar cargar el .pfx con la contraseña
+        private_key, certificate, additional_certs = pkcs12.load_key_and_certificates(
+            contenido,
+            password.encode(),
+            default_backend()
+        )
+        
+        if not certificate:
+            raise HTTPException(status_code=400, detail="El archivo no contiene un certificado válido")
+        
+        # Extraer información
+        fecha_vencimiento = certificate.not_valid_after_utc.date()
+        serial_number = str(certificate.serial_number)
+        
+        # Verificar que no esté vencido
+        from datetime import date
+        if fecha_vencimiento < date.today():
+            raise HTTPException(
+                status_code=400, 
+                detail=f"El certificado está vencido (venció el {fecha_vencimiento.strftime('%d/%m/%Y')})"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al leer certificado: Contraseña incorrecta o archivo inválido")
+    
+    # Encriptar contenido y contraseña
+    from src.core.config import settings
+    
+    # Crear clave Fernet desde encryption_key
+    key = settings.encryption_key.encode()
+    # Asegurar que sea base64 válido de 32 bytes
+    if len(key) < 32:
+        key = base64.urlsafe_b64encode(key.ljust(32)[:32])
+    fernet = Fernet(key)
+    
+    pfx_encriptado = fernet.encrypt(contenido)
+    password_encriptado = fernet.encrypt(password.encode())
+    
+    # Desactivar certificados anteriores
+    db.query(Certificado).filter(
+        Certificado.emisor_id == emisor.id
+    ).update({"activo": False})
+    
+    # Crear nuevo certificado
+    nuevo_cert = Certificado(
+        id=str(uuid4()),
+        emisor_id=emisor.id,
+        pfx_encriptado=pfx_encriptado,
+        password_encriptado=password_encriptado,
+        serial_number=serial_number,
+        fecha_vencimiento=fecha_vencimiento,
+        activo=True
+    )
+    
+    db.add(nuevo_cert)
+    db.commit()
+    
+    return {
+        "exito": True,
+        "mensaje": f"Certificado cargado correctamente. Válido hasta {fecha_vencimiento.strftime('%d/%m/%Y')}",
+        "datos": {
+            "fecha_vencimiento": fecha_vencimiento.isoformat(),
+            "serial_number": serial_number[:20] + "..."
+        }
+    }
+
+
+@router.post("/configuracion/credenciales-sol")
+async def guardar_credenciales_sol(
+    request: FastAPIRequest,
+    db: Session = Depends(get_db)
+):
+    """Guarda las credenciales SOL"""
+    data = await request.json()
+    
+    session_ruc = request.cookies.get("session")
+    if not session_ruc:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    
+    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
+    if not emisor:
+        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    
+    # Actualizar credenciales
+    emisor.usuario_sol = data.get('usuario_sol')
+    
+    if data.get('clave_sol'):
+        # Encriptar clave SOL
+        from src.core.config import settings
+        key = settings.encryption_key.encode()
+        if len(key) < 32:
+            key = base64.urlsafe_b64encode(key.ljust(32)[:32])
+        fernet = Fernet(key)
+        emisor.clave_sol = fernet.encrypt(data['clave_sol'].encode()).decode()
+    
+    db.commit()
+    
+    return {
+        "exito": True,
+        "mensaje": "Credenciales guardadas correctamente"
+    }
+
+
+@router.get("/comprobantes/{comprobante_id}/detalle")
+def get_comprobante_detalle(comprobante_id: str, db: Session = Depends(get_db)):
+    """Obtiene el detalle completo de un comprobante"""
+    comp = db.query(Comprobante).filter_by(id=comprobante_id).first()
+    if not comp:
+        raise HTTPException(status_code=404, detail='Comprobante no encontrado')
+    
+    # Obtener emisor
+    emisor = db.query(Emisor).filter_by(id=comp.emisor_id).first()
+    
+    # Obtener items
+    items = db.query(LineaDetalle).filter_by(comprobante_id=comprobante_id).order_by(LineaDetalle.orden).all()
+    
+    # Tipo de documento nombre
+    tipos_doc = {
+        '01': 'FACTURA ELECTRÓNICA',
+        '03': 'BOLETA DE VENTA ELECTRÓNICA',
+        '07': 'NOTA DE CRÉDITO',
+        '08': 'NOTA DE DÉBITO'
+    }
+    
+    # Respuesta SUNAT
+    respuesta_sunat = None
+    if comp.respuesta:
+        respuesta_sunat = comp.respuesta.descripcion
+    
+    datos = {
+        'id': comp.id,
+        'tipo_documento': comp.tipo_documento,
+        'tipo_documento_nombre': tipos_doc.get(comp.tipo_documento, 'COMPROBANTE'),
+        'serie': comp.serie,
+        'numero': comp.numero,
+        'numero_formato': comp.numero_formato or f"{comp.serie}-{str(comp.numero).zfill(8)}",
+        'fecha_emision': comp.fecha_emision.strftime('%d/%m/%Y') if comp.fecha_emision else '',
+        'moneda': comp.moneda or 'PEN',
+        'estado': comp.estado,
+        'monto_base': float(comp.monto_base or 0),
+        'monto_igv': float(comp.monto_igv or 0),
+        'monto_total': float(comp.monto_total or 0),
+        'cliente_tipo_documento': comp.cliente_tipo_documento,
+        'cliente_numero_documento': comp.cliente_numero_documento,
+        'cliente_razon_social': comp.cliente_razon_social,
+        'cliente_direccion': comp.cliente_direccion,
+        'observaciones': comp.observaciones,
+        'emisor_ruc': emisor.ruc if emisor else '',
+        'emisor_razon_social': emisor.razon_social if emisor else '',
+        'emisor_direccion': emisor.direccion if emisor else '',
+        'respuesta_sunat': respuesta_sunat,
+        'items': [
+            {
+                'orden': item.orden,
+                'descripcion': item.descripcion,
+                'cantidad': float(item.cantidad),
+                'unidad': item.unidad,
+                'precio_unitario': float(item.precio_unitario),
+                'monto_linea': float(item.monto_linea or 0)
+            }
+            for item in items
+        ]
+    }
+    
+    return {"exito": True, "datos": datos}
+
+
+@router.post("/configuracion/formato")
+async def guardar_formato(
+    request: FastAPIRequest,
+    db: Session = Depends(get_db)
+):
+    """Guarda los formatos de impresión por tipo de documento"""
+    data = await request.json()
+    
+    session_ruc = request.cookies.get("session")
+    if not session_ruc:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    
+    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
+    if not emisor:
+        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    
+    formatos_validos = ['A4', 'A5', 'TICKET']
+    
+    # Actualizar cada formato si viene en el request
+    if 'formato_factura' in data and data['formato_factura'] in formatos_validos:
+        emisor.formato_factura = data['formato_factura']
+    
+    if 'formato_boleta' in data and data['formato_boleta'] in formatos_validos:
+        emisor.formato_boleta = data['formato_boleta']
+    
+    if 'formato_ticket' in data and data['formato_ticket'] in formatos_validos:
+        emisor.formato_ticket = data['formato_ticket']
+    
+    if 'formato_nc_nd' in data and data['formato_nc_nd'] in formatos_validos:
+        emisor.formato_nc_nd = data['formato_nc_nd']
+    
+    db.commit()
+    
+    return {
+        "exito": True,
+        "mensaje": "Formatos guardados correctamente"
+    }
+
+@router.post("/comprobantes/nota-credito")
+async def emitir_nota_credito(
+    request: FastAPIRequest,
+    db: Session = Depends(get_db)
+):
+    """Emite una Nota de Crédito"""
+    from uuid import uuid4
+    from datetime import datetime, timedelta, timezone
+    
+    data = await request.json()
+    
+    # Obtener emisor de la sesión
+    session_ruc = request.cookies.get("session")
+    if not session_ruc:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    
+    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
+    if not emisor:
+        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    
+    # Validar comprobante de referencia
+    comprobante_ref_id = data.get('comprobante_ref_id')
+    if not comprobante_ref_id:
+        raise HTTPException(status_code=400, detail="Debe seleccionar un comprobante de referencia")
+    
+    comprobante_ref = db.query(Comprobante).filter(Comprobante.id == comprobante_ref_id).first()
+    if not comprobante_ref:
+        raise HTTPException(status_code=404, detail="Comprobante de referencia no encontrado")
+    
+    # Validar que sea Factura o Boleta
+    if comprobante_ref.tipo_documento not in ['01', '03']:
+        raise HTTPException(status_code=400, detail="Solo se puede emitir NC para Facturas o Boletas")
+    
+    # Determinar serie NC
+    serie = data.get('serie', 'FC01')
+    tipo_documento = '07'  # Nota de Crédito
+    
+    # Obtener siguiente número
+    from sqlalchemy import func
+    max_numero = db.query(func.max(Comprobante.numero)).filter(
+        Comprobante.emisor_id == emisor.id,
+        Comprobante.serie == serie,
+        Comprobante.tipo_documento == tipo_documento
+    ).scalar()
+    siguiente_numero = (max_numero + 1) if max_numero else 1
+    
+    # Validar items
+    items = data.get('items', [])
+    if not items:
+        raise HTTPException(status_code=400, detail="Debe incluir al menos un item")
+    
+    # Calcular totales
+    subtotal_gravado = 0
+    for item in items:
+        cantidad = float(item.get('cantidad', 0))
+        precio = float(item.get('precio_unitario', 0))
+        subtotal_gravado += cantidad * precio
+    
+    igv = round(subtotal_gravado * 0.18, 2)
+    total = round(subtotal_gravado + igv, 2)
+    
+    # Zona horaria Perú
+    peru_tz = timezone(timedelta(hours=-5))
+    fecha_peru = datetime.now(peru_tz).date()
+    
+    # Crear NC
+    nc = Comprobante(
+        id=str(uuid4()),
+        emisor_id=emisor.id,
+        tipo_documento=tipo_documento,
+        serie=serie,
+        numero=siguiente_numero,
+        numero_formato=f"{serie}-{str(siguiente_numero).zfill(8)}",
+        fecha_emision=fecha_peru,
+        cliente_tipo_documento=comprobante_ref.cliente_tipo_documento,
+        cliente_numero_documento=comprobante_ref.cliente_numero_documento,
+        cliente_razon_social=comprobante_ref.cliente_razon_social,
+        cliente_direccion=comprobante_ref.cliente_direccion,
+        moneda=comprobante_ref.moneda or 'PEN',
+        monto_base=subtotal_gravado,
+        monto_igv=igv,
+        monto_total=total,
+        estado='pendiente',
+        observaciones=data.get('observaciones', ''),
+        # Campos de referencia NC
+        doc_referencia_tipo=comprobante_ref.tipo_documento,
+        doc_referencia_numero=comprobante_ref.numero_formato,
+        motivo_nota=data.get('motivo', '01')
+    )
+    
+    db.add(nc)
+    
+    # Crear líneas de detalle
+    for i, item in enumerate(items, 1):
+        cantidad = float(item.get('cantidad', 1))
+        precio = float(item.get('precio_unitario', 0))
+        monto_linea = round(cantidad * precio, 2)
+        
+        linea = LineaDetalle(
+            id=str(uuid4()),
+            comprobante_id=nc.id,
+            orden=i,
+            descripcion=item.get('descripcion', ''),
+            cantidad=cantidad,
+            unidad=item.get('unidad_medida', 'NIU'),
+            precio_unitario=precio,
+            monto_linea=monto_linea,
+            tipo_afectacion_igv=item.get('tipo_afectacion_igv', '10'),
+            es_bonificacion=False
+        )
+        db.add(linea)
+    
+    db.commit()
+    
+    # Encolar envío a SUNAT
+    try:
+        if CELERY_DISPONIBLE:
+            from src.tasks.celery_app import celery_app
+            celery_app.send_task('enviar_comprobante_sunat', args=[nc.id])
+            nc.estado = 'enviando'
+            db.commit()
+    except Exception as e:
+        print(f"ERROR al encolar NC: {e}")
+    
+    return {
+        "exito": True,
+        "mensaje": f"Nota de Crédito {serie}-{str(siguiente_numero).zfill(8)} emitida",
+        "comprobante_id": nc.id
     }
