@@ -38,7 +38,6 @@ class Emisor(Base):
     color_primario = Column(String(7), default='#2c3e50')
     color_secundario = Column(String(7), default='#e74c3c')
     telefono = Column(String(20))
-    email = Column(String(100))
     web = Column(String(200))
     usuario_sol = Column(String(20))
     clave_sol = Column(Text)  # Encriptado
@@ -55,6 +54,16 @@ class Emisor(Base):
     docs_mes_limite = Column(Integer, default=50)
     docs_mes_usados = Column(Integer, default=0)
     fecha_reset_contador = Column(Date, default=date.today)
+
+    # Autenticación
+    email = Column(String(255), unique=True)
+    password_hash = Column(String(255))
+    nombre_contacto = Column(String(255))
+    telefono = Column(String(20))
+    trial_inicio = Column(DateTime)
+    trial_fin = Column(DateTime)
+    modo_test = Column(Boolean, default=True)
+    activo = Column(Boolean, default=True)
 
     certificados = relationship('Certificado', back_populates='emisor', cascade='all, delete-orphan')
     comprobantes = relationship('Comprobante', back_populates='emisor', cascade='all, delete-orphan')
