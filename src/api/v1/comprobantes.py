@@ -291,7 +291,8 @@ async def emitir_comprobante(
             },
             "archivos": {
                 "pdf_url": f"https://facturalo.pro/api/v1/comprobantes/{comprobante_id}/pdf",
-                "xml_url": f"https://facturalo.pro/api/v1/comprobantes/{comprobante_id}/xml"
+                "xml_url": f"https://facturalo.pro/api/v1/comprobantes/{comprobante_id}/xml",
+                "cdr_url": f"https://facturalo.pro/api/v1/comprobantes/{comprobante_id}/cdr"
             },
             "mensaje": "Comprobante emitido exitosamente"
         }
