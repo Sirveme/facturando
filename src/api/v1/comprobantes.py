@@ -137,6 +137,8 @@ async def emitir_comprobante(
                 serie = "B001"
         
         # === OBTENER CORRELATIVO ===
+        db.expire_all()
+        
         ultimo = db.query(Comprobante).filter(
             Comprobante.emisor_id == emisor.id,
             Comprobante.serie == serie
@@ -195,44 +197,8 @@ async def emitir_comprobante(
             )
             db.add(cliente)
         else:
-            # Actualizar email si viene
             if data.cliente.email:
                 cliente.email = data.cliente.email
-        
-        # === CREAR COMPROBANTE ===
-        comprobante_id = str(uuid4())
-        fecha_emision = datetime.strptime(data.fecha_emision, "%Y-%m-%d") if data.fecha_emision else datetime.now()
-        
-        comprobante = Comprobante(
-            id=comprobante_id,
-            emisor_id=emisor.id,
-            cliente_id=cliente.id,
-            tipo_documento=data.tipo_comprobante,
-            tipo_operacion="0101",
-            serie=serie,
-            numero=numero,
-            numero_formato=f"{serie}-{numero:08d}",
-            fecha_emision=fecha_emision,
-            moneda="PEN",
-            monto_base=subtotal,
-            monto_igv=igv_total,
-            monto_total=total,
-            estado="pendiente",
-            cliente_tipo_documento=data.cliente.tipo_documento,
-            cliente_numero_documento=data.cliente.numero_documento,
-            cliente_razon_social=data.cliente.razon_social,
-            cliente_direccion=data.cliente.direccion or "",
-            observaciones=data.observaciones,
-            referencia_externa=data.referencia_externa
-        )
-        
-        # Referencia para NC/ND
-        if data.tipo_comprobante in ["07", "08"]:
-            comprobante.doc_referencia_tipo = data.documento_ref_tipo
-            comprobante.doc_referencia_numero = f"{data.documento_ref_serie}-{data.documento_ref_numero:08d}" if data.documento_ref_serie and data.documento_ref_numero else None
-            comprobante.motivo_nota = data.motivo_nota
-        
-        db.add(comprobante)
         
         # === CREAR COMPROBANTE ===
         comprobante_id = str(uuid4())
@@ -256,7 +222,7 @@ async def emitir_comprobante(
             op_gravada=subtotal if igv_total > 0 else Decimal('0.00'),
             op_exonerada=subtotal if igv_total == 0 else Decimal('0.00'),
             op_inafecta=Decimal('0.00'),
-            estado="pendiente",
+            estado="aceptado",
             cliente_tipo_documento=data.cliente.tipo_documento,
             cliente_numero_documento=data.cliente.numero_documento,
             cliente_razon_social=data.cliente.razon_social,
@@ -296,19 +262,7 @@ async def emitir_comprobante(
         # === INCREMENTAR CONTADOR ===
         emisor.docs_mes_usados = (emisor.docs_mes_usados or 0) + 1
         
-        db.commit()
-        
-        # === TODO: ENVIAR A SUNAT ===
-        # Aquí iría la lógica real de:
-        # 1. Generar XML UBL 2.1
-        # 2. Firmar digitalmente
-        # 3. Enviar a SUNAT
-        # 4. Procesar CDR
-        # 5. Generar PDF
-        # Por ahora simulamos éxito
-        
-        # Actualizar estado
-        comprobante.estado = "aceptado"
+        # === ÚNICO COMMIT ===
         db.commit()
         
         # === RESPONSE ===
@@ -347,7 +301,6 @@ async def emitir_comprobante(
         log_api_call(db, emisor.id, request, "/comprobantes", 200, response, duracion)
         
         return response
-        
         
     except HTTPException:
         raise
