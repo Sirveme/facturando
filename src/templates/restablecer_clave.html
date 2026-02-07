@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restablecer contraseña - facturalo.pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #f8fafc; --bg-card: #fff; --text: #0f172a; --text-muted: #64748b;
+            --primary: #2563eb; --primary-hover: #1d4ed8; --primary-light: #dbeafe;
+            --border: #e2e8f0; --error: #dc2626; --error-bg: #fef2f2;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+        .header { padding: 1rem 2rem; display: flex; align-items: center; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+        .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); text-decoration: none; }
+        .logo span { color: var(--text); }
+        .main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+        .container { width: 100%; max-width: 420px; }
+        .card { background: var(--bg-card); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); border: 1px solid var(--border); padding: 2.5rem; }
+        .card-title { font-size: 1.5rem; font-weight: 700; margin-bottom: .25rem; text-align: center; }
+        .card-subtitle { color: var(--text-muted); font-size: .925rem; margin-bottom: 2rem; text-align: center; }
+        .alert-error { background: var(--error-bg); color: var(--error); padding: .75rem 1rem; border-radius: 8px; font-size: .875rem; margin-bottom: 1.5rem; text-align: center; border: 1px solid #fecaca; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label { display: block; font-size: .8125rem; font-weight: 600; margin-bottom: .375rem; }
+        .form-input { width: 100%; padding: .75rem 1rem; font-size: .9375rem; font-family: inherit; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); outline: none; transition: border-color .2s; }
+        .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+        .form-hint { font-size: .75rem; color: var(--text-muted); margin-top: .25rem; }
+        .btn-primary { width: 100%; padding: .875rem; font-size: 1rem; font-weight: 600; font-family: inherit; color: #fff; background: var(--primary); border: none; border-radius: 8px; cursor: pointer; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .back-link { display: block; text-align: center; margin-top: 1.5rem; font-size: .875rem; color: var(--primary); text-decoration: none; }
+        .footer { padding: 1.5rem; text-align: center; font-size: .8125rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="/" class="logo">facturalo<span>.pro</span></a>
+    </header>
+    <main class="main">
+        <div class="container">
+            <div class="card">
+                {% if error %}
+                <div class="alert-error">{{ error }}</div>
+                {% endif %}
+
+                {% if valido %}
+                <h1 class="card-title">Nueva contraseña</h1>
+                <p class="card-subtitle">Ingresa tu nueva contraseña</p>
+                <form method="POST" action="/restablecer-clave">
+                    <input type="hidden" name="token" value="{{ token }}">
+                    <div class="form-group">
+                        <label class="form-label" for="password">Nueva contraseña</label>
+                        <input type="password" class="form-input" id="password" name="password" placeholder="Mínimo 8 caracteres" required autocomplete="new-password">
+                        <div class="form-hint">Mínimo 8 caracteres, 1 mayúscula, 1 número</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password_confirm">Confirmar contraseña</label>
+                        <input type="password" class="form-input" id="password_confirm" name="password_confirm" placeholder="Repite tu contraseña" required autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="btn-primary">Restablecer contraseña</button>
+                </form>
+                {% else %}
+                <div style="text-align:center; padding: 1rem 0;">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">⏰</div>
+                    <p style="color: var(--text-muted); line-height: 1.6;">
+                        {{ error or 'El enlace ha expirado o no es válido.' }}
+                    </p>
+                </div>
+                {% endif %}
+                <a href="/olvide-clave" class="back-link">Solicitar nuevo enlace</a>
+            </div>
+        </div>
+    </main>
+    <footer class="footer">© 2026 facturalo.pro</footer>
+</body>
+</html>

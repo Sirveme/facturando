@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi cuenta - facturalo.pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #f8fafc;
+            --bg-card: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #dbeafe;
+            --border: #e2e8f0;
+            --error: #dc2626;
+            --error-bg: #fef2f2;
+            --success: #059669;
+            --success-bg: #ecfdf5;
+            --warning: #d97706;
+            --warning-bg: #fffbeb;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Topbar ── */
+        .topbar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: .75rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        .logo {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .logo span { color: var(--text); }
+        .topbar-nav { display: flex; gap: .25rem; }
+        .topbar-nav a {
+            padding: .5rem .875rem;
+            font-size: .8125rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all .15s;
+        }
+        .topbar-nav a:hover { color: var(--text); background: var(--bg); }
+        .topbar-nav a.active { color: var(--primary); background: var(--primary-light); }
+        .topbar-right { display: flex; align-items: center; gap: 1rem; }
+        .topbar-user {
+            font-size: .8125rem;
+            color: var(--text-muted);
+        }
+        .topbar-user strong { color: var(--text); }
+        .btn-logout {
+            font-size: .8125rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: .375rem .75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            transition: all .15s;
+        }
+        .btn-logout:hover { border-color: var(--error); color: var(--error); }
+
+        /* ── Content ── */
+        .content {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* ── Welcome banner ── */
+        .welcome-banner {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: #fff;
+            border-radius: var(--radius);
+            padding: 2rem 2.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .welcome-banner::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255,255,255,.06);
+            border-radius: 50%;
+        }
+        .welcome-banner h1 {
+            font-size: 1.375rem;
+            font-weight: 700;
+            margin-bottom: .5rem;
+        }
+        .welcome-banner p {
+            font-size: .925rem;
+            opacity: .9;
+            line-height: 1.6;
+            max-width: 600px;
+        }
+
+        /* ── Stats grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem 1.5rem;
+        }
+        .stat-label {
+            font-size: .75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: .5rem;
+        }
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+        .stat-value.trial { color: var(--warning); }
+        .stat-value.active { color: var(--success); }
+        .stat-sub {
+            font-size: .8125rem;
+            color: var(--text-muted);
+            margin-top: .25rem;
+        }
+
+        /* ── Progress bar ── */
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            margin-top: .75rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--primary);
+            transition: width .6s ease;
+        }
+        .progress-fill.warning { background: var(--warning); }
+        .progress-fill.danger { background: var(--error); }
+
+        /* ── Section ── */
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .section-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .section-body { padding: 1.5rem; }
+
+        /* ── API Keys ── */
+        .api-field {
+            margin-bottom: 1.25rem;
+        }
+        .api-field:last-child { margin-bottom: 0; }
+        .api-label {
+            font-size: .75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: .375rem;
+        }
+        .api-value-row {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .api-value {
+            flex: 1;
+            padding: .625rem .875rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .8125rem;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 6px;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+        .btn-copy {
+            padding: .5rem .75rem;
+            font-size: .75rem;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--primary);
+            background: var(--primary-light);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .15s;
+        }
+        .btn-copy:hover { background: #bfdbfe; }
+        .btn-copy.copied { background: var(--success-bg); color: var(--success); }
+
+        .api-warning {
+            background: var(--warning-bg);
+            border: 1px solid #fde68a;
+            color: #92400e;
+            padding: .75rem 1rem;
+            border-radius: 8px;
+            font-size: .8125rem;
+            margin-top: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: .5rem;
+            line-height: 1.5;
+        }
+        .api-warning svg { flex-shrink: 0; margin-top: 2px; }
+
+        .api-secret-hidden {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .8125rem;
+            color: var(--text-muted);
+            padding: .625rem .875rem;
+            background: var(--bg);
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+            flex: 1;
+        }
+
+        /* ── Onboarding steps ── */
+        .steps { list-style: none; }
+        .step {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .step:last-child { border-bottom: none; }
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .8125rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .step-number.done {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+        .step-number.current {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .step-number.pending {
+            background: var(--bg);
+            color: var(--text-muted);
+            border: 1.5px solid var(--border);
+        }
+        .step-content { flex: 1; }
+        .step-title {
+            font-size: .9375rem;
+            font-weight: 600;
+            margin-bottom: .125rem;
+        }
+        .step-desc {
+            font-size: .8125rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .step-action {
+            margin-top: .5rem;
+        }
+        .btn-small {
+            display: inline-flex;
+            align-items: center;
+            gap: .375rem;
+            padding: .375rem .75rem;
+            font-size: .8125rem;
+            font-weight: 600;
+            font-family: inherit;
+            color: #fff;
+            background: var(--primary);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background .15s;
+        }
+        .btn-small:hover { background: var(--primary-hover); }
+        .btn-small.outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+        }
+
+        /* ── Quick links ── */
+        .quick-links {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem;
+        }
+        .quick-link {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all .15s;
+        }
+        .quick-link:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+        .quick-link-icon {
+            font-size: 1.25rem;
+        }
+        .quick-link-text {
+            font-size: .875rem;
+            font-weight: 600;
+        }
+        .quick-link-desc {
+            font-size: .75rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Trial banner ── */
+        .trial-banner {
+            background: var(--warning-bg);
+            border: 1px solid #fde68a;
+            border-radius: var(--radius);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .trial-banner-text {
+            font-size: .875rem;
+            color: #92400e;
+        }
+        .trial-banner-text strong { color: #78350f; }
+        .btn-upgrade {
+            padding: .5rem 1.25rem;
+            font-size: .8125rem;
+            font-weight: 600;
+            font-family: inherit;
+            color: #fff;
+            background: #d97706;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            text-decoration: none;
+            transition: background .15s;
+        }
+        .btn-upgrade:hover { background: #b45309; }
+
+        /* ── Alert messages ── */
+        .alert {
+            padding: .75rem 1rem;
+            border-radius: 8px;
+            font-size: .875rem;
+            margin-bottom: 1.5rem;
+        }
+        .alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #a7f3d0; }
+        .alert-error { background: var(--error-bg); color: var(--error); border: 1px solid #fecaca; }
+
+        /* ── Change password modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.4);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 2rem;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.15);
+        }
+        .modal h3 {
+            font-size: 1.125rem;
+            margin-bottom: 1.5rem;
+        }
+        .modal .form-group { margin-bottom: 1rem; }
+        .modal .form-label {
+            display: block;
+            font-size: .8125rem;
+            font-weight: 600;
+            margin-bottom: .25rem;
+        }
+        .modal .form-input {
+            width: 100%;
+            padding: .625rem .875rem;
+            font-size: .875rem;
+            font-family: inherit;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+        }
+        .modal .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+        .modal-actions {
+            display: flex;
+            gap: .75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+        .btn-cancel {
+            padding: .5rem 1rem;
+            font-size: .875rem;
+            font-family: inherit;
+            color: var(--text-muted);
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .topbar { padding: .75rem 1rem; }
+            .topbar-left { gap: 1rem; }
+            .topbar-nav { display: none; }
+            .content { padding: 1.5rem 1rem; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .quick-links { grid-template-columns: 1fr; }
+            .trial-banner { flex-direction: column; text-align: center; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .api-value-row { flex-direction: column; }
+            .btn-copy { align-self: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Topbar -->
+    <nav class="topbar">
+        <div class="topbar-left">
+            <a href="/" class="logo">facturalo<span>.pro</span></a>
+            <div class="topbar-nav">
+                <a href="/mi-cuenta" class="active">Mi cuenta</a>
+                <a href="/comprobantes">Comprobantes</a>
+                <a href="/docs" target="_blank">Documentación</a>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <strong>{{ emisor.razon_social }}</strong><br>
+                <small style="color:var(--text-muted)">RUC {{ emisor.ruc }}</small>
+            </div>
+            <a href="/logout" class="btn-logout">Cerrar sesión</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <!-- Welcome banner (solo después del registro) -->
+        {% if bienvenido %}
+        <div class="welcome-banner">
+            <h1>🎉 ¡Bienvenido a facturalo.pro!</h1>
+            <p>
+                Tu cuenta está activa con 15 días de prueba gratuita. 
+                Abajo encontrarás tu API Key y API Secret para integrar la facturación electrónica 
+                en tu sistema. Copia tus credenciales y sigue los pasos para empezar.
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Trial banner -->
+        {% if trial_activo %}
+        <div class="trial-banner">
+            <div class="trial-banner-text">
+                ⏱️ <strong>Período de prueba:</strong> 
+                Te quedan <strong>{{ dias_restantes }} día{{ 's' if dias_restantes != 1 else '' }}</strong>. 
+                Activa un plan para seguir emitiendo comprobantes.
+            </div>
+            <a href="/planes" class="btn-upgrade">Ver planes</a>
+        </div>
+        {% endif %}
+
+        <!-- Alert messages -->
+        {% if request.query_params.get('msg') %}
+        <div class="alert alert-success">✓ {{ request.query_params.get('msg') }}</div>
+        {% endif %}
+        {% if request.query_params.get('error_clave') %}
+        <div class="alert alert-error">{{ request.query_params.get('error_clave') }}</div>
+        {% endif %}
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Estado</div>
+                <div class="stat-value {{ 'trial' if emisor.plan == 'trial' else 'active' }}">
+                    {{ 'Prueba' if emisor.plan == 'trial' else emisor.plan|capitalize }}
+                </div>
+                <div class="stat-sub">
+                    {% if trial_activo %}
+                        {{ dias_restantes }} día{{ 's' if dias_restantes != 1 else '' }} restante{{ 's' if dias_restantes != 1 else '' }}
+                    {% else %}
+                        Plan activo
+                    {% endif %}
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Documentos este mes</div>
+                <div class="stat-value">{{ emisor.docs_mes_usados or 0 }}</div>
+                <div class="stat-sub">de {{ emisor.docs_mes_limite or 50 }} permitidos</div>
+                <div class="progress-bar">
+                    <div class="progress-fill {{ 'warning' if docs_porcentaje > 75 else '' }} {{ 'danger' if docs_porcentaje > 90 else '' }}" 
+                         style="width: {{ docs_porcentaje }}%"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Modo</div>
+                <div class="stat-value" style="font-size: 1.5rem;">
+                    {{ '🧪 Test' if emisor.modo_test else '🟢 Producción' }}
+                </div>
+                <div class="stat-sub">
+                    {{ 'No afecta SUNAT real' if emisor.modo_test else 'Conectado a SUNAT' }}
+                </div>
+            </div>
+        </div>
+
+        <!-- API Credentials -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">🔑 Credenciales API</div>
+                <button class="btn-small outline" onclick="document.getElementById('modalClave').classList.add('active')">
+                    Cambiar contraseña
+                </button>
+            </div>
+            <div class="section-body">
+                <!-- API Key -->
+                <div class="api-field">
+                    <div class="api-label">API Key</div>
+                    <div class="api-value-row">
+                        <div class="api-value" id="apiKey">{{ emisor.api_key }}</div>
+                        <button class="btn-copy" onclick="copiar('apiKey', this)">Copiar</button>
+                    </div>
+                </div>
+
+                <!-- API Secret -->
+                <div class="api-field">
+                    <div class="api-label">API Secret</div>
+                    {% if api_secret_visible %}
+                    <div class="api-value-row">
+                        <div class="api-value" id="apiSecret">{{ api_secret_visible }}</div>
+                        <button class="btn-copy" onclick="copiar('apiSecret', this)">Copiar</button>
+                    </div>
+                    <div class="api-warning">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 4.25a.75.75 0 011.5 0v3a.75.75 0 01-1.5 0v-3zm.75 6a.75.75 0 110-1.5.75.75 0 010 1.5z"/>
+                        </svg>
+                        <div>
+                            <strong>Copia tu API Secret ahora.</strong> 
+                            No se mostrará de nuevo por seguridad. Si lo pierdes, deberás generar uno nuevo.
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="api-value-row">
+                        <div class="api-secret-hidden">
+                            ••••••••••••••••••••••••••••••••••••••••
+                        </div>
+                        <button class="btn-small outline" onclick="alert('Por seguridad, el API Secret solo se muestra al momento del registro. Si lo perdiste, genera uno nuevo.')">
+                            Regenerar
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Base URL -->
+                <div class="api-field">
+                    <div class="api-label">Base URL</div>
+                    <div class="api-value-row">
+                        <div class="api-value" id="baseUrl">https://facturalo.pro/api/v1</div>
+                        <button class="btn-copy" onclick="copiar('baseUrl', this)">Copiar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onboarding Steps -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">📋 Pasos para activar producción</div>
+            </div>
+            <div class="section-body">
+                <ul class="steps">
+                    <li class="step">
+                        <div class="step-number done">✓</div>
+                        <div class="step-content">
+                            <div class="step-title">Crear cuenta</div>
+                            <div class="step-desc">Registro completado, credenciales API generadas.</div>
+                        </div>
+                    </li>
+                    <li class="step">
+                        <div class="step-number {{ 'done' if not emisor.modo_test else 'current' }}">2</div>
+                        <div class="step-content">
+                            <div class="step-title">Probar en modo test</div>
+                            <div class="step-desc">
+                                Envía comprobantes de prueba usando tu API Key. 
+                                No se envían a SUNAT, perfecto para integración.
+                            </div>
+                            <div class="step-action">
+                                <a href="/docs" class="btn-small outline" target="_blank">
+                                    📖 Ver documentación API
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="step">
+                        <div class="step-number pending">3</div>
+                        <div class="step-content">
+                            <div class="step-title">Subir certificado digital (.pfx)</div>
+                            <div class="step-desc">
+                                Tu certificado digital de SUNAT o proveedor autorizado (Llama.pe, etc.). 
+                                Necesario para firmar comprobantes electrónicos.
+                            </div>
+                            <div class="step-action">
+                                <button class="btn-small" onclick="alert('Próximamente: modal para subir certificado')">
+                                    📤 Subir certificado
+                                </button>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="step">
+                        <div class="step-number pending">4</div>
+                        <div class="step-content">
+                            <div class="step-title">Ingresar credenciales SOL</div>
+                            <div class="step-desc">
+                                Usuario SOL y Clave SOL de SUNAT. Permiten consultar estado y enviar comprobantes.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="step">
+                        <div class="step-number pending">5</div>
+                        <div class="step-content">
+                            <div class="step-title">Activar producción</div>
+                            <div class="step-desc">
+                                Una vez validados certificado y credenciales SOL, 
+                                podrás emitir comprobantes reales ante SUNAT.
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Quick links -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">⚡ Acceso rápido</div>
+            </div>
+            <div class="section-body">
+                <div class="quick-links">
+                    <a href="/docs" class="quick-link" target="_blank">
+                        <div class="quick-link-icon">📖</div>
+                        <div>
+                            <div class="quick-link-text">Documentación API</div>
+                            <div class="quick-link-desc">Guía completa + ejemplos en 6 lenguajes</div>
+                        </div>
+                    </a>
+                    <a href="/comprobantes" class="quick-link">
+                        <div class="quick-link-icon">📄</div>
+                        <div>
+                            <div class="quick-link-text">Mis comprobantes</div>
+                            <div class="quick-link-desc">Lista de documentos emitidos</div>
+                        </div>
+                    </a>
+                    <a href="/comprobantes/emitir" class="quick-link">
+                        <div class="quick-link-icon">✏️</div>
+                        <div>
+                            <div class="quick-link-text">Emitir comprobante</div>
+                            <div class="quick-link-desc">Formulario manual de emisión</div>
+                        </div>
+                    </a>
+                    <a href="https://wa.me/51XXXXXXXXX" class="quick-link" target="_blank">
+                        <div class="quick-link-icon">💬</div>
+                        <div>
+                            <div class="quick-link-text">Soporte</div>
+                            <div class="quick-link-desc">Escribir por WhatsApp</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Código de ejemplo rápido -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">🚀 Prueba rápida</div>
+            </div>
+            <div class="section-body">
+                <div class="api-label">cURL - Emitir factura de prueba</div>
+                <div class="api-value-row">
+                    <pre class="api-value" id="curlExample" style="white-space:pre-wrap; font-size:.75rem; line-height:1.6;">curl -X POST https://facturalo.pro/api/v1/comprobantes \
+  -H "X-API-KEY: {{ emisor.api_key }}" \
+  -H "X-API-SECRET: tu-api-secret" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "tipo_comprobante": "01",
+  "serie": "F001",
+  "cliente_tipo_documento": "6",
+  "cliente_numero_documento": "20123456789",
+  "cliente_razon_social": "EMPRESA PRUEBA SAC",
+  "items": [{
+    "descripcion": "Servicio de consultoría",
+    "cantidad": 1,
+    "unidad": "ZZ",
+    "precio_unitario": 100.00
+  }]
+}'</pre>
+                    <button class="btn-copy" onclick="copiar('curlExample', this)">Copiar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Cambiar contraseña -->
+    <div class="modal-overlay" id="modalClave">
+        <div class="modal">
+            <h3>Cambiar contraseña</h3>
+            <form method="POST" action="/mi-cuenta/cambiar-clave">
+                <div class="form-group">
+                    <label class="form-label">Contraseña actual</label>
+                    <input type="password" class="form-input" name="clave_actual" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nueva contraseña</label>
+                    <input type="password" class="form-input" name="clave_nueva" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirmar nueva contraseña</label>
+                    <input type="password" class="form-input" name="clave_confirmar" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="this.closest('.modal-overlay').classList.remove('active')">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-small">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function copiar(elementId, btn) {
+        const el = document.getElementById(elementId);
+        const text = el.textContent.trim();
+        navigator.clipboard.writeText(text).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = '✓ Copiado';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = orig;
+                btn.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    // Close modal on outside click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('active');
+        });
+    });
+
+    // Close modal on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+        }
+    });
+    </script>
+</body>
+</html>
