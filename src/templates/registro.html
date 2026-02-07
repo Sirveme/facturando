@@ -11,7 +11,7 @@
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
-            --bg: #f8fafc;
+            --bg: #061728;
             --bg-card: #ffffff;
             --text: #0f172a;
             --text-muted: #64748b;
@@ -328,6 +328,24 @@
             .card { padding: 1.75rem 1.25rem; }
             .form-row { grid-template-columns: 1fr; }
             .header { padding: 1rem; }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f172a;
+                --bg-card: #1e293b;
+                --text: #f1f5f9;
+                --text-muted: #94a3b8;
+                --border: #334155;
+                --primary: #3b82f6;
+                --primary-hover: #60a5fa;
+                --primary-light: rgba(59,130,246,.15);
+                --error-bg: rgba(220,38,38,.1);
+                --success-bg: rgba(5,150,105,.1);
+            }
+            .form-input { background: #0f172a; }
+            .form-input::placeholder { color: #475569; }
+            .api-warning { background: rgba(217,119,6,.1); border-color: rgba(217,119,6,.25); color: #fbbf24; }
         }
     </style>
 </head>
