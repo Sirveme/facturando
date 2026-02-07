@@ -20,9 +20,8 @@ templates = Jinja2Templates(directory=str(templates_path))
 router = APIRouter()
 
 @router.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    """Redirigir a login"""
-    return RedirectResponse(url="/login", status_code=302)
+async def home(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
