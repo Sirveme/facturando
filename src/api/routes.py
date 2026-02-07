@@ -942,6 +942,11 @@ async def subir_certificado(
     
     db.add(nuevo_cert)
     db.commit()
+
+    # Auto-activar producción si tiene certificado Y credenciales SOL
+    if emisor.usuario_sol:
+        emisor.modo_test = False
+        db.commit()
     
     return {
         "exito": True,
@@ -976,6 +981,16 @@ async def guardar_credenciales_sol(
         emisor.clave_sol = fernet.encrypt(data['clave_sol'].encode()).decode()
     
     db.commit()
+
+    # Auto-activar producción si tiene certificado Y credenciales SOL
+    certificado_activo = db.query(Certificado).filter(
+        Certificado.emisor_id == emisor.id,
+        Certificado.activo == True
+    ).first()
+
+    if certificado_activo and emisor.usuario_sol:
+        emisor.modo_test = False
+        db.commit()
     
     return {
         "exito": True,
