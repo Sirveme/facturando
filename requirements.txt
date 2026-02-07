@@ -8,6 +8,7 @@ asn1crypto==1.5.1
 attrs==25.4.0
 billiard==4.2.4
 brotli==1.2.0
+bcrypt==4.0.1
 celery==5.6.2
 certifi==2026.1.4
 cffi==2.0.0
@@ -96,6 +97,7 @@ webencodings==0.5.1
 websockets==16.0
 zeep==4.3.2
 zopfli==0.4.0
+
 
 
 
