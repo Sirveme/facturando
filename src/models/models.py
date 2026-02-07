@@ -118,6 +118,8 @@ class Comprobante(Base):
     doc_referencia_numero = Column(String(20))   # Número del doc referencia
     motivo_nota = Column(String(2))              # Motivo NC/ND (01-07)
     referencia_externa = Column(String(100), index=True)
+    tipo_documento = Column(String(2), nullable=False)
+    tipo_operacion = Column(String(4), default='0101')  # 0101=Venta interna
 
     emisor = relationship('Emisor', back_populates='comprobantes')
     lineas = relationship('LineaDetalle', back_populates='comprobante', cascade='all, delete-orphan')
