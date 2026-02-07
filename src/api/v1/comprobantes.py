@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from uuid import uuid4
 from datetime import datetime
+from decimal import Decimal
 import hashlib
 import json
 import time
@@ -207,26 +208,67 @@ async def emitir_comprobante(
             emisor_id=emisor.id,
             cliente_id=cliente.id,
             tipo_documento=data.tipo_comprobante,
+            tipo_operacion="0101",
             serie=serie,
             numero=numero,
+            numero_formato=f"{serie}-{numero:08d}",
             fecha_emision=fecha_emision,
             moneda="PEN",
-            tipo_operacion="0101",
-            op_gravada=subtotal if igv_total > 0 else 0,
-            op_exonerada=subtotal if igv_total == 0 else 0,
-            op_inafecta=0,
-            igv=igv_total,
-            total=total,
+            monto_base=subtotal,
+            monto_igv=igv_total,
+            monto_total=total,
             estado="pendiente",
+            cliente_tipo_documento=data.cliente.tipo_documento,
+            cliente_numero_documento=data.cliente.numero_documento,
+            cliente_razon_social=data.cliente.razon_social,
+            cliente_direccion=data.cliente.direccion or "",
             observaciones=data.observaciones,
             referencia_externa=data.referencia_externa
         )
         
         # Referencia para NC/ND
         if data.tipo_comprobante in ["07", "08"]:
-            comprobante.doc_ref_tipo = data.documento_ref_tipo
-            comprobante.doc_ref_serie = data.documento_ref_serie
-            comprobante.doc_ref_numero = data.documento_ref_numero
+            comprobante.doc_referencia_tipo = data.documento_ref_tipo
+            comprobante.doc_referencia_numero = f"{data.documento_ref_serie}-{data.documento_ref_numero:08d}" if data.documento_ref_serie and data.documento_ref_numero else None
+            comprobante.motivo_nota = data.motivo_nota
+        
+        db.add(comprobante)
+        
+        # === CREAR COMPROBANTE ===
+        comprobante_id = str(uuid4())
+        fecha_emision = datetime.strptime(data.fecha_emision, "%Y-%m-%d") if data.fecha_emision else datetime.now()
+        numero_formato = f"{serie}-{numero:08d}"
+        
+        comprobante = Comprobante(
+            id=comprobante_id,
+            emisor_id=emisor.id,
+            cliente_id=cliente.id,
+            tipo_documento=data.tipo_comprobante,
+            tipo_operacion="0101",
+            serie=serie,
+            numero=numero,
+            numero_formato=numero_formato,
+            fecha_emision=fecha_emision,
+            moneda="PEN",
+            monto_base=subtotal,
+            monto_igv=igv_total,
+            monto_total=total,
+            op_gravada=subtotal if igv_total > 0 else Decimal('0.00'),
+            op_exonerada=subtotal if igv_total == 0 else Decimal('0.00'),
+            op_inafecta=Decimal('0.00'),
+            estado="pendiente",
+            cliente_tipo_documento=data.cliente.tipo_documento,
+            cliente_numero_documento=data.cliente.numero_documento,
+            cliente_razon_social=data.cliente.razon_social,
+            cliente_direccion=data.cliente.direccion or "",
+            observaciones=data.observaciones,
+            referencia_externa=data.referencia_externa
+        )
+        
+        # Referencia para NC/ND
+        if data.tipo_comprobante in ["07", "08"]:
+            comprobante.doc_referencia_tipo = data.documento_ref_tipo
+            comprobante.doc_referencia_numero = f"{data.documento_ref_serie}-{data.documento_ref_numero:08d}" if data.documento_ref_serie and data.documento_ref_numero else None
             comprobante.motivo_nota = data.motivo_nota
         
         db.add(comprobante)
@@ -236,17 +278,17 @@ async def emitir_comprobante(
             item = LineaDetalle(
                 id=str(uuid4()),
                 comprobante_id=comprobante_id,
-                item_orden=i,
+                orden=i,
                 codigo=f"ITEM{i:03d}",
                 descripcion=item_data["descripcion"],
                 cantidad=item_data["cantidad"],
-                unidad_medida=item_data["unidad_medida"],
-                valor_unitario=item_data["valor_unitario"],
+                unidad=item_data["unidad_medida"],
                 precio_unitario=item_data["precio_unitario"],
+                valor_unitario=item_data["valor_unitario"],
                 descuento=item_data["descuento"],
                 subtotal=item_data["subtotal"],
                 igv=item_data["igv"],
-                total=item_data["total"],
+                monto_linea=item_data["total"],
                 tipo_afectacion_igv=item_data["tipo_afectacion_igv"]
             )
             db.add(item)
@@ -267,21 +309,12 @@ async def emitir_comprobante(
         
         # Actualizar estado
         comprobante.estado = "aceptado"
-        comprobante.codigo_sunat = "0"
-        comprobante.mensaje_sunat = f"El comprobante {serie}-{numero:08d} ha sido aceptado"
-        comprobante.hash_cpe = hashlib.sha256(
-            f"{emisor.ruc}{serie}{numero}{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:40]
         db.commit()
         
-        # === ENVIAR EMAIL ===
-        if data.enviar_email and data.cliente.email:
-            # TODO: Implementar envío de email
-            pass
-        
         # === RESPONSE ===
-        numero_formato = f"{serie}-{numero:08d}"
-        base_url = "https://api.facturalo.pro"  # Configurar
+        hash_cpe = hashlib.sha256(
+            f"{emisor.ruc}{serie}{numero}{datetime.now().isoformat()}".encode()
+        ).hexdigest()[:40]
         
         response = {
             "exito": True,
@@ -298,14 +331,13 @@ async def emitir_comprobante(
                 "igv": igv_total,
                 "total": total,
                 "estado": "aceptado",
-                "hash_cpe": comprobante.hash_cpe,
+                "hash_cpe": hash_cpe,
                 "codigo_sunat": "0",
-                "mensaje_sunat": comprobante.mensaje_sunat
+                "mensaje_sunat": f"El comprobante {numero_formato} ha sido aceptado"
             },
             "archivos": {
-                "pdf_url": f"{base_url}/api/v1/comprobantes/{comprobante_id}/pdf",
-                "xml_url": f"{base_url}/api/v1/comprobantes/{comprobante_id}/xml",
-                "cdr_url": f"{base_url}/api/v1/comprobantes/{comprobante_id}/cdr"
+                "pdf_url": f"https://facturalo.pro/api/v1/comprobantes/{comprobante_id}/pdf",
+                "xml_url": f"https://facturalo.pro/api/v1/comprobantes/{comprobante_id}/xml"
             },
             "mensaje": "Comprobante emitido exitosamente"
         }
@@ -315,6 +347,7 @@ async def emitir_comprobante(
         log_api_call(db, emisor.id, request, "/comprobantes", 200, response, duracion)
         
         return response
+        
         
     except HTTPException:
         raise
