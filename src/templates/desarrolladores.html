@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>facturalo.pro para Desarrolladores — API REST de Facturación Electrónica SUNAT</title>
+<meta name="description" content="Integra facturación electrónica SUNAT en tu sistema con un solo endpoint. Ejemplos en PHP, Python, Java, C# y Node.js. Documentación Swagger incluida.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;1,9..144,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08090d;
+  --bg-card: #111318;
+  --bg-elevated: #0e1017;
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --text: #b0b4c0;
+  --text-dim: #5c6070;
+  --text-bright: #ecedf0;
+  --accent: #3b82f6;
+  --accent-glow: rgba(59,130,246,0.2);
+  --accent-soft: rgba(59,130,246,0.08);
+  --green: #10b981;
+  --green-soft: rgba(16,185,129,0.1);
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --purple: #a78bfa;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line-height:1.65;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.container{max-width:1100px;margin:0 auto;padding:0 28px}
+
+/* NAV */
+nav{position:fixed;top:0;width:100%;z-index:100;background:rgba(8,9,13,0.85);backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav-logo{font-weight:700;font-size:17px;color:var(--text-bright);text-decoration:none;letter-spacing:-0.3px}
+.nav-logo span{color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:24px}
+.nav-right a{color:var(--text-dim);text-decoration:none;font-size:13.5px;font-weight:500;transition:color .2s}
+.nav-right a:hover{color:var(--text)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;transition:all .2s;cursor:pointer;border:none;font-family:inherit}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3),0 0 16px var(--accent-glow)}
+.btn-primary:hover{background:#4d90f7;transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,0.05);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--border-hover);background:rgba(255,255,255,0.07)}
+.btn-lg{padding:14px 30px;font-size:15px;border-radius:10px}
+.divider{height:1px;background:var(--border)}
+
+/* SECTIONS */
+.section{padding:80px 0}
+.s-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:2.5px;color:var(--accent);margin-bottom:10px}
+.s-title{font-family:'Fraunces',serif;font-size:clamp(26px,3.5vw,36px);font-weight:700;color:var(--text-bright);letter-spacing:-0.5px;margin-bottom:12px}
+.s-desc{font-size:15px;color:var(--text-dim);max-width:500px;font-weight:300;line-height:1.6}
+
+/* HERO DEV */
+.hero-dev{padding:140px 0 80px;position:relative}
+.hero-dev::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(ellipse,var(--accent-glow) 0%,transparent 70%);pointer-events:none;opacity:.3}
+.hero-dev-content{position:relative;z-index:1;max-width:700px}
+.hero-dev .tag{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:100px;font-size:12.5px;font-weight:500;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(59,130,246,0.15);margin-bottom:20px}
+.hero-dev h1{font-family:'Fraunces',serif;font-size:clamp(34px,5vw,52px);font-weight:800;line-height:1.1;color:var(--text-bright);letter-spacing:-1.5px;margin-bottom:18px}
+.hero-dev h1 em{font-style:italic;color:var(--accent)}
+.hero-dev p{font-size:17px;color:var(--text);max-width:520px;line-height:1.7;margin-bottom:12px;font-weight:300}
+.hero-dev .sub{font-size:14px;color:var(--text-dim);margin-bottom:28px}
+.hero-dev .sub code{font-family:'Fira Code',monospace;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:4px;font-size:13px;color:var(--green)}
+.hero-dev-btns{display:flex;gap:10px;flex-wrap:wrap}
+
+/* LANGS */
+.langs{padding:48px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.langs-inner{display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap}
+.lang-item{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-dim);font-weight:500}
+.lang-dot{width:10px;height:10px;border-radius:50%}
+.lang-dot.php{background:#777bb4}
+.lang-dot.python{background:#3776ab}
+.lang-dot.node{background:#68a063}
+.lang-dot.java{background:#f89820}
+.lang-dot.csharp{background:#68217a}
+.lang-dot.curl{background:#ef4444}
+
+/* CODE TABS */
+.code-section{padding:80px 0}
+.code-container{margin-top:36px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.code-tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto}
+.code-tab{padding:12px 20px;font-size:13px;font-weight:600;color:var(--text-dim);cursor:pointer;transition:all .2s;border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.code-tab:hover{color:var(--text)}
+.code-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(59,130,246,0.05)}
+.code-panel{display:none;padding:24px;font-family:'Fira Code',monospace;font-size:13px;line-height:1.85;overflow-x:auto;white-space:pre}
+.code-panel.active{display:block}
+.c-kw{color:#c084fc}.c-str{color:#34d399}.c-num{color:#fbbf24}.c-cmt{color:#3a3d4a}.c-key{color:#60a5fa}.c-fn{color:#f472b6}.c-var{color:#fb923c}.c-type{color:#38bdf8}
+
+/* RESPONSE DEMO */
+.response-demo{margin-top:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.response-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.response-header .status{font-family:'Fira Code',monospace;font-size:13px;color:var(--green);font-weight:500}
+.response-header .label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.response-body{padding:24px;font-family:'Fira Code',monospace;font-size:13px;line-height:1.85;overflow-x:auto;white-space:pre}
+
+/* FEATURES */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+.f-card{padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;transition:all .25s}
+.f-card:hover{border-color:var(--border-hover);transform:translateY(-2px)}
+.f-icon{font-size:22px;margin-bottom:12px}
+.f-card h3{font-size:15px;font-weight:600;color:var(--text-bright);margin-bottom:6px}
+.f-card p{font-size:13.5px;color:var(--text-dim);line-height:1.6;font-weight:300}
+
+/* STEPS */
+.steps-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+.step-card{padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;text-align:center}
+.step-num{font-family:'Fraunces',serif;font-size:36px;font-weight:800;color:rgba(59,130,246,0.15);margin-bottom:8px}
+.step-card h3{font-size:14px;font-weight:600;color:var(--text-bright);margin-bottom:6px}
+.step-card p{font-size:13px;color:var(--text-dim);line-height:1.5;font-weight:300}
+.step-card code{font-family:'Fira Code',monospace;font-size:11px;background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:3px;color:var(--accent)}
+
+/* ENDPOINTS TABLE */
+.endpoints-table{width:100%;border-collapse:collapse;margin-top:32px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.endpoints-table th,.endpoints-table td{padding:12px 18px;text-align:left;font-size:13.5px;border-bottom:1px solid var(--border)}
+.endpoints-table th{color:var(--text-dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:1px;background:rgba(255,255,255,0.02)}
+.endpoints-table td{color:var(--text)}
+.endpoints-table tr:last-child td{border:none}
+.method{font-family:'Fira Code',monospace;font-size:12px;font-weight:600;padding:3px 8px;border-radius:4px}
+.method.post{color:#10b981;background:rgba(16,185,129,0.1)}
+.method.get{color:#3b82f6;background:rgba(59,130,246,0.1)}
+.method.put{color:#f59e0b;background:rgba(245,158,11,0.1)}
+.endpoint-path{font-family:'Fira Code',monospace;font-size:12.5px;color:var(--text-bright)}
+
+/* CTA */
+.cta-dev{padding:80px 0;text-align:center;position:relative}
+.cta-dev::before{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:500px;height:300px;background:radial-gradient(ellipse,var(--accent-glow) 0%,transparent 70%);pointer-events:none;opacity:.2}
+.cta-inner{position:relative;z-index:1}
+.cta-dev h2{font-family:'Fraunces',serif;font-size:clamp(24px,3.5vw,34px);font-weight:700;color:var(--text-bright);margin-bottom:10px}
+.cta-dev p{font-size:15px;color:var(--text-dim);margin-bottom:24px;font-weight:300}
+.cta-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* FOOTER */
+footer{padding:32px 0;border-top:1px solid var(--border)}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+footer p{font-size:12.5px;color:var(--text-dim)}
+.footer-links{display:flex;gap:20px}
+.footer-links a{color:var(--text-dim);text-decoration:none;font-size:12.5px}
+.footer-links a:hover{color:var(--text)}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hero-dev-content>*{animation:fadeIn .5s ease both}
+.hero-dev-content>:nth-child(1){animation-delay:.05s}
+.hero-dev-content>:nth-child(2){animation-delay:.1s}
+.hero-dev-content>:nth-child(3){animation-delay:.15s}
+.hero-dev-content>:nth-child(4){animation-delay:.2s}
+.hero-dev-content>:nth-child(5){animation-delay:.25s}
+.hero-dev-content>:nth-child(6){animation-delay:.3s}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .features-grid,.steps-row{grid-template-columns:1fr}
+  .langs-inner{gap:20px}
+  .endpoints-table{font-size:12px}
+  .endpoints-table th,.endpoints-table td{padding:8px 12px}
+}
+@media(max-width:640px){
+  .hero-dev{padding:110px 0 60px}
+  .hero-dev-btns{flex-direction:column}
+  .nav-right .desk{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">facturalo<span>.pro</span></a>
+      <div class="nav-right">
+        <a href="/" class="desk">← Inicio</a>
+        <a href="#endpoints" class="desk">Endpoints</a>
+        <a href="#ejemplos" class="desk">Ejemplos</a>
+        <a href="/docs" target="_blank" class="desk">Swagger Docs</a>
+        <a href="#registro" class="btn btn-primary">Obtener API Key</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero-dev">
+  <div class="container">
+    <div class="hero-dev-content">
+      <div class="tag">🔌 Para Desarrolladores</div>
+      <h1>Integra facturación electrónica en <em>tu sistema</em></h1>
+      <p>Un solo endpoint REST. Envías JSON con los datos del comprobante, nosotros generamos el XML, firmamos con el certificado del cliente y enviamos a SUNAT. Tú recibes el PDF, XML y CDR.</p>
+      <p class="sub">Base URL: <code>https://facturalo.pro/api/v1</code> · Autenticación: <code>x-api-key</code> + <code>x-api-secret</code></p>
+      <div class="hero-dev-btns">
+        <a href="/docs" target="_blank" class="btn btn-primary btn-lg">Ver documentación Swagger →</a>
+        <a href="#ejemplos" class="btn btn-ghost btn-lg">Ver ejemplos de código</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LANGS -->
+<section class="langs">
+  <div class="container">
+    <div class="langs-inner">
+      <div class="lang-item"><div class="lang-dot php"></div> PHP / Laravel</div>
+      <div class="lang-item"><div class="lang-dot python"></div> Python</div>
+      <div class="lang-item"><div class="lang-dot node"></div> Node.js</div>
+      <div class="lang-item"><div class="lang-dot java"></div> Java</div>
+      <div class="lang-item"><div class="lang-dot csharp"></div> C# / .NET</div>
+      <div class="lang-item"><div class="lang-dot curl"></div> cURL</div>
+    </div>
+  </div>
+</section>
+
+<!-- CODE EXAMPLES -->
+<section class="code-section" id="ejemplos">
+  <div class="container">
+    <div class="s-label">Ejemplos de código</div>
+    <div class="s-title">Emite un comprobante en tu lenguaje</div>
+    <div class="s-desc">Copia, pega, adapta. En 10 minutos estás facturando.</div>
+
+    <div class="code-container">
+      <div class="code-tabs">
+        <button class="code-tab active" onclick="showTab('php')">PHP / Laravel</button>
+        <button class="code-tab" onclick="showTab('python')">Python</button>
+        <button class="code-tab" onclick="showTab('node')">Node.js</button>
+        <button class="code-tab" onclick="showTab('java')">Java</button>
+        <button class="code-tab" onclick="showTab('csharp')">C# / .NET</button>
+        <button class="code-tab" onclick="showTab('curl')">cURL</button>
+      </div>
+
+      <!-- PHP -->
+      <div class="code-panel active" id="tab-php"><span class="c-cmt">// PHP — con cURL nativo o Laravel Http</span>
+
+<span class="c-cmt">// Opción 1: Laravel Http (recomendado)</span>
+<span class="c-kw">use</span> Illuminate\Support\Facades\<span class="c-type">Http</span>;
+
+<span class="c-var">$response</span> = <span class="c-type">Http</span>::<span class="c-fn">withHeaders</span>([
+    <span class="c-str">'x-api-key'</span>    => <span class="c-var">$apiKey</span>,
+    <span class="c-str">'x-api-secret'</span> => <span class="c-var">$apiSecret</span>,
+])-><span class="c-fn">post</span>(<span class="c-str">'https://facturalo.pro/api/v1/comprobantes'</span>, [
+    <span class="c-str">'tipo_comprobante'</span> => <span class="c-str">'03'</span>,          <span class="c-cmt">// 03 = Boleta</span>
+    <span class="c-str">'cliente'</span> => [
+        <span class="c-str">'tipo_documento'</span>   => <span class="c-str">'1'</span>,        <span class="c-cmt">// 1 = DNI</span>
+        <span class="c-str">'numero_documento'</span> => <span class="c-str">'12345678'</span>,
+    ],
+    <span class="c-str">'items'</span> => [[
+        <span class="c-str">'descripcion'</span>    => <span class="c-str">'Cuota mensual colegiatura'</span>,
+        <span class="c-str">'cantidad'</span>       => <span class="c-num">1</span>,
+        <span class="c-str">'precio_unitario'</span> => <span class="c-num">150.00</span>,
+    ]],
+]);
+
+<span class="c-var">$data</span> = <span class="c-var">$response</span>-><span class="c-fn">json</span>();
+<span class="c-cmt">// $data['serie']    → "B001-00000042"</span>
+<span class="c-cmt">// $data['estado']   → "aceptado"</span>
+<span class="c-cmt">// $data['pdf_url']  → URL de descarga</span>
+
+
+<span class="c-cmt">// Opción 2: PHP nativo con cURL</span>
+<span class="c-var">$ch</span> = <span class="c-fn">curl_init</span>(<span class="c-str">'https://facturalo.pro/api/v1/comprobantes'</span>);
+<span class="c-fn">curl_setopt_array</span>(<span class="c-var">$ch</span>, [
+    CURLOPT_POST           => <span class="c-kw">true</span>,
+    CURLOPT_RETURNTRANSFER => <span class="c-kw">true</span>,
+    CURLOPT_HTTPHEADER     => [
+        <span class="c-str">'Content-Type: application/json'</span>,
+        <span class="c-str">'x-api-key: '</span> . <span class="c-var">$apiKey</span>,
+        <span class="c-str">'x-api-secret: '</span> . <span class="c-var">$apiSecret</span>,
+    ],
+    CURLOPT_POSTFIELDS => <span class="c-fn">json_encode</span>(<span class="c-var">$payload</span>),
+]);
+<span class="c-var">$result</span> = <span class="c-fn">json_decode</span>(<span class="c-fn">curl_exec</span>(<span class="c-var">$ch</span>), <span class="c-kw">true</span>);</div>
+
+      <!-- Python -->
+      <div class="code-panel" id="tab-python"><span class="c-cmt"># Python — con requests o httpx</span>
+<span class="c-kw">import</span> requests
+
+response = requests.<span class="c-fn">post</span>(
+    <span class="c-str">"https://facturalo.pro/api/v1/comprobantes"</span>,
+    headers={
+        <span class="c-str">"x-api-key"</span>:    API_KEY,
+        <span class="c-str">"x-api-secret"</span>: API_SECRET,
+    },
+    json={
+        <span class="c-str">"tipo_comprobante"</span>: <span class="c-str">"03"</span>,
+        <span class="c-str">"cliente"</span>: {
+            <span class="c-str">"tipo_documento"</span>:   <span class="c-str">"1"</span>,
+            <span class="c-str">"numero_documento"</span>: <span class="c-str">"12345678"</span>,
+        },
+        <span class="c-str">"items"</span>: [{
+            <span class="c-str">"descripcion"</span>:    <span class="c-str">"Cuota mensual colegiatura"</span>,
+            <span class="c-str">"cantidad"</span>:       <span class="c-num">1</span>,
+            <span class="c-str">"precio_unitario"</span>: <span class="c-num">150.00</span>,
+        }],
+    }
+)
+
+data = response.<span class="c-fn">json</span>()
+<span class="c-fn">print</span>(data[<span class="c-str">"serie"</span>])     <span class="c-cmt"># B001-00000042</span>
+<span class="c-fn">print</span>(data[<span class="c-str">"estado"</span>])    <span class="c-cmt"># aceptado</span>
+<span class="c-fn">print</span>(data[<span class="c-str">"pdf_url"</span>])   <span class="c-cmt"># URL de descarga</span></div>
+
+      <!-- Node.js -->
+      <div class="code-panel" id="tab-node"><span class="c-cmt">// Node.js — con fetch (v18+) o axios</span>
+<span class="c-kw">const</span> response = <span class="c-kw">await</span> <span class="c-fn">fetch</span>(<span class="c-str">"https://facturalo.pro/api/v1/comprobantes"</span>, {
+  <span class="c-key">method</span>: <span class="c-str">"POST"</span>,
+  <span class="c-key">headers</span>: {
+    <span class="c-str">"Content-Type"</span>:  <span class="c-str">"application/json"</span>,
+    <span class="c-str">"x-api-key"</span>:     process.env.<span class="c-var">API_KEY</span>,
+    <span class="c-str">"x-api-secret"</span>:  process.env.<span class="c-var">API_SECRET</span>,
+  },
+  <span class="c-key">body</span>: <span class="c-fn">JSON.stringify</span>({
+    <span class="c-key">tipo_comprobante</span>: <span class="c-str">"03"</span>,
+    <span class="c-key">cliente</span>: {
+      <span class="c-key">tipo_documento</span>:   <span class="c-str">"1"</span>,
+      <span class="c-key">numero_documento</span>: <span class="c-str">"12345678"</span>,
+    },
+    <span class="c-key">items</span>: [{
+      <span class="c-key">descripcion</span>:    <span class="c-str">"Cuota mensual colegiatura"</span>,
+      <span class="c-key">cantidad</span>:       <span class="c-num">1</span>,
+      <span class="c-key">precio_unitario</span>: <span class="c-num">150.00</span>,
+    }],
+  }),
+});
+
+<span class="c-kw">const</span> data = <span class="c-kw">await</span> response.<span class="c-fn">json</span>();
+console.<span class="c-fn">log</span>(data.serie);    <span class="c-cmt">// B001-00000042</span>
+console.<span class="c-fn">log</span>(data.estado);   <span class="c-cmt">// aceptado</span>
+console.<span class="c-fn">log</span>(data.pdf_url);  <span class="c-cmt">// URL de descarga</span></div>
+
+      <!-- Java -->
+      <div class="code-panel" id="tab-java"><span class="c-cmt">// Java — con HttpClient (Java 11+)</span>
+<span class="c-kw">import</span> java.net.http.*;
+<span class="c-kw">import</span> java.net.URI;
+
+<span class="c-type">String</span> json = <span class="c-str">"""
+    {
+        "tipo_comprobante": "03",
+        "cliente": {
+            "tipo_documento": "1",
+            "numero_documento": "12345678"
+        },
+        "items": [{
+            "descripcion": "Cuota mensual colegiatura",
+            "cantidad": 1,
+            "precio_unitario": 150.00
+        }]
+    }
+    """</span>;
+
+<span class="c-type">HttpRequest</span> request = <span class="c-type">HttpRequest</span>.<span class="c-fn">newBuilder</span>()
+    .<span class="c-fn">uri</span>(URI.<span class="c-fn">create</span>(<span class="c-str">"https://facturalo.pro/api/v1/comprobantes"</span>))
+    .<span class="c-fn">header</span>(<span class="c-str">"Content-Type"</span>, <span class="c-str">"application/json"</span>)
+    .<span class="c-fn">header</span>(<span class="c-str">"x-api-key"</span>, apiKey)
+    .<span class="c-fn">header</span>(<span class="c-str">"x-api-secret"</span>, apiSecret)
+    .<span class="c-fn">POST</span>(<span class="c-type">HttpRequest.BodyPublishers</span>.<span class="c-fn">ofString</span>(json))
+    .<span class="c-fn">build</span>();
+
+<span class="c-type">HttpResponse</span>&lt;<span class="c-type">String</span>&gt; response = client.<span class="c-fn">send</span>(
+    request, <span class="c-type">HttpResponse.BodyHandlers</span>.<span class="c-fn">ofString</span>()
+);
+
+System.out.<span class="c-fn">println</span>(response.<span class="c-fn">body</span>());
+<span class="c-cmt">// {"exito": true, "serie": "B001-00000042", "estado": "aceptado"}</span></div>
+
+      <!-- C# -->
+      <div class="code-panel" id="tab-csharp"><span class="c-cmt">// C# / .NET — con HttpClient</span>
+<span class="c-kw">using</span> System.Net.Http;
+<span class="c-kw">using</span> System.Text;
+<span class="c-kw">using</span> System.Text.Json;
+
+<span class="c-kw">var</span> client = <span class="c-kw">new</span> <span class="c-type">HttpClient</span>();
+client.DefaultRequestHeaders.<span class="c-fn">Add</span>(<span class="c-str">"x-api-key"</span>, apiKey);
+client.DefaultRequestHeaders.<span class="c-fn">Add</span>(<span class="c-str">"x-api-secret"</span>, apiSecret);
+
+<span class="c-kw">var</span> payload = <span class="c-kw">new</span> {
+    tipo_comprobante = <span class="c-str">"03"</span>,
+    cliente = <span class="c-kw">new</span> {
+        tipo_documento = <span class="c-str">"1"</span>,
+        numero_documento = <span class="c-str">"12345678"</span>
+    },
+    items = <span class="c-kw">new</span>[] {
+        <span class="c-kw">new</span> {
+            descripcion = <span class="c-str">"Cuota mensual colegiatura"</span>,
+            cantidad = <span class="c-num">1</span>,
+            precio_unitario = <span class="c-num">150.00</span>
+        }
+    }
+};
+
+<span class="c-kw">var</span> content = <span class="c-kw">new</span> <span class="c-type">StringContent</span>(
+    <span class="c-type">JsonSerializer</span>.<span class="c-fn">Serialize</span>(payload),
+    <span class="c-type">Encoding</span>.UTF8,
+    <span class="c-str">"application/json"</span>
+);
+
+<span class="c-kw">var</span> response = <span class="c-kw">await</span> client.<span class="c-fn">PostAsync</span>(
+    <span class="c-str">"https://facturalo.pro/api/v1/comprobantes"</span>, content
+);
+
+<span class="c-kw">var</span> result = <span class="c-kw">await</span> response.Content.<span class="c-fn">ReadAsStringAsync</span>();
+Console.<span class="c-fn">WriteLine</span>(result);
+<span class="c-cmt">// {"exito": true, "serie": "B001-00000042", "estado": "aceptado"}</span></div>
+
+      <!-- cURL -->
+      <div class="code-panel" id="tab-curl"><span class="c-cmt"># cURL — para probar rápido desde la terminal</span>
+
+curl -X POST https://facturalo.pro/api/v1/comprobantes \
+  -H <span class="c-str">"Content-Type: application/json"</span> \
+  -H <span class="c-str">"x-api-key: fpl_tu_api_key"</span> \
+  -H <span class="c-str">"x-api-secret: tu_api_secret"</span> \
+  -d <span class="c-str">'{
+    "tipo_comprobante": "03",
+    "cliente": {
+      "tipo_documento": "1",
+      "numero_documento": "12345678"
+    },
+    "items": [{
+      "descripcion": "Cuota mensual colegiatura",
+      "cantidad": 1,
+      "precio_unitario": 150.00
+    }]
+  }'</span></div>
+    </div>
+
+    <!-- Response -->
+    <div class="response-demo">
+      <div class="response-header">
+        <span class="label">Respuesta</span>
+        <span class="status">HTTP 200 OK</span>
+      </div>
+      <div class="response-body">{
+  <span class="c-key">"exito"</span>:     <span class="c-num">true</span>,
+  <span class="c-key">"estado"</span>:    <span class="c-str">"aceptado"</span>,
+  <span class="c-key">"serie"</span>:     <span class="c-str">"B001-00000042"</span>,
+  <span class="c-key">"hash"</span>:      <span class="c-str">"xK7m2pR...Q9f="</span>,
+  <span class="c-key">"pdf_url"</span>:   <span class="c-str">"https://facturalo.pro/comprobantes/.../pdf"</span>,
+  <span class="c-key">"xml_url"</span>:   <span class="c-str">"https://facturalo.pro/comprobantes/.../xml"</span>,
+  <span class="c-key">"cdr_url"</span>:   <span class="c-str">"https://facturalo.pro/comprobantes/.../cdr"</span>,
+  <span class="c-key">"mensaje"</span>:   <span class="c-str">"Comprobante aceptado por SUNAT"</span>
+}</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ENDPOINTS -->
+<section class="section" id="endpoints">
+  <div class="container">
+    <div class="s-label">API Reference</div>
+    <div class="s-title">Endpoints disponibles</div>
+    <div class="s-desc">Documentación interactiva completa en <a href="/docs" target="_blank" style="color:var(--accent)">/docs</a> (Swagger UI).</div>
+
+    <table class="endpoints-table">
+      <thead>
+        <tr><th>Método</th><th>Endpoint</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method post">POST</span></td>
+          <td class="endpoint-path">/api/v1/comprobantes</td>
+          <td>Emitir comprobante (factura, boleta, nota)</td>
+        </tr>
+        <tr>
+          <td><span class="method get">GET</span></td>
+          <td class="endpoint-path">/api/v1/comprobantes/{id}</td>
+          <td>Consultar estado y datos de un comprobante</td>
+        </tr>
+        <tr>
+          <td><span class="method get">GET</span></td>
+          <td class="endpoint-path">/api/v1/comprobantes/{id}/pdf</td>
+          <td>Descargar PDF del comprobante</td>
+        </tr>
+        <tr>
+          <td><span class="method get">GET</span></td>
+          <td class="endpoint-path">/api/v1/comprobantes/{id}/xml</td>
+          <td>Descargar XML firmado</td>
+        </tr>
+        <tr>
+          <td><span class="method get">GET</span></td>
+          <td class="endpoint-path">/api/v1/comprobantes/{id}/cdr</td>
+          <td>Descargar CDR de SUNAT</td>
+        </tr>
+        <tr>
+          <td><span class="method get">GET</span></td>
+          <td class="endpoint-path">/api/v1/consulta/ruc/{numero}</td>
+          <td>Consultar datos de RUC (razón social, dirección, estado)</td>
+        </tr>
+        <tr>
+          <td><span class="method get">GET</span></td>
+          <td class="endpoint-path">/api/v1/consulta/dni/{numero}</td>
+          <td>Consultar datos de DNI (nombres y apellidos)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FEATURES DEV -->
+<section class="section">
+  <div class="container">
+    <div class="s-label">¿Por qué elegir nuestra API?</div>
+    <div class="s-title">Pensada por desarrolladores, para desarrolladores</div>
+    <div class="features-grid">
+      <div class="f-card">
+        <div class="f-icon">📄</div>
+        <h3>Swagger interactivo</h3>
+        <p>Documentación completa en /docs. Prueba cada endpoint directamente desde el navegador.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">⚡</div>
+        <h3>Respuesta en &lt;1 segundo</h3>
+        <p>El comprobante se firma, se envía a SUNAT y recibes la respuesta con PDF, XML y CDR incluidos.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">🔄</div>
+        <h3>Reintentos automáticos</h3>
+        <p>Si SUNAT no responde, reintentamos automáticamente. Tu sistema no se preocupa por fallos temporales.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">🔐</div>
+        <h3>Certificado del cliente</h3>
+        <p>Firmamos con el certificado digital del emisor (tu cliente). Sin PSE intermediarios. Emisor directo ante SUNAT.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">🏢</div>
+        <h3>Multi-emisor</h3>
+        <p>Una sola cuenta API, múltiples RUC emisores. Ideal si tu sistema atiende varios clientes.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">🔔</div>
+        <h3>Webhooks</h3>
+        <p>Recibe notificaciones HTTP cuando un comprobante cambia de estado. Integración evento-driven.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- INTEGRATION STEPS -->
+<section class="section">
+  <div class="container">
+    <div style="text-align:center">
+      <div class="s-label">Integración</div>
+      <div class="s-title">3 pasos para integrar</div>
+    </div>
+    <div class="steps-row">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <h3>Obtén tus credenciales</h3>
+        <p>Regístrate y recibe tu <code>api_key</code> y <code>api_secret</code> al instante. Modo prueba activado por defecto.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <h3>Haz tu primer POST</h3>
+        <p>Copia el ejemplo de código en tu lenguaje. Envía un comprobante de prueba. Verifica la respuesta.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <h3>Pasa a producción</h3>
+        <p>Sube el certificado digital del emisor (.pfx) y sus credenciales SOL. Desactiva el modo prueba. Listo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<section class="cta-dev" id="registro">
+  <div class="container">
+    <div class="cta-inner">
+      <h2>¿Listo para integrar?</h2>
+      <p>Obtén tus credenciales API en 2 minutos. Modo prueba incluido.</p>
+      <div class="cta-btns">
+        <a href="/registro" class="btn btn-primary btn-lg">Obtener API Key gratis →</a>
+        <a href="/docs" target="_blank" class="btn btn-ghost btn-lg">Ver documentación</a>
+      </div>
+      <p style="margin-top:16px;font-size:13px;color:var(--text-dim)">¿Tienes preguntas técnicas? → <a href="mailto:dev@facturalo.pro" style="color:var(--accent)">dev@facturalo.pro</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <p>© 2026 facturalo.pro — Perú Sistemas Pro E.I.R.L.</p>
+      <div class="footer-links">
+        <a href="/">Inicio</a>
+        <a href="/docs">Swagger Docs</a>
+        <a href="mailto:dev@facturalo.pro">dev@facturalo.pro</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+function showTab(lang) {
+  document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`#tab-${lang}`).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
