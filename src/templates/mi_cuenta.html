@@ -6,491 +6,7 @@
     <title>Mi cuenta - facturalo.pro</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        :root {
-            --bg: #f8fafc;
-            --bg-card: #ffffff;
-            --text: #0f172a;
-            --text-muted: #64748b;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --primary-light: #dbeafe;
-            --border: #e2e8f0;
-            --error: #dc2626;
-            --error-bg: #fef2f2;
-            --success: #059669;
-            --success-bg: #ecfdf5;
-            --warning: #d97706;
-            --warning-bg: #fffbeb;
-            --radius: 12px;
-            --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
-        }
-
-        body {
-            font-family: 'DM Sans', -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-        }
-
-        /* ── Topbar ── */
-        .topbar {
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            padding: .75rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .topbar-left {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-        }
-        .logo {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-        }
-        .logo span { color: var(--text); }
-        .topbar-nav { display: flex; gap: .25rem; }
-        .topbar-nav a {
-            padding: .5rem .875rem;
-            font-size: .8125rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            text-decoration: none;
-            border-radius: 6px;
-            transition: all .15s;
-        }
-        .topbar-nav a:hover { color: var(--text); background: var(--bg); }
-        .topbar-nav a.active { color: var(--primary); background: var(--primary-light); }
-        .topbar-right { display: flex; align-items: center; gap: 1rem; }
-        .topbar-user {
-            font-size: .8125rem;
-            color: var(--text-muted);
-        }
-        .topbar-user strong { color: var(--text); }
-        .btn-logout {
-            font-size: .8125rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            padding: .375rem .75rem;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            transition: all .15s;
-        }
-        .btn-logout:hover { border-color: var(--error); color: var(--error); }
-
-        /* ── Content ── */
-        .content {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
-        }
-
-        /* ── Welcome banner ── */
-        .welcome-banner {
-            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-            color: #fff;
-            border-radius: var(--radius);
-            padding: 2rem 2.5rem;
-            margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .welcome-banner::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255,255,255,.06);
-            border-radius: 50%;
-        }
-        .welcome-banner h1 {
-            font-size: 1.375rem;
-            font-weight: 700;
-            margin-bottom: .5rem;
-        }
-        .welcome-banner p {
-            font-size: .925rem;
-            opacity: .9;
-            line-height: 1.6;
-            max-width: 600px;
-        }
-
-        /* ── Stats grid ── */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.25rem 1.5rem;
-        }
-        .stat-label {
-            font-size: .75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: .5px;
-            margin-bottom: .5rem;
-        }
-        .stat-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-        }
-        .stat-value.trial { color: var(--warning); }
-        .stat-value.active { color: var(--success); }
-        .stat-sub {
-            font-size: .8125rem;
-            color: var(--text-muted);
-            margin-top: .25rem;
-        }
-
-        /* ── Progress bar ── */
-        .progress-bar {
-            height: 6px;
-            background: var(--border);
-            border-radius: 3px;
-            margin-top: .75rem;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            border-radius: 3px;
-            background: var(--primary);
-            transition: width .6s ease;
-        }
-        .progress-fill.warning { background: var(--warning); }
-        .progress-fill.danger { background: var(--error); }
-
-        /* ── Section ── */
-        .section {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            margin-bottom: 1.5rem;
-            overflow: hidden;
-        }
-        .section-header {
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .section-title {
-            font-size: 1rem;
-            font-weight: 700;
-        }
-        .section-body { padding: 1.5rem; }
-
-        /* ── API Keys ── */
-        .api-field {
-            margin-bottom: 1.25rem;
-        }
-        .api-field:last-child { margin-bottom: 0; }
-        .api-label {
-            font-size: .75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: .5px;
-            margin-bottom: .375rem;
-        }
-        .api-value-row {
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-        }
-        .api-value {
-            flex: 1;
-            padding: .625rem .875rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: .8125rem;
-            background: #0f172a;
-            color: #e2e8f0;
-            border-radius: 6px;
-            word-break: break-all;
-            line-height: 1.5;
-        }
-        .btn-copy {
-            padding: .5rem .75rem;
-            font-size: .75rem;
-            font-weight: 600;
-            font-family: inherit;
-            color: var(--primary);
-            background: var(--primary-light);
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: background .15s;
-        }
-        .btn-copy:hover { background: #bfdbfe; }
-        .btn-copy.copied { background: var(--success-bg); color: var(--success); }
-
-        .api-warning {
-            background: var(--warning-bg);
-            border: 1px solid #fde68a;
-            color: #92400e;
-            padding: .75rem 1rem;
-            border-radius: 8px;
-            font-size: .8125rem;
-            margin-top: 1rem;
-            display: flex;
-            align-items: flex-start;
-            gap: .5rem;
-            line-height: 1.5;
-        }
-        .api-warning svg { flex-shrink: 0; margin-top: 2px; }
-
-        .api-secret-hidden {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: .8125rem;
-            color: var(--text-muted);
-            padding: .625rem .875rem;
-            background: var(--bg);
-            border: 1px dashed var(--border);
-            border-radius: 6px;
-            flex: 1;
-        }
-
-        /* ── Onboarding steps ── */
-        .steps { list-style: none; }
-        .step {
-            display: flex;
-            gap: 1rem;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .step:last-child { border-bottom: none; }
-        .step-number {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: .8125rem;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-        .step-number.done {
-            background: var(--success-bg);
-            color: var(--success);
-        }
-        .step-number.current {
-            background: var(--primary-light);
-            color: var(--primary);
-        }
-        .step-number.pending {
-            background: var(--bg);
-            color: var(--text-muted);
-            border: 1.5px solid var(--border);
-        }
-        .step-content { flex: 1; }
-        .step-title {
-            font-size: .9375rem;
-            font-weight: 600;
-            margin-bottom: .125rem;
-        }
-        .step-desc {
-            font-size: .8125rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-        }
-        .step-action {
-            margin-top: .5rem;
-        }
-        .btn-small {
-            display: inline-flex;
-            align-items: center;
-            gap: .375rem;
-            padding: .375rem .75rem;
-            font-size: .8125rem;
-            font-weight: 600;
-            font-family: inherit;
-            color: #fff;
-            background: var(--primary);
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            transition: background .15s;
-        }
-        .btn-small:hover { background: var(--primary-hover); }
-        .btn-small.outline {
-            background: transparent;
-            color: var(--primary);
-            border: 1.5px solid var(--primary);
-        }
-
-        /* ── Quick links ── */
-        .quick-links {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: .75rem;
-        }
-        .quick-link {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-            padding: 1rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            text-decoration: none;
-            color: var(--text);
-            transition: all .15s;
-        }
-        .quick-link:hover {
-            border-color: var(--primary);
-            background: var(--primary-light);
-        }
-        .quick-link-icon {
-            font-size: 1.25rem;
-        }
-        .quick-link-text {
-            font-size: .875rem;
-            font-weight: 600;
-        }
-        .quick-link-desc {
-            font-size: .75rem;
-            color: var(--text-muted);
-        }
-
-        /* ── Trial banner ── */
-        .trial-banner {
-            background: var(--warning-bg);
-            border: 1px solid #fde68a;
-            border-radius: var(--radius);
-            padding: 1rem 1.5rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-        }
-        .trial-banner-text {
-            font-size: .875rem;
-            color: #92400e;
-        }
-        .trial-banner-text strong { color: #78350f; }
-        .btn-upgrade {
-            padding: .5rem 1.25rem;
-            font-size: .8125rem;
-            font-weight: 600;
-            font-family: inherit;
-            color: #fff;
-            background: #d97706;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            white-space: nowrap;
-            text-decoration: none;
-            transition: background .15s;
-        }
-        .btn-upgrade:hover { background: #b45309; }
-
-        /* ── Alert messages ── */
-        .alert {
-            padding: .75rem 1rem;
-            border-radius: 8px;
-            font-size: .875rem;
-            margin-bottom: 1.5rem;
-        }
-        .alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #a7f3d0; }
-        .alert-error { background: var(--error-bg); color: var(--error); border: 1px solid #fecaca; }
-
-        /* ── Change password modal ── */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.4);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 2rem;
-            width: 90%;
-            max-width: 420px;
-            box-shadow: 0 20px 60px rgba(0,0,0,.15);
-        }
-        .modal h3 {
-            font-size: 1.125rem;
-            margin-bottom: 1.5rem;
-        }
-        .modal .form-group { margin-bottom: 1rem; }
-        .modal .form-label {
-            display: block;
-            font-size: .8125rem;
-            font-weight: 600;
-            margin-bottom: .25rem;
-        }
-        .modal .form-input {
-            width: 100%;
-            padding: .625rem .875rem;
-            font-size: .875rem;
-            font-family: inherit;
-            border: 1.5px solid var(--border);
-            border-radius: 6px;
-            outline: none;
-        }
-        .modal .form-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-light);
-        }
-        .modal-actions {
-            display: flex;
-            gap: .75rem;
-            justify-content: flex-end;
-            margin-top: 1.5rem;
-        }
-        .btn-cancel {
-            padding: .5rem 1rem;
-            font-size: .875rem;
-            font-family: inherit;
-            color: var(--text-muted);
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
-            .topbar { padding: .75rem 1rem; }
-            .topbar-left { gap: 1rem; }
-            .topbar-nav { display: none; }
-            .content { padding: 1.5rem 1rem; }
-            .stats-grid { grid-template-columns: 1fr 1fr; }
-            .quick-links { grid-template-columns: 1fr; }
-            .trial-banner { flex-direction: column; text-align: center; }
-        }
-        @media (max-width: 480px) {
-            .stats-grid { grid-template-columns: 1fr; }
-            .api-value-row { flex-direction: column; }
-            .btn-copy { align-self: flex-start; }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modales_mi_cuenta.css') }}">
 </head>
 <body>
     <!-- Topbar -->
@@ -676,7 +192,7 @@
                                 Necesario para firmar comprobantes electrónicos.
                             </div>
                             <div class="step-action">
-                                <a href="/configuracion" class="btn-small">📤 Ir a Configuración</a>
+                                <a href="javascript:void(0)" class="btn-small" onclick="abrirModalConfig('tab-cert')">📤 Configurar Certificado</a>
                             </div>
                         </div>
                     </li>
@@ -688,12 +204,24 @@
                                 Usuario SOL y Clave SOL de SUNAT. Permiten consultar estado y enviar comprobantes.
                             </div>
                             <div class="step-action">
-                                <a href="/configuracion" class="btn-small">🔑 Ir a Configuración</a>
+                                <a href="javascript:void(0)" class="btn-small" onclick="abrirModalConfig('tab-sol')">🔑 Configurar Credenciales</a>
                             </div>
                         </div>
                     </li>
                     <li class="step">
                         <div class="step-number pending">5</div>
+                        <div class="step-content">
+                            <div class="step-title">Formato de Comprobante</div>
+                            <div class="step-desc">
+                                Por defecto emitirás en A4.
+                            </div>
+                            <div class="step-action">
+                                <a href="javascript:void(0)" onclick="abrirModalConfig('tab-formato')">🖨️ Formato de impresión</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="step">
+                        <div class="step-number pending">6</div>
                         <div class="step-content">
                             <div class="step-title">Activar producción</div>
                             <div class="step-desc">
@@ -803,6 +331,160 @@
         </div>
     </div>
 
+
+    <!-- Modales para configuración de certificado, SOL, formato, etc. -->
+    <div class="modal-overlay" id="modal-config">
+        <div class="modal-config">
+            <!-- Header -->
+            <div class="modal-header">
+                <h2>⚙️ Configuración</h2>
+                <button class="modal-close" onclick="cerrarModalConfig()">&times;</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="modal-tabs">
+                <button class="modal-tab active" data-tab="tab-cert">📄 Certificado</button>
+                <button class="modal-tab" data-tab="tab-sol">🔑 Credenciales SOL</button>
+                <button class="modal-tab" data-tab="tab-formato">🖨️ Formato</button>
+            </div>
+
+            <!-- TAB 1: Certificado Digital -->
+            <div class="tab-panel active" id="tab-cert">
+                <div class="cfg-group">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <label class="cfg-label" style="margin:0;">Certificado Digital</label>
+                        <span class="cfg-status cfg-status-none" id="cert-status">Sin certificado</span>
+                    </div>
+
+                    <div class="cfg-dropzone" id="cert-dropzone">
+                        <input type="file" id="archivo-cert" accept=".pfx,.p12">
+                        <div class="cfg-dropzone-icon">📁</div>
+                        <div class="cfg-dropzone-text">Arrastra tu certificado aquí</div>
+                        <div class="cfg-dropzone-sub">o haz clic para seleccionar · .pfx, .p12</div>
+                    </div>
+                    <div class="cfg-dropzone-file" id="cert-file-name">
+                        📎 <span></span>
+                    </div>
+                </div>
+
+                <div class="cfg-group">
+                    <label class="cfg-label" for="password-cert">Contraseña del certificado</label>
+                    <input type="password" class="cfg-input" id="password-cert" placeholder="Ingresa la contraseña del .pfx">
+                </div>
+
+                <button class="cfg-btn cfg-btn-primary" id="btn-subir-cert" onclick="subirCertificado()">
+                    🔐 Cargar Certificado
+                </button>
+
+                <p class="cfg-hint" style="margin-top:.75rem;">
+                    Certificado digital de SUNAT o proveedor autorizado (Llama.pe, etc.).
+                    Necesario para firmar comprobantes electrónicos en producción.
+                </p>
+            </div>
+
+            <!-- TAB 2: Credenciales SOL -->
+            <div class="tab-panel" id="tab-sol">
+                <div class="cfg-group">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <label class="cfg-label" style="margin:0;">Credenciales SUNAT (SOL)</label>
+                        <span class="cfg-status cfg-status-none" id="sol-status">No configurado</span>
+                    </div>
+
+                    <label class="cfg-label" for="usuario-sol">Usuario SOL</label>
+                    <input type="text" class="cfg-input" id="usuario-sol" placeholder="MODDATOS" maxlength="20">
+                    <p class="cfg-hint">El usuario secundario que creaste en SUNAT.</p>
+                </div>
+
+                <div class="cfg-group">
+                    <label class="cfg-label" for="clave-sol">Clave SOL</label>
+                    <input type="password" class="cfg-input" id="clave-sol" placeholder="••••••••">
+                    <p class="cfg-hint">La clave del usuario SOL. Se almacena encriptada.</p>
+                </div>
+
+                <button class="cfg-btn cfg-btn-primary" id="btn-guardar-sol" onclick="guardarCredencialesSOL()">
+                    💾 Guardar Credenciales
+                </button>
+            </div>
+
+            <!-- TAB 3: Formato de Impresión -->
+            <div class="tab-panel" id="tab-formato">
+                <div class="formato-section">
+                    <div class="formato-section-title">Factura</div>
+                    <div class="formato-grid">
+                        <label class="formato-option active">
+                            <input type="radio" name="formato_factura" value="A4" checked>
+                            <div class="formato-icon">📄</div>
+                            <div class="formato-name">A4</div>
+                            <div class="formato-desc">Estándar</div>
+                        </label>
+                        <label class="formato-option">
+                            <input type="radio" name="formato_factura" value="A5">
+                            <div class="formato-icon">📋</div>
+                            <div class="formato-name">A5</div>
+                            <div class="formato-desc">Media carta</div>
+                        </label>
+                        <label class="formato-option">
+                            <input type="radio" name="formato_factura" value="TICKET">
+                            <div class="formato-icon">🧾</div>
+                            <div class="formato-name">Ticket</div>
+                            <div class="formato-desc">80mm</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="formato-section">
+                    <div class="formato-section-title">Boleta</div>
+                    <div class="formato-grid">
+                        <label class="formato-option active">
+                            <input type="radio" name="formato_boleta" value="A4" checked>
+                            <div class="formato-icon">📄</div>
+                            <div class="formato-name">A4</div>
+                        </label>
+                        <label class="formato-option">
+                            <input type="radio" name="formato_boleta" value="A5">
+                            <div class="formato-icon">📋</div>
+                            <div class="formato-name">A5</div>
+                        </label>
+                        <label class="formato-option">
+                            <input type="radio" name="formato_boleta" value="TICKET">
+                            <div class="formato-icon">🧾</div>
+                            <div class="formato-name">Ticket</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="formato-section">
+                    <div class="formato-section-title">Nota de Crédito / Débito</div>
+                    <div class="formato-grid">
+                        <label class="formato-option active">
+                            <input type="radio" name="formato_nc_nd" value="A4" checked>
+                            <div class="formato-icon">📄</div>
+                            <div class="formato-name">A4</div>
+                        </label>
+                        <label class="formato-option">
+                            <input type="radio" name="formato_nc_nd" value="A5">
+                            <div class="formato-icon">📋</div>
+                            <div class="formato-name">A5</div>
+                        </label>
+                        <label class="formato-option">
+                            <input type="radio" name="formato_nc_nd" value="TICKET">
+                            <div class="formato-icon">🧾</div>
+                            <div class="formato-name">Ticket</div>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="cfg-btn cfg-btn-primary" id="btn-guardar-formato" onclick="guardarFormato()">
+                    💾 Guardar Formatos
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="cfg-toast" id="cfg-toast"></div> 
+
+
     <script>
     function copiar(elementId, btn) {
         const el = document.getElementById(elementId);
@@ -832,5 +514,6 @@
         }
     });
     </script>
+    <script src="{{ url_for('static', path='/js/modales_mi_cuenta.js') }}"></script>
 </body>
 </html>
