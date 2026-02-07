@@ -24,7 +24,7 @@ from pydantic import BaseModel
 from src.api.dependencies import get_db
 from src.models.models import Comprobante, LineaDetalle, Emisor, Certificado, LogEnvio, RespuestaSunat, Cliente, Producto
 from src.services.sunat_service import SunatService
-from src.api.routes import obtener_emisor_actual
+from src.api.auth_utils import obtener_emisor_actual
 
 # Importar tarea Celery
 try:

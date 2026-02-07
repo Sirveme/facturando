@@ -26,7 +26,8 @@ import json
 from src.api.dependencies import get_db
 from src.api.frontend import templates
 
-from src.models.models import Emisor  # Tu modelo existente
+from src.models.models import Emisor
+from src.api.auth_utils import obtener_emisor_actual
 
 # === DEPENDENCIAS NUEVAS ===
 try:
