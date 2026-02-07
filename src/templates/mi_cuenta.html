@@ -155,83 +155,85 @@
         </div>
 
         <!-- Onboarding Steps -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-title">📋 Pasos para activar producción</div>
-            </div>
-            <div class="section-body">
-                <ul class="steps">
-                    <li class="step">
-                        <div class="step-number done">✓</div>
-                        <div class="step-content">
-                            <div class="step-title">Crear cuenta</div>
-                            <div class="step-desc">Registro completado, credenciales API generadas.</div>
+        <!-- MODO PRUEBA -->
+        <div class="onboarding-section">
+            <div class="section-badge trial">🧪 Modo Prueba · 15 días</div>
+            
+            <ol class="steps">
+                <li class="step">
+                    <div class="step-number done">✓</div>
+                    <div class="step-content">
+                        <div class="step-title">Crear cuenta</div>
+                        <div class="step-desc">Registro completado, credenciales API generadas.</div>
+                    </div>
+                </li>
+                <li class="step">
+                    <div class="step-number current">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Probar en modo test</div>
+                        <div class="step-desc">
+                            Envía comprobantes de prueba usando tu API Key. No se envían a SUNAT, perfecto para integración.
                         </div>
-                    </li>
-                    <li class="step">
-                        <div class="step-number {{ 'done' if not emisor.modo_test else 'current' }}">2</div>
-                        <div class="step-content">
-                            <div class="step-title">Probar en modo test</div>
-                            <div class="step-desc">
-                                Envía comprobantes de prueba usando tu API Key. 
-                                No se envían a SUNAT, perfecto para integración.
-                            </div>
-                            <div class="step-action">
-                                <a href="/docs" class="btn-small outline" target="_blank">
-                                    📖 Ver documentación API
-                                </a>
-                            </div>
+                        <div class="step-action">
+                            <a href="/documentacion" class="btn-small">📖 Ver documentación API</a>
                         </div>
-                    </li>
-                    <li class="step">
-                        <div class="step-number pending">3</div>
-                        <div class="step-content">
-                            <div class="step-title">Subir certificado digital (.pfx)</div>
-                            <div class="step-desc">
-                                Tu certificado digital de SUNAT o proveedor autorizado (Llama.pe, etc.). 
-                                Necesario para firmar comprobantes electrónicos.
-                            </div>
-                            <div class="step-action">
-                                <a href="javascript:void(0)" class="btn-small" onclick="abrirModalConfig('tab-cert')">📤 Configurar Certificado</a>
-                            </div>
+                    </div>
+                </li>
+            </ol>
+        </div>
+
+        <!-- SEPARADOR -->
+        <div class="onboarding-bridge">
+            <p>Con tus credenciales API puedes probar la emisión de comprobantes por 15 días. 
+            Cuando estés listo, completa los pasos siguientes para emitir comprobantes reales ante SUNAT.</p>
+            <p style="margin-top:.5rem;">¿Necesitas certificado digital? 
+                <a href="#" class="link-comprar-cert">Comprar Certificado →</a>
+            </p>
+        </div>
+
+        <!-- MODO PRODUCCIÓN -->
+        <div class="onboarding-section">
+            <div class="section-badge prod">🚀 Modo Producción</div>
+            
+            <ol class="steps" start="3">
+                <li class="step">
+                    <div class="step-number pending">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Subir certificado digital (.pfx)</div>
+                        <div class="step-desc">
+                            Tu certificado digital de SUNAT o proveedor autorizado (Llama.pe, etc.).
+                            Necesario para firmar comprobantes electrónicos.
                         </div>
-                    </li>
-                    <li class="step">
-                        <div class="step-number pending">4</div>
-                        <div class="step-content">
-                            <div class="step-title">Ingresar credenciales SOL</div>
-                            <div class="step-desc">
-                                Usuario SOL y Clave SOL de SUNAT. Permiten consultar estado y enviar comprobantes.
-                            </div>
-                            <div class="step-action">
-                                <a href="javascript:void(0)" class="btn-small" onclick="abrirModalConfig('tab-sol')">🔑 Configurar Credenciales</a>
-                            </div>
+                        <div class="step-action">
+                            <a href="javascript:void(0)" class="btn-small" onclick="abrirModalConfig('tab-cert')">📤 Configurar Certificado</a>
                         </div>
-                    </li>
-                    <li class="step">
-                        <div class="step-number pending">5</div>
-                        <div class="step-content">
-                            <div class="step-title">Formato de Comprobante</div>
-                            <div class="step-desc">
-                                Por defecto emitirás en A4.
-                            </div>
-                            <div class="step-action">
-                                <a href="javascript:void(0)" onclick="abrirModalConfig('tab-formato')">🖨️ Formato de impresión</a>
-                            </div>
+                    </div>
+                </li>
+                <li class="step">
+                    <div class="step-number pending">4</div>
+                    <div class="step-content">
+                        <div class="step-title">Ingresar credenciales SOL</div>
+                        <div class="step-desc">
+                            Usuario SOL y Clave SOL de SUNAT. Permiten consultar estado y enviar comprobantes.
                         </div>
-                    </li>
-                    <li class="step">
-                        <div class="step-number pending">6</div>
-                        <div class="step-content">
-                            <div class="step-title">Activar producción</div>
-                            <div class="step-desc">
-                                Una vez validados certificado y credenciales SOL, 
-                                podrás emitir comprobantes reales ante SUNAT.
-                            </div>
+                        <div class="step-action">
+                            <a href="javascript:void(0)" class="btn-small" onclick="abrirModalConfig('tab-sol')">🔑 Configurar Credenciales</a>
                         </div>
-                    </li>
-                </ul>
-            </div>
+                    </div>
+                </li>
+                <li class="step">
+                    <div class="step-number pending">5</div>
+                    <div class="step-content">
+                        <div class="step-title">Formato de comprobante</div>
+                        <div class="step-desc">
+                            Por defecto emitirás en A4. Puedes cambiarlo cuando quieras.
+                        </div>
+                        <div class="step-action">
+                            <a href="javascript:void(0)" class="btn-small" onclick="abrirModalConfig('tab-formato')">🖨️ Formato de impresión</a>
+                        </div>
+                    </div>
+                </li>
+            </ol>
         </div>
 
         <!-- Quick links -->
