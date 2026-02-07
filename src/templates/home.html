@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>facturalo.pro — API de Facturación Electrónica para Perú</title>
+<meta name="description" content="Emite facturas, boletas y notas electrónicas vía API REST. Tu certificado digital, tu firma, tu control. Integración en minutos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;1,9..144,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08090d;
+  --bg-elevated: #0e1017;
+  --bg-card: #111318;
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --text: #b0b4c0;
+  --text-dim: #5c6070;
+  --text-bright: #ecedf0;
+  --accent: #3b82f6;
+  --accent-glow: rgba(59,130,246,0.2);
+  --accent-soft: rgba(59,130,246,0.08);
+  --green: #10b981;
+  --green-soft: rgba(16,185,129,0.1);
+  --amber: #f59e0b;
+  --red: #ef4444;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line-height:1.65;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+.container{max-width:1100px;margin:0 auto;padding:0 28px}
+
+/* NAV */
+nav{position:fixed;top:0;width:100%;z-index:100;background:rgba(8,9,13,0.85);backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav-logo{font-weight:700;font-size:17px;color:var(--text-bright);text-decoration:none;letter-spacing:-0.3px}
+.nav-logo span{color:var(--accent)}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:13.5px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:600;text-decoration:none;transition:all .2s;cursor:pointer;border:none;font-family:inherit}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3),0 0 16px var(--accent-glow)}
+.btn-primary:hover{background:#4d90f7;transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,0.05);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--border-hover);background:rgba(255,255,255,0.07)}
+.btn-lg{padding:13px 28px;font-size:15px;border-radius:10px}
+
+/* HERO */
+.hero{padding:150px 0 80px;position:relative}
+.hero::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(ellipse,var(--accent-glow) 0%,transparent 70%);pointer-events:none;opacity:.4}
+.hero-content{position:relative;z-index:1;max-width:680px}
+.hero-tag{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:100px;font-size:12.5px;font-weight:500;background:var(--green-soft);color:var(--green);border:1px solid rgba(16,185,129,0.15);margin-bottom:24px}
+.hero-tag::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{font-family:'Fraunces',serif;font-size:clamp(38px,5.5vw,58px);font-weight:800;line-height:1.08;color:var(--text-bright);letter-spacing:-1.5px;margin-bottom:20px}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero p{font-size:17px;color:var(--text);max-width:500px;line-height:1.7;margin-bottom:32px;font-weight:300}
+.hero-btns{display:flex;gap:10px;flex-wrap:wrap}
+
+/* CODE */
+.code-section{margin-top:72px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.code-block{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.code-bar{display:flex;align-items:center;padding:10px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);gap:6px}
+.code-bar .dot{width:8px;height:8px;border-radius:50%;opacity:.5}
+.code-bar .dot:nth-child(1){background:var(--red)}
+.code-bar .dot:nth-child(2){background:var(--amber)}
+.code-bar .dot:nth-child(3){background:var(--green)}
+.code-bar .label{margin-left:auto;font-family:'Fira Code',monospace;font-size:11px;color:var(--text-dim)}
+.code-body{padding:18px;font-family:'Fira Code',monospace;font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+.c-kw{color:#c084fc}.c-str{color:#34d399}.c-num{color:#fbbf24}.c-cmt{color:#3a3d4a}.c-key{color:#60a5fa}.c-fn{color:#f472b6}
+
+.response-block{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px}
+.response-block h3{font-size:13px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px}
+.response-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
+.response-item:last-child{border:none}
+.response-item .label{font-size:13px;color:var(--text-dim)}
+.response-item .value{font-family:'Fira Code',monospace;font-size:13px;color:var(--text-bright);font-weight:500}
+.response-item .value.success{color:var(--green)}
+.response-item .value.file{color:var(--accent)}
+
+/* SECTIONS */
+.section{padding:100px 0}
+.section-tag{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:2.5px;color:var(--accent);margin-bottom:10px}
+.section-title{font-family:'Fraunces',serif;font-size:clamp(26px,3.5vw,36px);font-weight:700;color:var(--text-bright);letter-spacing:-0.5px;margin-bottom:12px}
+.section-desc{font-size:15px;color:var(--text-dim);max-width:480px;font-weight:300}
+.divider{height:1px;background:var(--border)}
+
+/* STATS */
+.stats{padding:56px 0}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.stat{text-align:center;padding:20px}
+.stat-val{font-family:'Fraunces',serif;font-size:32px;font-weight:800;color:var(--text-bright);letter-spacing:-1px}
+.stat-lbl{font-size:13px;color:var(--text-dim);margin-top:2px}
+
+/* FEATURES */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px}
+.f-card{padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;transition:all .25s}
+.f-card:hover{border-color:var(--border-hover);transform:translateY(-2px)}
+.f-icon{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px;background:var(--accent-soft);border:1px solid rgba(59,130,246,0.1)}
+.f-card h3{font-size:15px;font-weight:600;color:var(--text-bright);margin-bottom:6px}
+.f-card p{font-size:13.5px;color:var(--text-dim);line-height:1.6;font-weight:300}
+
+/* STEPS */
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:44px}
+.step{position:relative;padding:24px 20px}
+.step-n{font-family:'Fraunces',serif;font-size:44px;font-weight:800;color:rgba(59,130,246,0.1);line-height:1;margin-bottom:12px}
+.step h3{font-size:14px;font-weight:600;color:var(--text-bright);margin-bottom:5px}
+.step p{font-size:13px;color:var(--text-dim);line-height:1.6;font-weight:300}
+.step-connector{position:absolute;top:42px;right:-10px;width:20px;height:1px;background:var(--border)}
+.step:last-child .step-connector{display:none}
+
+/* PRICING */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px}
+.p-card{padding:32px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;transition:all .25s;position:relative}
+.p-card.pop{border-color:var(--accent);box-shadow:0 0 40px var(--accent-glow),inset 0 1px 0 rgba(59,130,246,0.2)}
+.p-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:3px 14px;border-radius:100px;font-size:11px;font-weight:600;white-space:nowrap}
+.p-name{font-size:15px;font-weight:600;color:var(--text-bright)}
+.p-desc{font-size:13px;color:var(--text-dim);margin-bottom:18px;font-weight:300}
+.p-price{font-family:'Fraunces',serif;font-size:38px;font-weight:800;color:var(--text-bright);letter-spacing:-1.5px}
+.p-price span{font-size:14px;font-family:'Outfit',sans-serif;font-weight:400;color:var(--text-dim)}
+.p-period{font-size:13px;color:var(--text-dim);margin-bottom:22px}
+.p-list{list-style:none;flex:1;margin-bottom:24px}
+.p-list li{padding:7px 0;font-size:13.5px;color:var(--text-dim);display:flex;align-items:baseline;gap:9px;font-weight:300}
+.p-list li::before{content:'✓';color:var(--green);font-size:12px;font-weight:700;flex-shrink:0}
+.p-card .btn{width:100%;text-align:center}
+
+/* VS TABLE */
+.vs-section{background:var(--bg-elevated);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.vs-table{margin-top:36px;width:100%;border-collapse:collapse}
+.vs-table th,.vs-table td{padding:12px 16px;text-align:left;font-size:13.5px;border-bottom:1px solid var(--border)}
+.vs-table th{color:var(--text-dim);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.vs-table td{color:var(--text)}
+.vs-table td:first-child{color:var(--text-dim);font-weight:400}
+.vs-table .hl{color:var(--accent);font-weight:600}
+.vs-table .yes{color:var(--green)}
+.vs-table .no{color:var(--text-dim);opacity:.5}
+
+/* FAQ */
+.clients-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:40px}
+.client-card{padding:24px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;text-decoration:none;transition:all .25s;display:flex;flex-direction:column;align-items:center;gap:6px}
+.client-card:hover{border-color:var(--border-hover);transform:translateY(-2px);background:var(--bg-elevated)}
+.client-icon{font-size:24px;margin-bottom:4px}
+.client-name{font-family:'Fira Code',monospace;font-size:12.5px;color:var(--accent);font-weight:500}
+.client-desc{font-size:12px;color:var(--text-dim);text-align:center;line-height:1.4;font-weight:300}
+
+.faq-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:44px}
+.faq-item{padding:22px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px}
+.faq-item h3{font-size:14px;font-weight:600;color:var(--text-bright);margin-bottom:6px}
+.faq-item p{font-size:13.5px;color:var(--text-dim);line-height:1.6;font-weight:300}
+
+/* CTA */
+.cta{padding:100px 0;text-align:center;position:relative}
+.cta::before{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:500px;height:350px;background:radial-gradient(ellipse,var(--accent-glow) 0%,transparent 70%);pointer-events:none;opacity:.25}
+.cta-inner{position:relative;z-index:1}
+.cta h2{font-family:'Fraunces',serif;font-size:clamp(26px,4vw,38px);font-weight:700;color:var(--text-bright);letter-spacing:-0.5px;margin-bottom:12px}
+.cta p{font-size:15px;color:var(--text-dim);margin-bottom:28px;font-weight:300}
+.cta-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* FOOTER */
+footer{padding:32px 0;border-top:1px solid var(--border)}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+footer p{font-size:12.5px;color:var(--text-dim)}
+.footer-links{display:flex;gap:20px}
+.footer-links a{color:var(--text-dim);text-decoration:none;font-size:12.5px}
+.footer-links a:hover{color:var(--text)}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hero-content>*{animation:fadeIn .5s ease both}
+.hero-content>:nth-child(1){animation-delay:.05s}
+.hero-content>:nth-child(2){animation-delay:.12s}
+.hero-content>:nth-child(3){animation-delay:.19s}
+.hero-content>:nth-child(4){animation-delay:.26s}
+.code-section{animation:fadeIn .5s ease .35s both}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .code-section{grid-template-columns:1fr}
+  .features-grid,.pricing-grid{grid-template-columns:1fr;max-width:420px}
+  .steps-grid{grid-template-columns:repeat(2,1fr)}
+  .step-connector{display:none!important}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .faq-grid{grid-template-columns:1fr}
+  .clients-grid{grid-template-columns:repeat(3,1fr)}
+  .vs-table{font-size:12px}
+  .vs-table th,.vs-table td{padding:8px 10px}
+}
+@media(max-width:640px){
+  .nav-links{display:none}
+  .hero{padding:120px 0 60px}
+  .hero-btns{flex-direction:column}
+  .steps-grid{grid-template-columns:1fr}
+  .clients-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">facturalo<span>.pro</span></a>
+      <div class="nav-links">
+        <a href="#caracteristicas">Características</a>
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#precios">Precios</a>
+        <a href="#comparativa">Comparativa</a>
+        <a href="/docs" target="_blank">API Docs</a>
+        <a href="#registro" class="btn btn-primary">Empezar gratis</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-tag">API v1 disponible — modo prueba activo</div>
+      <h1>Facturación electrónica con <em>tu propia firma</em></h1>
+      <p>Emite facturas, boletas y notas vía API REST. Tu certificado digital, envío directo a SUNAT, sin intermediarios PSE. Integra en minutos.</p>
+      <div class="hero-btns">
+        <a href="#registro" class="btn btn-primary btn-lg">Probar gratis 15 días →</a>
+        <a href="/docs" class="btn btn-ghost btn-lg">Explorar la API</a>
+      </div>
+    </div>
+
+    <div class="code-section">
+      <div class="code-block">
+        <div class="code-bar">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <span class="label">POST /api/v1/comprobantes</span>
+        </div>
+        <div class="code-body"><span class="c-cmt">// Un POST. Una factura. Listo.</span>
+<span class="c-kw">const</span> res = <span class="c-kw">await</span> <span class="c-fn">fetch</span>(<span class="c-str">"https://facturalo.pro/api/v1/comprobantes"</span>, {
+  <span class="c-key">method</span>: <span class="c-str">"POST"</span>,
+  <span class="c-key">headers</span>: {
+    <span class="c-str">"x-api-key"</span>:    <span class="c-str">"fpl_tu_api_key"</span>,
+    <span class="c-str">"x-api-secret"</span>: <span class="c-str">"tu_secret"</span>
+  },
+  <span class="c-key">body</span>: <span class="c-fn">JSON.stringify</span>({
+    <span class="c-key">tipo_comprobante</span>: <span class="c-str">"03"</span>,
+    <span class="c-key">cliente</span>: {
+      <span class="c-key">tipo_documento</span>: <span class="c-str">"1"</span>,
+      <span class="c-key">numero_documento</span>: <span class="c-str">"12345678"</span>
+    },
+    <span class="c-key">items</span>: [{
+      <span class="c-key">descripcion</span>: <span class="c-str">"Cuota colegiatura"</span>,
+      <span class="c-key">cantidad</span>: <span class="c-num">1</span>,
+      <span class="c-key">precio_unitario</span>: <span class="c-num">150.00</span>
+    }]
+  })
+});</div>
+      </div>
+
+      <div class="response-block">
+        <h3>Respuesta instantánea</h3>
+        <div class="response-item">
+          <span class="label">estado</span>
+          <span class="value success">✓ aceptado</span>
+        </div>
+        <div class="response-item">
+          <span class="label">serie</span>
+          <span class="value">B001-00000042</span>
+        </div>
+        <div class="response-item">
+          <span class="label">hash</span>
+          <span class="value" style="font-size:11px;opacity:.7">xK7m2p...Q9f=</span>
+        </div>
+        <div class="response-item">
+          <span class="label">pdf_url</span>
+          <span class="value file">↓ descargar</span>
+        </div>
+        <div class="response-item">
+          <span class="label">xml_url</span>
+          <span class="value file">↓ descargar</span>
+        </div>
+        <div class="response-item">
+          <span class="label">cdr_url</span>
+          <span class="value file">↓ descargar</span>
+        </div>
+        <div class="response-item" style="border:none">
+          <span class="label">tiempo</span>
+          <span class="value" style="color:var(--green)">0.3s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="stats">
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val">&lt;1s</div><div class="stat-lbl">Emisión promedio</div></div>
+      <div class="stat"><div class="stat-val">99.9%</div><div class="stat-lbl">Uptime</div></div>
+      <div class="stat"><div class="stat-val">UBL 2.1</div><div class="stat-lbl">XML válido SUNAT</div></div>
+      <div class="stat"><div class="stat-val">S/35</div><div class="stat-lbl">Desde / mes</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="caracteristicas">
+  <div class="container">
+    <div class="section-tag">Características</div>
+    <div class="section-title">Todo para facturar, nada que sobre</div>
+    <div class="section-desc">API limpia, documentación completa, tu certificado digital. Sin PSE intermediarios.</div>
+    <div class="features-grid">
+      <div class="f-card">
+        <div class="f-icon">🔐</div>
+        <h3>Tu certificado, tu firma</h3>
+        <p>Firmamos con tu certificado digital. Eres emisor directo ante SUNAT, no dependes de terceros PSE.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">⚡</div>
+        <h3>API REST + Swagger</h3>
+        <p>Un POST con JSON. Documentación interactiva en /docs. Integra desde Python, PHP, JS, Java — lo que uses.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">📄</div>
+        <h3>Facturas, boletas, notas</h3>
+        <p>Comprobantes 01, 03, 07, 08. XML UBL 2.1, CDR de SUNAT y PDF descargable. Todo incluido.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">🔍</div>
+        <h3>Consulta RUC y DNI</h3>
+        <p>APIs de consulta incluidas. Autocompleta razón social, dirección y datos del cliente al instante.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">📊</div>
+        <h3>Dashboard completo</h3>
+        <p>Panel web con estados, filtros, reenvío y descarga de PDF/XML/CDR. Sin tocar la API si no quieres.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon">🏢</div>
+        <h3>Multi-emisor</h3>
+        <p>Gestiona varios RUC desde una cuenta. Ideal para estudios contables y grupos empresariales.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="como-funciona">
+  <div class="container">
+    <div class="section-tag">Cómo funciona</div>
+    <div class="section-title">De cero a facturar en 4 pasos</div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-n">01</div>
+        <h3>Crea tu cuenta</h3>
+        <p>Regístrate con tu RUC. Validamos automáticamente con SUNAT y generas tus credenciales API.</p>
+        <div class="step-connector"></div>
+      </div>
+      <div class="step">
+        <div class="step-n">02</div>
+        <h3>Sube tu certificado</h3>
+        <p>Carga tu .pfx y credenciales SOL. Lo encriptamos con AES-256 antes de almacenarlo.</p>
+        <div class="step-connector"></div>
+      </div>
+      <div class="step">
+        <div class="step-n">03</div>
+        <h3>Integra la API</h3>
+        <p>Un POST con los datos del comprobante. Generamos XML, firmamos y enviamos a SUNAT.</p>
+        <div class="step-connector"></div>
+      </div>
+      <div class="step">
+        <div class="step-n">04</div>
+        <h3>Emite y descarga</h3>
+        <p>Respuesta con estado SUNAT, PDF, XML firmado y CDR. Todo en menos de un segundo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="precios">
+  <div class="container" style="text-align:center">
+    <div class="section-tag">Precios</div>
+    <div class="section-title" style="margin:0 auto 8px">Simple, sin sorpresas</div>
+    <div class="section-desc" style="margin:0 auto;text-align:center">Sin comisiones por documento. Sin costos de setup. 15 días gratis en todos los planes.</div>
+    <div class="pricing-grid">
+      <div class="p-card">
+        <div class="p-name">Emprendedor</div>
+        <div class="p-desc">Para microempresas y freelancers</div>
+        <div class="p-price">S/35 <span>+ IGV</span></div>
+        <div class="p-period">por mes</div>
+        <ul class="p-list">
+          <li>100 documentos / mes</li>
+          <li>API REST + Dashboard</li>
+          <li>Consulta RUC y DNI</li>
+          <li>PDF, XML y CDR</li>
+          <li>1 emisor (RUC)</li>
+          <li>Soporte por email</li>
+        </ul>
+        <a href="#registro" class="btn btn-ghost">Empezar gratis</a>
+      </div>
+      <div class="p-card pop">
+        <div class="p-badge">Más popular</div>
+        <div class="p-name">Profesional</div>
+        <div class="p-desc">Para instituciones y PyMEs</div>
+        <div class="p-price">S/65 <span>+ IGV</span></div>
+        <div class="p-period">por mes</div>
+        <ul class="p-list">
+          <li>500 documentos / mes</li>
+          <li>API REST + Dashboard</li>
+          <li>Consulta RUC y DNI</li>
+          <li>PDF, XML y CDR</li>
+          <li>Hasta 3 emisores</li>
+          <li>Soporte prioritario</li>
+        </ul>
+        <a href="#registro" class="btn btn-primary">Empezar gratis</a>
+      </div>
+      <div class="p-card">
+        <div class="p-name">Institucional</div>
+        <div class="p-desc">Colegios profesionales y empresas</div>
+        <div class="p-price">S/120 <span>+ IGV</span></div>
+        <div class="p-period">por mes</div>
+        <ul class="p-list">
+          <li>2,000 documentos / mes</li>
+          <li>API REST + Dashboard</li>
+          <li>Webhooks de notificación</li>
+          <li>PDF, XML, CDR + SIRE</li>
+          <li>Emisores ilimitados</li>
+          <li>Soporte WhatsApp + teléfono</li>
+        </ul>
+        <a href="#registro" class="btn btn-ghost">Contactar ventas</a>
+      </div>
+    </div>
+    <p style="margin-top:20px;font-size:13px;color:var(--text-dim)">No se requiere tarjeta de crédito para la prueba gratuita.</p>
+  </div>
+</section>
+
+<section class="section vs-section" id="comparativa">
+  <div class="container">
+    <div class="section-tag">Comparativa</div>
+    <div class="section-title">¿Por qué facturalo.pro?</div>
+    <div class="section-desc">Compara con otras opciones del mercado peruano.</div>
+    <table class="vs-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="hl">facturalo.pro</th>
+          <th>PSE (Nubefact, etc.)</th>
+          <th>Facturador SUNAT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Firma digital</td><td class="hl">Tu certificado</td><td>Del PSE</td><td>Tu certificado</td></tr>
+        <tr><td>API REST</td><td class="yes">✓ Swagger docs</td><td class="yes">✓ Varía</td><td class="no">✗ Solo desktop</td></tr>
+        <tr><td>Vendor lock-in</td><td class="yes">Sin lock-in</td><td class="no">Alto</td><td class="yes">Sin lock-in</td></tr>
+        <tr><td>Cloud / SaaS</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗ Local</td></tr>
+        <tr><td>Costo certificado</td><td>Gratis (SUNAT CDT)</td><td>Incluido (S/70-100/mes)</td><td>Gratis (SUNAT CDT)</td></tr>
+        <tr><td>Precio desde</td><td class="hl">S/35/mes</td><td>S/70-100/mes</td><td>Gratis</td></tr>
+        <tr><td>Multi-emisor</td><td class="yes">✓</td><td>Varía</td><td class="no">✗</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="clientes">
+  <div class="container" style="text-align:center">
+    <div class="section-tag">Confían en nosotros</div>
+    <div class="section-title">Proyectos que ya integran nuestra tecnología</div>
+    <div class="clients-grid">
+      <a href="https://ccploreto.org.pe" target="_blank" class="client-card">
+        <div class="client-icon">🏛️</div>
+        <div class="client-name">ccploreto.org.pe</div>
+        <div class="client-desc">Colegio de Contadores Públicos de Loreto</div>
+      </a>
+      <a href="https://quevendi.pro" target="_blank" class="client-card">
+        <div class="client-icon">🎙️</div>
+        <div class="client-name">quevendi.pro</div>
+        <div class="client-desc">POS con voz para bodegas</div>
+      </a>
+      <a href="https://yasta.cloud" target="_blank" class="client-card">
+        <div class="client-icon">☁️</div>
+        <div class="client-name">yasta.cloud</div>
+        <div class="client-desc">Plataforma de gestión cloud</div>
+      </a>
+      <a href="https://metraes.com" target="_blank" class="client-card">
+        <div class="client-icon">📦</div>
+        <div class="client-name">metraes.com</div>
+        <div class="client-desc">Servicio de envíos y logística</div>
+      </a>
+      <a href="https://dame1.com" target="_blank" class="client-card">
+        <div class="client-icon">🛒</div>
+        <div class="client-name">dame1.com</div>
+        <div class="client-desc">Marketplace de productos</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="faq">
+  <div class="container">
+    <div style="text-align:center">
+      <div class="section-tag">Preguntas frecuentes</div>
+      <div class="section-title">¿Dudas? Aquí van las respuestas</div>
+    </div>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h3>¿Necesito mi propio certificado digital?</h3>
+        <p>Sí. facturalo.pro firma con tu certificado, no con uno de terceros. Puedes obtener el CDT de SUNAT gratis vía RENIEC, o por ~S/100/año en Llama.pe.</p>
+      </div>
+      <div class="faq-item">
+        <h3>¿Qué comprobantes puedo emitir?</h3>
+        <p>Facturas (01), Boletas (03), Notas de Crédito (07) y Notas de Débito (08). XML UBL 2.1 con firma digital y envío directo a SUNAT.</p>
+      </div>
+      <div class="faq-item">
+        <h3>¿Cuál es la diferencia con Nubefact?</h3>
+        <p>Nubefact firma por ti como PSE — dependes de ellos. facturalo.pro firma con tu certificado: emisor directo ante SUNAT, sin intermediarios ni lock-in.</p>
+      </div>
+      <div class="faq-item">
+        <h3>¿Cuánto tarda la integración?</h3>
+        <p>Un endpoint POST con JSON. Si tienes un sistema existente, integras en menos de una hora. Documentación Swagger interactiva en /docs.</p>
+      </div>
+      <div class="faq-item">
+        <h3>¿Puedo probar sin certificado?</h3>
+        <p>Sí. El modo prueba genera un certificado temporal para testear toda la API sin tocar SUNAT. Cuando estés listo, subes tu certificado real.</p>
+      </div>
+      <div class="faq-item">
+        <h3>¿Es seguro subir mi certificado?</h3>
+        <p>Tu certificado y contraseña se encriptan con Fernet (AES-256) antes de almacenarse. La clave de encriptación está aislada en variables de entorno.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="cta" id="registro">
+  <div class="container">
+    <div class="cta-inner">
+      <h2>Empieza a facturar hoy</h2>
+      <p>15 días gratis. Sin tarjeta. Sin compromisos.</p>
+      <div class="cta-btns">
+        <a href="/registro" class="btn btn-primary btn-lg">Crear cuenta gratis →</a>
+        <a href="/docs" class="btn btn-ghost btn-lg">Explorar la API</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <p>© 2026 facturalo.pro — Perú Sistemas Pro E.I.R.L.</p>
+      <div class="footer-links">
+        <a href="/docs">API Docs</a>
+        <a href="mailto:soporte@facturalo.pro">Soporte</a>
+        <a href="#">Términos</a>
+        <a href="#">Privacidad</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
