@@ -23,6 +23,14 @@ router = APIRouter()
 async def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
 
+@router.get("/desarrolladores", response_class=HTMLResponse)
+async def desarrolladores(request: Request):
+    return templates.TemplateResponse("desarrolladores.html", {"request": request})
+
+@router.get("/contadores", response_class=HTMLResponse)
+async def contadores(request: Request):
+    return templates.TemplateResponse("contadores.html", {"request": request})
+
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     """Página de login"""
