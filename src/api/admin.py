@@ -18,8 +18,13 @@ async def activar_api_emisor(
     docs_limite: int = 500,
     db: Session = Depends(get_db)
 ):
-    """Activa API para un emisor y genera credenciales"""
-    emisor = db.query(Emisor).filter(Emisor.id == emisor_id).first()
+    """Activa API para un emisor y genera credenciales. Acepta UUID o RUC."""
+    # Buscar por UUID o por RUC
+    if len(emisor_id) == 11 and emisor_id.isdigit():
+        emisor = db.query(Emisor).filter(Emisor.ruc == emisor_id).first()
+    else:
+        emisor = db.query(Emisor).filter(Emisor.id == emisor_id).first()
+    
     if not emisor:
         raise HTTPException(404, detail="Emisor no encontrado")
     
