@@ -222,7 +222,7 @@ async def emitir_comprobante(
             op_gravada=subtotal if igv_total > 0 else Decimal('0.00'),
             op_exonerada=subtotal if igv_total == 0 else Decimal('0.00'),
             op_inafecta=Decimal('0.00'),
-            estado="aceptado",
+            estado="encolado",
             cliente_tipo_documento=data.cliente.tipo_documento,
             cliente_numero_documento=data.cliente.numero_documento,
             cliente_razon_social=data.cliente.razon_social,
@@ -265,11 +265,11 @@ async def emitir_comprobante(
         # === ÚNICO COMMIT ===
         db.commit()
         
-        # === RESPONSE ===
-        hash_cpe = hashlib.sha256(
-            f"{emisor.ruc}{serie}{numero}{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:40]
+        # === ENVIAR A SUNAT VÍA CELERY ===
+        from src.tasks.tasks import emitir_comprobante_task
+        emitir_comprobante_task.delay(comprobante_id)
         
+        # === RESPONSE ===
         response = {
             "exito": True,
             "comprobante": {
@@ -284,17 +284,17 @@ async def emitir_comprobante(
                 "subtotal": subtotal,
                 "igv": igv_total,
                 "total": total,
-                "estado": "aceptado",
-                "hash_cpe": hash_cpe,
-                "codigo_sunat": "0",
-                "mensaje_sunat": f"El comprobante {numero_formato} ha sido aceptado"
+                "estado": "encolado",
+                "hash_cpe": None,
+                "codigo_sunat": None,
+                "mensaje_sunat": "Comprobante encolado para envío a SUNAT"
             },
             "archivos": {
                 "pdf_url": f"https://facturalo.pro/api/v1/comprobantes/{comprobante_id}/pdf",
                 "xml_url": f"https://facturalo.pro/api/v1/comprobantes/{comprobante_id}/xml",
                 "cdr_url": f"https://facturalo.pro/api/v1/comprobantes/{comprobante_id}/cdr"
             },
-            "mensaje": "Comprobante emitido exitosamente"
+            "mensaje": "Comprobante encolado. Consulte estado con GET /api/v1/comprobantes/{id}"
         }
         
         # Log
