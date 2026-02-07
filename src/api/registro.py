@@ -23,7 +23,9 @@ import re
 import json
 
 # === IMPORTAR DESDE TU PROYECTO ===
-from src.api.dependencies import get_db, templates  # Jinja2Templates
+from src.api.dependencies import get_db
+from src.api.frontend import templates
+
 from src.models.models import Emisor  # Tu modelo existente
 
 # === DEPENDENCIAS NUEVAS ===
