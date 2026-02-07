@@ -267,7 +267,7 @@ async def emitir_comprobante(
         
         # === ENVIAR A SUNAT VÍA CELERY ===
         from src.tasks.tasks import emitir_comprobante_task
-        emitir_comprobante_task.delay(comprobante_id)
+        emitir_comprobante_task.delay(comprobante_id, test_mode=True)
         
         # === RESPONSE ===
         response = {
