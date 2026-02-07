@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear cuenta gratis - facturalo.pro</title>
+    <meta name="description" content="Regístrate gratis en facturalo.pro. 15 días de prueba, sin tarjeta de crédito.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #f8fafc;
+            --bg-card: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #dbeafe;
+            --border: #e2e8f0;
+            --error: #dc2626;
+            --error-bg: #fef2f2;
+            --success: #059669;
+            --success-bg: #ecfdf5;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+            --shadow-lg: 0 4px 24px rgba(0,0,0,.08);
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        .header {
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+        }
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .logo span { color: var(--text); }
+        .header-link {
+            font-size: .875rem;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+        .header-link a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .header-link a:hover { text-decoration: underline; }
+
+        /* ── Layout ── */
+        .main {
+            flex: 1;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .container {
+            width: 100%;
+            max-width: 520px;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            padding: 2.5rem;
+        }
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: .25rem;
+        }
+        .card-subtitle {
+            color: var(--text-muted);
+            font-size: .925rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        /* ── Trial badge ── */
+        .trial-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .375rem;
+            background: var(--success-bg);
+            color: var(--success);
+            font-size: .8rem;
+            font-weight: 600;
+            padding: .375rem .75rem;
+            border-radius: 20px;
+            margin-bottom: 1.25rem;
+        }
+
+        /* ── Form ── */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .form-label {
+            display: block;
+            font-size: .8125rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: .375rem;
+        }
+        .form-label .optional {
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+        .form-input {
+            width: 100%;
+            padding: .75rem 1rem;
+            font-size: .9375rem;
+            font-family: inherit;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            transition: border-color .2s, box-shadow .2s;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+        .form-input.mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .875rem;
+            letter-spacing: .5px;
+        }
+        .form-input::placeholder { color: #94a3b8; }
+        .form-hint {
+            font-size: .75rem;
+            color: var(--text-muted);
+            margin-top: .25rem;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* ── RUC validation indicator ── */
+        .input-wrapper {
+            position: relative;
+        }
+        .input-status {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+            display: none;
+        }
+        .input-status.valid { display: block; color: var(--success); }
+        .input-status.invalid { display: block; color: var(--error); }
+        .input-status.loading { 
+            display: block; 
+            color: var(--text-muted);
+            animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+
+        /* ── Password strength ── */
+        .pwd-strength {
+            display: flex;
+            gap: 4px;
+            margin-top: .375rem;
+        }
+        .pwd-bar {
+            height: 3px;
+            flex: 1;
+            background: var(--border);
+            border-radius: 2px;
+            transition: background .3s;
+        }
+        .pwd-bar.active-weak { background: var(--error); }
+        .pwd-bar.active-medium { background: #f59e0b; }
+        .pwd-bar.active-strong { background: var(--success); }
+
+        /* ── Error alert ── */
+        .alert-error {
+            background: var(--error-bg);
+            color: var(--error);
+            padding: .875rem 1rem;
+            border-radius: 8px;
+            font-size: .875rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: .5rem;
+            border: 1px solid #fecaca;
+        }
+        .alert-error svg { flex-shrink: 0; margin-top: 1px; }
+
+        /* ── Checkbox ── */
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: .625rem;
+            margin: 1.5rem 0;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            accent-color: var(--primary);
+            flex-shrink: 0;
+        }
+        .checkbox-label {
+            font-size: .8125rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .checkbox-label a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* ── Submit button ── */
+        .btn-primary {
+            width: 100%;
+            padding: .875rem;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            color: #fff;
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background .2s, transform .1s;
+        }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-primary:active { transform: scale(.995); }
+        .btn-primary:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
+
+        /* ── Divider ── */
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: var(--text-muted);
+            font-size: .8125rem;
+            position: relative;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: calc(50% - 2rem);
+            height: 1px;
+            background: var(--border);
+        }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+
+        /* ── Features list ── */
+        .features {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+        .features-title {
+            font-size: .8125rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 1rem;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: .625rem;
+            padding: .375rem 0;
+            font-size: .875rem;
+            color: var(--text);
+        }
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .7rem;
+            flex-shrink: 0;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            padding: 1.5rem;
+            text-align: center;
+            font-size: .8125rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .card { padding: 1.75rem 1.25rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .header { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <a href="/" class="logo">
+            facturalo<span>.pro</span>
+        </a>
+        <div class="header-link">
+            ¿Ya tienes cuenta? <a href="/login">Iniciar sesión</a>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="main">
+        <div class="container">
+            <div class="card">
+                <div class="trial-badge">
+                    ✓ 15 días gratis · Sin tarjeta de crédito
+                </div>
+                <h1 class="card-title">Crea tu cuenta</h1>
+                <p class="card-subtitle">
+                    Obtén tu API Key y empieza a emitir comprobantes electrónicos en minutos.
+                </p>
+
+                <!-- Error message -->
+                {% if error %}
+                <div class="alert-error">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 4.25a.75.75 0 011.5 0v3a.75.75 0 01-1.5 0v-3zm.75 6a.75.75 0 110-1.5.75.75 0 010 1.5z"/>
+                    </svg>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
+
+                <form method="POST" action="/registro" id="formRegistro" novalidate>
+                    <!-- RUC -->
+                    <div class="form-group">
+                        <label class="form-label" for="ruc">RUC</label>
+                        <div class="input-wrapper">
+                            <input 
+                                type="text" 
+                                class="form-input mono" 
+                                id="ruc" 
+                                name="ruc"
+                                placeholder="20XXXXXXXXX"
+                                maxlength="11"
+                                pattern="[0-9]{11}"
+                                inputmode="numeric"
+                                value="{{ form_data.ruc if form_data else '' }}"
+                                required
+                                autocomplete="off"
+                            >
+                            <span class="input-status" id="rucStatus"></span>
+                        </div>
+                        <div class="form-hint" id="rucHint">11 dígitos. Persona natural (10) o jurídica (20)</div>
+                    </div>
+
+                    <!-- Razón Social -->
+                    <div class="form-group">
+                        <label class="form-label" for="razon_social">Razón Social / Nombre</label>
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            id="razon_social" 
+                            name="razon_social"
+                            placeholder="Mi Empresa S.A.C."
+                            value="{{ form_data.razon_social if form_data else '' }}"
+                            required
+                        >
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email</label>
+                        <input 
+                            type="email" 
+                            class="form-input" 
+                            id="email" 
+                            name="email"
+                            placeholder="tu@empresa.com"
+                            value="{{ form_data.email if form_data else '' }}"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+
+                    <!-- Nombre contacto + Teléfono -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="nombre_contacto">
+                                Nombre de contacto <span class="optional">(opcional)</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-input" 
+                                id="nombre_contacto" 
+                                name="nombre_contacto"
+                                placeholder="Juan Pérez"
+                                value="{{ form_data.nombre_contacto if form_data else '' }}"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="telefono">
+                                Celular <span class="optional">(opcional)</span>
+                            </label>
+                            <input 
+                                type="tel" 
+                                class="form-input" 
+                                id="telefono" 
+                                name="telefono"
+                                placeholder="999 999 999"
+                                value="{{ form_data.telefono if form_data else '' }}"
+                                inputmode="tel"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label class="form-label" for="password">Contraseña</label>
+                        <input 
+                            type="password" 
+                            class="form-input" 
+                            id="password" 
+                            name="password"
+                            placeholder="Mínimo 8 caracteres"
+                            required
+                            autocomplete="new-password"
+                        >
+                        <div class="pwd-strength" id="pwdStrength">
+                            <div class="pwd-bar" id="bar1"></div>
+                            <div class="pwd-bar" id="bar2"></div>
+                            <div class="pwd-bar" id="bar3"></div>
+                            <div class="pwd-bar" id="bar4"></div>
+                        </div>
+                        <div class="form-hint" id="pwdHint">Mínimo 8 caracteres, 1 mayúscula, 1 número</div>
+                    </div>
+
+                    <!-- Password confirm -->
+                    <div class="form-group">
+                        <label class="form-label" for="password_confirm">Confirmar contraseña</label>
+                        <input 
+                            type="password" 
+                            class="form-input" 
+                            id="password_confirm" 
+                            name="password_confirm"
+                            placeholder="Repite tu contraseña"
+                            required
+                            autocomplete="new-password"
+                        >
+                    </div>
+
+                    <!-- Hidden plan field -->
+                    <input type="hidden" name="plan" value="{{ plan or 'emprendedor' }}">
+
+                    <!-- Terms -->
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="acepta_terminos" name="acepta_terminos" value="true" required>
+                        <label class="checkbox-label" for="acepta_terminos">
+                            Acepto los <a href="/terminos" target="_blank">términos de servicio</a> 
+                            y la <a href="/privacidad" target="_blank">política de privacidad</a>
+                        </label>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" class="btn-primary" id="btnSubmit">
+                        Crear cuenta gratis
+                    </button>
+                </form>
+
+                <!-- Features -->
+                <div class="features">
+                    <div class="features-title">Tu cuenta incluye</div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🔑</div>
+                        API Key + API Secret instantáneos
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📄</div>
+                        50 comprobantes de prueba gratis
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🧪</div>
+                        Modo test (sin afectar SUNAT real)
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📖</div>
+                        Documentación completa + ejemplos
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">⚡</div>
+                        Activa producción cuando estés listo
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        © 2026 facturalo.pro · Perú Sistemas Pro E.I.R.L.
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const rucInput = document.getElementById('ruc');
+        const rucStatus = document.getElementById('rucStatus');
+        const rucHint = document.getElementById('rucHint');
+        const pwdInput = document.getElementById('password');
+        const pwdConfirm = document.getElementById('password_confirm');
+        const bars = ['bar1','bar2','bar3','bar4'].map(id => document.getElementById(id));
+        const btnSubmit = document.getElementById('btnSubmit');
+        let rucTimer;
+
+        // ── RUC validation (debounced) ──
+        rucInput.addEventListener('input', () => {
+            // Only allow digits
+            rucInput.value = rucInput.value.replace(/\D/g, '').slice(0, 11);
+            
+            clearTimeout(rucTimer);
+            const ruc = rucInput.value;
+
+            if (ruc.length < 11) {
+                rucStatus.className = 'input-status';
+                rucHint.textContent = '11 dígitos. Persona natural (10) o jurídica (20)';
+                rucHint.style.color = '';
+                return;
+            }
+
+            // Basic local validation
+            if (!['10','15','17','20'].includes(ruc.substring(0,2))) {
+                rucStatus.className = 'input-status invalid';
+                rucStatus.textContent = '✕';
+                rucHint.textContent = 'RUC debe iniciar con 10, 15, 17 o 20';
+                rucHint.style.color = 'var(--error)';
+                return;
+            }
+
+            // Server validation (debounced)
+            rucStatus.className = 'input-status loading';
+            rucStatus.textContent = '⟳';
+            rucTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/validar-ruc/${ruc}`);
+                    const data = await res.json();
+                    if (data.valido) {
+                        rucStatus.className = 'input-status valid';
+                        rucStatus.textContent = '✓';
+                        rucHint.textContent = 'RUC válido';
+                        rucHint.style.color = 'var(--success)';
+                    } else {
+                        rucStatus.className = 'input-status invalid';
+                        rucStatus.textContent = '✕';
+                        rucHint.textContent = data.error || 'RUC no válido';
+                        rucHint.style.color = 'var(--error)';
+                    }
+                } catch {
+                    rucStatus.className = 'input-status valid';
+                    rucStatus.textContent = '✓';
+                    rucHint.textContent = 'RUC con formato válido';
+                    rucHint.style.color = 'var(--success)';
+                }
+            }, 500);
+        });
+
+        // ── Password strength ──
+        pwdInput.addEventListener('input', () => {
+            const pwd = pwdInput.value;
+            let score = 0;
+            if (pwd.length >= 8) score++;
+            if (/[A-Z]/.test(pwd)) score++;
+            if (/[0-9]/.test(pwd)) score++;
+            if (/[^A-Za-z0-9]/.test(pwd)) score++;
+
+            const cls = score <= 1 ? 'active-weak' : score <= 2 ? 'active-medium' : 'active-strong';
+            bars.forEach((bar, i) => {
+                bar.className = i < score ? `pwd-bar ${cls}` : 'pwd-bar';
+            });
+        });
+
+        // ── Form submit loading state ──
+        document.getElementById('formRegistro').addEventListener('submit', function() {
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Creando cuenta...';
+        });
+    });
+    </script>
+</body>
+</html>
