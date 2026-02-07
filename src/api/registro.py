@@ -590,3 +590,26 @@ async def api_validar_ruc(ruc: str, db: Session = Depends(get_db)):
     # TODO: Consultar API SUNAT para obtener razón social
     # Por ahora, solo validación local
     return {"valido": True, "error": None}
+
+
+# ─────────────────────────────────────────────
+# UTILIDAD: Obtener emisor actual desde JWT
+#─────────────────────────────────────────────
+
+async def obtener_emisor_actual(request: Request, db: Session) -> Emisor:
+    """Obtiene el emisor autenticado desde el JWT"""
+    token = request.cookies.get("session_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        emisor_id = payload.get("emisor_id")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Sesión expirada")
+    
+    emisor = db.query(Emisor).filter(Emisor.id == emisor_id).first()
+    if not emisor:
+        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    
+    return emisor

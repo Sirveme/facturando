@@ -24,6 +24,7 @@ from pydantic import BaseModel
 from src.api.dependencies import get_db
 from src.models.models import Comprobante, LineaDetalle, Emisor, Certificado, LogEnvio, RespuestaSunat, Cliente, Producto
 from src.services.sunat_service import SunatService
+from src.api.routes import obtener_emisor_actual
 
 # Importar tarea Celery
 try:
@@ -685,14 +686,7 @@ async def emitir_comprobante(
     if not items:
         raise HTTPException(status_code=400, detail="Debe incluir al menos un item")
     
-    # Intentar obtener RUC de la sesión (cookie)
-    session_ruc = request.cookies.get("session")
-        
-    if session_ruc:
-        emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc, Emisor.activo == True).first()
-    else:
-        # Fallback: primer emisor activo
-        emisor = db.query(Emisor).filter(Emisor.activo == True).first()
+    emisor = await obtener_emisor_actual(request, db)
 
     if not emisor:
         raise HTTPException(status_code=404, detail="No hay emisor configurado")
@@ -881,13 +875,7 @@ async def subir_certificado(
         raise HTTPException(status_code=400, detail="Archivo y contraseña son requeridos")
     
     # Obtener emisor de la sesión
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     # Leer archivo
     contenido = await archivo.read()
@@ -973,13 +961,7 @@ async def guardar_credenciales_sol(
     """Guarda las credenciales SOL"""
     data = await request.json()
     
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     # Actualizar credenciales
     emisor.usuario_sol = data.get('usuario_sol')
@@ -1073,13 +1055,7 @@ async def guardar_formato(
     """Guarda los formatos de impresión por tipo de documento"""
     data = await request.json()
     
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     formatos_validos = ['A4', 'A5', 'TICKET']
     
@@ -1114,14 +1090,7 @@ async def emitir_nota_credito(
     
     data = await request.json()
     
-    # Obtener emisor de la sesión
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     # Validar comprobante de referencia
     comprobante_ref_id = data.get('comprobante_ref_id')
