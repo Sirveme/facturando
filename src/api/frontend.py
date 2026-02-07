@@ -13,10 +13,6 @@ from src.api.dependencies import get_db
 templates_path = Path(__file__).parent.parent / "templates"
 templates = Jinja2Templates(directory=str(templates_path))
 
-# Configurar templates
-templates_path = Path(__file__).parent.parent / "templates"
-templates = Jinja2Templates(directory=str(templates_path))
-
 router = APIRouter()
 
 @router.get("/", response_class=HTMLResponse)
@@ -30,6 +26,19 @@ async def desarrolladores(request: Request):
 @router.get("/contadores", response_class=HTMLResponse)
 async def contadores(request: Request):
     return templates.TemplateResponse("contadores.html", {"request": request})
+
+@router.get("/instituciones", response_class=HTMLResponse)
+async def instituciones(request: Request):
+    return templates.TemplateResponse("instituciones.html", {"request": request})
+
+@router.get("/empresas", response_class=HTMLResponse)
+async def empresas(request: Request):
+    return templates.TemplateResponse("empresas.html", {"request": request})
+
+@router.get("/sector-publico", response_class=HTMLResponse)
+async def sector_publico(request: Request):
+    return templates.TemplateResponse("sector-publico.html", {"request": request})
+
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
