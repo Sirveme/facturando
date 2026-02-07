@@ -232,7 +232,7 @@ async def procesar_registro(
         ruc=ruc.strip(),
         razon_social=razon_social.strip(),
         email=email.strip().lower(),
-        password_hash=pwd_context.hash(password),
+        password_hash=pwd_context.hash(password[:72]),
         nombre_contacto=nombre_contacto.strip(),
         telefono=telefono.strip(),
         # API credentials
@@ -323,7 +323,7 @@ async def procesar_login(
             "mensaje": ""
         })
 
-    if not pwd_context.verify(password, emisor.password_hash):
+    if not pwd_context.verify(password[:72], emisor.password_hash):
         return templates.TemplateResponse("login.html", {
             "request": request,
             "error": "Email/RUC o contraseña incorrectos",
@@ -519,7 +519,7 @@ async def procesar_restablecer_clave(
     ).first()
 
     if emisor:
-        emisor.password_hash = pwd_context.hash(password)
+        emisor.password_hash = pwd_context.hash(password[:72])
         db.commit()
 
     return RedirectResponse(
@@ -543,7 +543,7 @@ async def cambiar_clave(
     if not emisor:
         return RedirectResponse(url="/login", status_code=303)
 
-    if not pwd_context.verify(clave_actual, emisor.password_hash):
+    if not pwd_context.verify(clave_actual[:72], emisor.password_hash):
         # Redirigir con error
         return RedirectResponse(
             url="/mi-cuenta?error_clave=La contraseña actual es incorrecta",
@@ -563,7 +563,7 @@ async def cambiar_clave(
             status_code=303
         )
 
-    emisor.password_hash = pwd_context.hash(clave_nueva)
+    emisor.password_hash = pwd_context.hash(clave_nueva[:72])
     db.commit()
 
     return RedirectResponse(
