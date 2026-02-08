@@ -2,6 +2,7 @@
 API v1 - Endpoints de Comprobantes
 """
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from uuid import uuid4
 from datetime import datetime
@@ -17,6 +18,7 @@ from src.api.v1.schemas import (
     ComprobanteRequest, ComprobanteResponse, ErrorResponse,
     AnularRequest, ComprobanteData, ArchivosData
 )
+from src.api.v1.pdf_generator import generar_pdf_comprobante
 
 router = APIRouter(prefix="/comprobantes", tags=["Comprobantes"])
 
@@ -387,17 +389,26 @@ async def consultar_comprobante(
     }
 
 
+"""
+REEMPLAZA la función obtener_pdf en src/api/v1/comprobantes.py
+
+También agrega este import al inicio del archivo:
+from fastapi.responses import Response
+from src.api.v1.pdf_generator import generar_pdf_comprobante
+"""
+
 @router.get(
     "/{comprobante_id}/pdf",
     summary="Descargar PDF",
-    description="Obtiene la URL del PDF del comprobante"
+    description="Genera y descarga el PDF del comprobante"
 )
 async def obtener_pdf(
     comprobante_id: str,
+    formato: str = "A4",
     emisor: Emisor = Depends(verificar_api_key),
     db: Session = Depends(get_db)
 ):
-    """Obtiene URL del PDF"""
+    """Genera y retorna el PDF del comprobante"""
     comprobante = db.query(Comprobante).filter(
         Comprobante.id == comprobante_id,
         Comprobante.emisor_id == emisor.id
@@ -406,14 +417,42 @@ async def obtener_pdf(
     if not comprobante:
         raise HTTPException(404, detail={"exito": False, "error": "No encontrado", "codigo": "NOT_FOUND"})
     
-    # TODO: Retornar PDF real
-    return {
-        "exito": True,
-        "comprobante_id": comprobante_id,
-        "numero": f"{comprobante.serie}-{comprobante.numero:08d}",
-        "pdf_url": f"/storage/pdf/{comprobante_id}.pdf",
-        "mensaje": "Use esta URL para descargar el PDF"
-    }
+    # Obtener cliente
+    cliente = db.query(Cliente).filter(Cliente.id == comprobante.cliente_id).first()
+    
+    # Obtener items
+    items = db.query(LineaDetalle).filter(
+        LineaDetalle.comprobante_id == comprobante_id
+    ).order_by(LineaDetalle.orden).all()
+    
+    # Determinar formato (parámetro o configuración del emisor)
+    fmt = formato.upper()
+    if fmt not in ["A4", "A5", "TICKET"]:
+        fmt = "A4"
+    
+    # Generar PDF
+    try:
+        pdf_bytes = generar_pdf_comprobante(comprobante, emisor, cliente, items, formato=fmt)
+    except Exception as e:
+        print(f"❌ Error generando PDF: {e}")
+        raise HTTPException(500, detail={"exito": False, "error": f"Error al generar PDF: {str(e)}"})
+    
+    # Guardar en DB (cache)
+    try:
+        comprobante.pdf = pdf_bytes
+        db.commit()
+    except:
+        pass  # No fallar si no se puede guardar
+    
+    numero = f"{comprobante.serie}-{comprobante.numero:08d}"
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{numero}.pdf"'
+        }
+    )
 
 
 @router.get(
