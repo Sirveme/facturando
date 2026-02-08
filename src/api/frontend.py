@@ -48,30 +48,6 @@ async def login_page(request: Request):
         {"request": request}
     )
 
-@router.post("/login")
-async def login_submit(
-    request: Request,
-    ruc: str = Form(...),
-    password: str = Form(...),
-    remember: bool = Form(False)
-):
-    """Procesar login"""
-    # TODO: Validar credenciales contra BD
-    
-    # Por ahora, login dummy
-    if len(ruc) == 11 and password:
-        # Crear sesión (simplificado)
-        response = RedirectResponse(url="/dashboard", status_code=303)
-        response.set_cookie(key="session", value=ruc, httponly=True)
-        return response
-    else:
-        return templates.TemplateResponse(
-            "login.html",
-            {
-                "request": request,
-                "error": "RUC o contraseña incorrectos"
-            }
-        )
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
