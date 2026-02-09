@@ -26,11 +26,11 @@ async def verificar_comprobante(
                 c.*,
                 e.ruc as emisor_ruc,
                 e.razon_social as emisor_nombre
-            FROM comprobantes c
-            JOIN empresas e ON c.empresa_id = e.id
+            FROM comprobante c
+            JOIN emisor e ON c.emisor_id = e.id
             WHERE c.hash_cpe = :hash 
-               OR c.id::text = :hash
-               OR c.external_id::text = :hash
+            OR c.id::text = :hash
+            OR c.external_id::text = :hash
             LIMIT 1
         """),
         {"hash": hash_o_id}
