@@ -190,21 +190,38 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     header_y = y
 
     # --- Logo del emisor ---
-    logo_path = None
-    if hasattr(emisor, 'logo_path') and emisor.logo_path:
-        if os.path.exists(emisor.logo_path):
-            logo_path = emisor.logo_path
-
     logo_w = 22 * mm
     text_start_x = ml
 
-    if logo_path:
+    # Intentar logo desde bytes (campo logo) o desde URL (campo logo_url)
+    logo_loaded = False
+    
+    # Opción 1: bytes en DB
+    if hasattr(emisor, 'logo') and emisor.logo:
         try:
-            c.drawImage(logo_path, ml, y - 24 * mm, logo_w, 22 * mm,
+            logo_buffer = io.BytesIO(emisor.logo)
+            c.drawImage(ImageReader(logo_buffer), ml, y - 24 * mm, logo_w, 22 * mm,
                         preserveAspectRatio=True, mask='auto')
-            text_start_x = ml + logo_w + 4 * mm
+            logo_loaded = True
         except Exception:
             pass
+
+    # Opción 2: URL (logo_url)
+    if not logo_loaded and hasattr(emisor, 'logo_url') and emisor.logo_url:
+        try:
+            import urllib.request
+            logo_data = urllib.request.urlopen(emisor.logo_url, timeout=5).read()
+            logo_buffer = io.BytesIO(logo_data)
+            c.drawImage(ImageReader(logo_buffer), ml, y - 24 * mm, logo_w, 22 * mm,
+                        preserveAspectRatio=True, mask='auto')
+            logo_loaded = True
+        except Exception:
+            pass
+
+    if logo_loaded:
+        text_start_x = ml + logo_w + 4 * mm
+
+   
 
     # --- Datos emisor ---
     c.setFont("Helvetica-Bold", 12)
@@ -559,6 +576,32 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items, codigo_matricul
     numero_formato = f"{comprobante.serie}-{comprobante.numero:08d}"
     tipo_nombre = TIPOS_DOCUMENTO.get(comprobante.tipo_documento, "COMPROBANTE")
     es_factura = comprobante.tipo_documento == "01"
+
+    # Logo en ticket
+    if hasattr(emisor, 'logo') and emisor.logo:
+        try:
+            logo_buffer = io.BytesIO(emisor.logo)
+            logo_s = 15 * mm
+            c.drawImage(ImageReader(logo_buffer),
+                        (ticket_w - logo_s) / 2, y - logo_s,
+                        logo_s, logo_s,
+                        preserveAspectRatio=True, mask='auto')
+            y -= logo_s + 2 * mm
+        except Exception:
+            pass
+    elif hasattr(emisor, 'logo_url') and emisor.logo_url:
+        try:
+            import urllib.request
+            logo_data = urllib.request.urlopen(emisor.logo_url, timeout=5).read()
+            logo_buffer = io.BytesIO(logo_data)
+            logo_s = 15 * mm
+            c.drawImage(ImageReader(logo_buffer),
+                        (ticket_w - logo_s) / 2, y - logo_s,
+                        logo_s, logo_s,
+                        preserveAspectRatio=True, mask='auto')
+            y -= logo_s + 2 * mm
+        except Exception:
+            pass
 
     # --- Emisor ---
     c.setFont("Helvetica-Bold", 9)

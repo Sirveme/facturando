@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from uuid import uuid4
-from datetime import datetime
+from datetime import timezone, timedelta, datetime
 from decimal import Decimal
 import hashlib
 import json
@@ -19,6 +19,8 @@ from src.api.v1.schemas import (
     AnularRequest, ComprobanteData, ArchivosData
 )
 from src.api.v1.pdf_generator import generar_pdf_comprobante
+
+PERU_TZ = timedelta(hours=-5)
 
 router = APIRouter(prefix="/comprobantes", tags=["Comprobantes"])
 
@@ -85,6 +87,11 @@ async def emitir_comprobante(
     """Emite un comprobante electrónico"""
     inicio = time.time()
     
+    if data.fecha_emision:
+        fecha_emision = datetime.strptime(data.fecha_emision, "%Y-%m-%d")
+    else:
+        fecha_emision = datetime.now(timezone(PERU_TZ)).replace(tzinfo=None)
+
     try:
         # === VALIDACIONES ===
         
