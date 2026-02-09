@@ -2,7 +2,7 @@
 Router: Verificación pública de comprobantes
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -13,9 +13,9 @@ from src.api.dependencies import get_db
 router = APIRouter(prefix="/verificar", tags=["verificacion"])
 
 
-@router.get("/{hash_o_id}", response_class=HTMLResponse)
+@router.get("/{comprobante_id}", response_class=HTMLResponse)
 async def verificar_comprobante(
-    hash_o_id: str,
+    comprobante_id: str,
     db: Session = Depends(get_db)
 ):
     """Página pública de verificación de comprobante electrónico."""
@@ -23,17 +23,28 @@ async def verificar_comprobante(
     comprobante = db.execute(
         text("""
             SELECT 
-                c.*,
+                c.id,
+                c.tipo_documento,
+                c.serie,
+                c.numero,
+                c.numero_formato,
+                c.fecha_emision,
+                c.monto_base,
+                c.monto_igv,
+                c.monto_total,
+                c.estado,
+                c.cliente_tipo_documento,
+                c.cliente_numero_documento,
+                c.cliente_razon_social,
+                c.cliente_direccion,
                 e.ruc as emisor_ruc,
                 e.razon_social as emisor_nombre
             FROM comprobante c
             JOIN emisor e ON c.emisor_id = e.id
-            WHERE c.hash_cpe = :hash 
-            OR c.id::text = :hash
-            OR c.external_id::text = :hash
+            WHERE c.id::text = :id
             LIMIT 1
         """),
-        {"hash": hash_o_id}
+        {"id": comprobante_id}
     ).fetchone()
     
     if not comprobante:
@@ -49,11 +60,11 @@ def _construir_url_sunat(comp) -> str:
     
     params = {
         "ruc": comp.emisor_ruc,
-        "tipo": comp.tipo,
+        "tipo": comp.tipo_documento,
         "serie": comp.serie,
         "numero": str(comp.numero),
         "fechaEmision": fecha,
-        "monto": f"{float(comp.total):.2f}"
+        "monto": f"{float(comp.monto_total):.2f}"
     }
     
     base = "https://www.sunat.gob.pe/ol-ti-itconsultaunificadalibre/consultaUnificadaLibre/consulta"
@@ -62,10 +73,10 @@ def _construir_url_sunat(comp) -> str:
 
 def _pagina_verificacion(comp, sunat_url: str) -> str:
     """HTML de verificación."""
-    tipo_nombre = "FACTURA" if comp.tipo == "01" else "BOLETA"
-    es_valido = comp.estado in ("accepted", "enviado")
+    tipo_nombre = "FACTURA" if comp.tipo_documento == "01" else "BOLETA"
+    es_valido = comp.estado in ("aceptado", "enviado", "encolado")
     estado_class = "valid" if es_valido else "invalid"
-    estado_texto = "✅ COMPROBANTE VÁLIDO" if es_valido else "❌ COMPROBANTE NO VÁLIDO"
+    estado_texto = "✅ COMPROBANTE VÁLIDO" if es_valido else "⚠️ COMPROBANTE PENDIENTE"
     
     fecha_str = comp.fecha_emision.strftime("%d/%m/%Y %H:%M") if comp.fecha_emision else "-"
     
@@ -75,7 +86,6 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificación - facturalo.pro</title>
-    <link rel="icon" href="/static/favicon.ico">
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ 
@@ -87,7 +97,6 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
         }}
         .container {{ max-width: 550px; margin: 0 auto; }}
         .header {{ text-align: center; margin-bottom: 25px; }}
-        .header img {{ height: 40px; margin-bottom: 15px; }}
         .header h1 {{ font-size: 20px; color: #f8fafc; margin-bottom: 5px; }}
         .header p {{ color: #64748b; font-size: 13px; }}
         .card {{
@@ -95,7 +104,6 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
             border-radius: 16px;
             padding: 25px;
             border: 1px solid rgba(255,255,255,0.08);
-            backdrop-filter: blur(10px);
         }}
         .status {{
             text-align: center;
@@ -111,9 +119,9 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
             border: 1px solid rgba(34, 197, 94, 0.25);
         }}
         .status.invalid {{
-            background: rgba(239, 68, 68, 0.12);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.25);
+            background: rgba(234, 179, 8, 0.12);
+            color: #eab308;
+            border: 1px solid rgba(234, 179, 8, 0.25);
         }}
         .info-grid {{ display: grid; gap: 2px; }}
         .info-row {{
@@ -126,7 +134,6 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
         .info-row:last-child {{ border-bottom: none; }}
         .info-label {{ color: #64748b; font-size: 12px; }}
         .info-value {{ color: #f1f5f9; font-weight: 600; font-size: 13px; text-align: right; max-width: 60%; }}
-        .info-value.hash {{ font-family: monospace; font-size: 10px; word-break: break-all; }}
         .buttons {{
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -141,10 +148,6 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
             font-weight: 600;
             font-size: 12px;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
         }}
         .btn-primary {{
             background: linear-gradient(135deg, #3b82f6, #2563eb);
@@ -174,9 +177,8 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
 <body>
     <div class="container">
         <div class="header">
-            <img src="/static/img/logo-facturalo-white.png" alt="facturalo.pro" onerror="this.style.display='none'">
             <h1>🔐 Verificación de Comprobante</h1>
-            <p>Documento electrónico validado por SUNAT</p>
+            <p>Documento electrónico validado</p>
         </div>
         
         <div class="card">
@@ -189,11 +191,11 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
                 </div>
                 <div class="info-row">
                     <span class="info-label">Serie - Número</span>
-                    <span class="info-value">{comp.serie}-{comp.numero}</span>
+                    <span class="info-value">{comp.numero_formato or f"{comp.serie}-{comp.numero:08d}"}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Emisor</span>
-                    <span class="info-value">{comp.emisor_nombre[:35]}...</span>
+                    <span class="info-value">{(comp.emisor_nombre or "")[:35]}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">RUC Emisor</span>
@@ -205,27 +207,23 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
                 </div>
                 <div class="info-row">
                     <span class="info-label">Cliente</span>
-                    <span class="info-value">{comp.cliente_nombre[:30]}</span>
+                    <span class="info-value">{(comp.cliente_razon_social or "")[:30]}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Doc. Cliente</span>
-                    <span class="info-value">{comp.cliente_num_doc}</span>
+                    <span class="info-value">{comp.cliente_numero_documento}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Total</span>
-                    <span class="info-value">S/ {float(comp.total):.2f}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Hash SUNAT</span>
-                    <span class="info-value hash">{comp.hash_cpe or 'N/A'}</span>
+                    <span class="info-value">S/ {float(comp.monto_total):.2f}</span>
                 </div>
             </div>
             
             <div class="buttons">
-                <a href="/api/v1/comprobantes/{comp.external_id}/pdf" target="_blank" class="btn btn-primary">
+                <a href="/api/v1/comprobantes/{comp.id}/pdf" target="_blank" class="btn btn-primary">
                     📄 Ver PDF
                 </a>
-                <a href="/api/v1/comprobantes/{comp.external_id}/xml" target="_blank" class="btn btn-outline">
+                <a href="/api/v1/comprobantes/{comp.id}/xml" target="_blank" class="btn btn-outline">
                     📥 XML
                 </a>
                 <a href="{sunat_url}" target="_blank" class="btn btn-sunat">
@@ -235,7 +233,7 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
         </div>
         
         <div class="footer">
-            Verificación generada por <a href="https://facturalo.pro">facturalo.pro</a>
+            Verificación por <a href="https://facturalo.pro">facturalo.pro</a>
         </div>
     </div>
 </body>
@@ -272,7 +270,7 @@ def _pagina_no_encontrado() -> str:
     <div class="card">
         <h1>🔍</h1>
         <h2>Comprobante no encontrado</h2>
-        <p>El código ingresado no corresponde a ningún comprobante registrado en el sistema.</p>
+        <p>El código ingresado no corresponde a ningún comprobante registrado.</p>
     </div>
 </body>
 </html>"""
