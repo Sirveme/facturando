@@ -87,11 +87,6 @@ async def emitir_comprobante(
     """Emite un comprobante electrónico"""
     inicio = time.time()
     
-    if data.fecha_emision:
-        fecha_emision = datetime.strptime(data.fecha_emision, "%Y-%m-%d")
-    else:
-        fecha_emision = datetime.now(timezone(PERU_TZ)).replace(tzinfo=None)
-
     try:
         # === VALIDACIONES ===
         
@@ -211,7 +206,12 @@ async def emitir_comprobante(
         
         # === CREAR COMPROBANTE ===
         comprobante_id = str(uuid4())
-        fecha_emision = datetime.strptime(data.fecha_emision, "%Y-%m-%d") if data.fecha_emision else datetime.now()
+
+        if data.fecha_emision:
+            fecha_emision = datetime.strptime(data.fecha_emision, "%Y-%m-%d")
+        else:
+            fecha_emision = datetime.now(PERU_TZ).replace(tzinfo=None)
+
         numero_formato = f"{serie}-{numero:08d}"
         
         comprobante = Comprobante(
@@ -462,13 +462,14 @@ async def obtener_pdf(
     except:
         pass
 
-    numero = f"{comprobante.serie}-{comprobante.numero:08d}"
+    num_doc_cliente = comprobante.cliente_numero_documento or ""
+    filename = f"{comprobante.serie}-{comprobante.numero:08d}--{num_doc_cliente}.pdf"
 
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'inline; filename="{numero}.pdf"'
+            "Content-Disposition": f'inline; filename="{filename}"'
         }
     )
 
