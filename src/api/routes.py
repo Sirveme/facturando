@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
 from fastapi import Request as FastAPIRequest
-from fastapi import Cookie
+from fastapi import Cookie, Request, Response
+
+from fastapi import UploadFile, File
+from fastapi.responses import Response
 
 from sqlalchemy import or_
 
@@ -1216,3 +1219,91 @@ async def emitir_nota_credito(
         "mensaje": f"Nota de Crédito {serie}-{str(siguiente_numero).zfill(8)} emitida",
         "comprobante_id": nc.id
     }
+
+
+# -----------------------------------------
+# Endpoint para subir logo del emisor.
+# Agregar en src/api/routes.py (o donde manejas configuración)
+# -----------------------------------------
+# =============================================
+# SUBIR LOGO
+# =============================================
+
+@router.post("/configuracion/logo", summary="Subir logo del emisor")
+async def subir_logo(
+    request: Request,
+    logo: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Sube el logo del emisor (PNG, JPG, max 500KB)"""
+    from src.api.auth_utils import obtener_emisor_actual
+
+    emisor = await obtener_emisor_actual(request, db)
+
+    # Validar tipo
+    allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
+    if logo.content_type not in allowed_types:
+        raise HTTPException(400, detail="Solo se permiten imágenes PNG, JPG o WebP")
+
+    # Leer bytes
+    logo_bytes = await logo.read()
+
+    # Validar tamaño (500KB max)
+    if len(logo_bytes) > 512_000:
+        raise HTTPException(400, detail="El logo no debe superar 500KB")
+
+    # Guardar en DB
+    emisor.logo = logo_bytes
+    emisor.logo_content_type = logo.content_type
+    db.commit()
+
+    return {"exito": True, "mensaje": "Logo actualizado", "tamaño": len(logo_bytes)}
+
+
+# =============================================
+# OBTENER LOGO (para mostrar en frontend/PDF)
+# =============================================
+
+@router.get("/configuracion/logo", summary="Obtener logo del emisor")
+async def obtener_logo(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Retorna la imagen del logo"""
+    from src.api.auth_utils import obtener_emisor_actual
+
+    emisor = await obtener_emisor_actual(request, db)
+
+    if not emisor.logo:
+        raise HTTPException(404, detail="No hay logo configurado")
+
+    return Response(
+        content=emisor.logo,
+        media_type=emisor.logo_content_type or "image/png",
+        headers={"Cache-Control": "max-age=86400"}
+    )
+
+
+# =============================================
+# LOGO VÍA API v1 (para PDF generator)
+# =============================================
+# Agregar en src/api/v1/comprobantes.py o routes
+
+@router.get(
+    "/emisor/{emisor_id}/logo",
+    summary="Logo del emisor (público para PDFs)"
+)
+async def logo_emisor_publico(
+    emisor_id: str,
+    db: Session = Depends(get_db)
+):
+    """Logo público del emisor - usado internamente por el generador de PDF"""
+    emisor = db.query(Emisor).filter(Emisor.id == emisor_id).first()
+    if not emisor or not emisor.logo:
+        raise HTTPException(404, detail="Logo no encontrado")
+
+    return Response(
+        content=emisor.logo,
+        media_type=emisor.logo_content_type or "image/png",
+        headers={"Cache-Control": "max-age=86400"}
+    ) 
