@@ -208,9 +208,23 @@ async def emitir_comprobante(
         comprobante_id = str(uuid4())
 
         peru_now = datetime.now(tz=timezone(timedelta(hours=-5))).replace(tzinfo=None)
+
         if data.fecha_emision:
             fecha_date = datetime.strptime(data.fecha_emision, "%Y-%m-%d")
-            fecha_emision = fecha_date.replace(hour=peru_now.hour, minute=peru_now.minute, second=peru_now.second)
+            
+            # Usar hora_emision si viene, sino hora actual de Perú
+            if hasattr(data, 'hora_emision') and data.hora_emision:
+                try:
+                    hora_parts = data.hora_emision.split(":")
+                    fecha_emision = fecha_date.replace(
+                        hour=int(hora_parts[0]),
+                        minute=int(hora_parts[1]),
+                        second=int(hora_parts[2]) if len(hora_parts) > 2 else 0
+                    )
+                except:
+                    fecha_emision = fecha_date.replace(hour=peru_now.hour, minute=peru_now.minute, second=peru_now.second)
+            else:
+                fecha_emision = fecha_date.replace(hour=peru_now.hour, minute=peru_now.minute, second=peru_now.second)
         else:
             fecha_emision = peru_now
 

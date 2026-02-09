@@ -55,6 +55,7 @@ class ComprobanteRequest(BaseModel):
     items: List[ItemRequest] = Field(..., min_length=1)
     observaciones: Optional[str] = Field(None, max_length=500)
     fecha_emision: Optional[str] = Field(None, description="YYYY-MM-DD, hoy si vacío")
+    hora_emision: Optional[str] = None
     enviar_email: bool = Field(False, description="Enviar por email al cliente")
     referencia_externa: Optional[str] = Field(None, description="ID en sistema origen", max_length=100)
     
