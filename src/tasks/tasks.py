@@ -7,7 +7,7 @@ from src.services.firma_digital import firmar_xml
 from src.services.sunat_client import enviar_comprobante
 from cryptography.fernet import Fernet
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 @celery_app.task(bind=True)
 def emitir_comprobante_task(self, comprobante_id: str, test_mode: bool = False):
@@ -108,7 +108,7 @@ def emitir_comprobante_task(self, comprobante_id: str, test_mode: bool = False):
             tipo_documento=comp.tipo_documento,
             serie=comp.serie,
             numero=comp.numero,
-            fecha_emision=comp.fecha_emision.strftime('%d/%m/%Y') if comp.fecha_emision else datetime.utcnow().strftime('%d/%m/%Y'),
+            fecha_emision=comp.fecha_emision.strftime('%d/%m/%Y') if comp.fecha_emision else datetime.now(timezone(timedelta(hours=-5))).strftime('%d/%m/%Y'),
             moneda=comp.moneda,
             items=items
         )
