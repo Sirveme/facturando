@@ -207,10 +207,12 @@ async def emitir_comprobante(
         # === CREAR COMPROBANTE ===
         comprobante_id = str(uuid4())
 
+        peru_now = datetime.now(tz=timezone(timedelta(hours=-5))).replace(tzinfo=None)
         if data.fecha_emision:
-            fecha_emision = datetime.strptime(data.fecha_emision, "%Y-%m-%d")
+            fecha_date = datetime.strptime(data.fecha_emision, "%Y-%m-%d")
+            fecha_emision = fecha_date.replace(hour=peru_now.hour, minute=peru_now.minute, second=peru_now.second)
         else:
-            fecha_emision = datetime.now(tz=timezone(timedelta(hours=-5))).replace(tzinfo=None)
+            fecha_emision = peru_now
 
         numero_formato = f"{serie}-{numero:08d}"
         

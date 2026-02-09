@@ -6,7 +6,7 @@ Formato compatible con CCPL (Colegio de Contadores Públicos de Loreto)
 import io
 import os
 import qrcode
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from reportlab.lib.pagesizes import A4, A5
 from reportlab.lib.units import mm, cm
@@ -15,6 +15,7 @@ from reportlab.pdfgen import canvas
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib.utils import ImageReader
 
+PERU_TZ = timezone(timedelta(hours=-5))
 
 # === CONFIGURACIÓN ===
 TIPOS_DOCUMENTO = {
@@ -311,6 +312,9 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.drawString(cx, cy, "CLIENTE:")
     cy -= 4.5 * mm
 
+    # Indentación común para todos los valores
+    val_indent = 28 * mm
+
     # NRO DOC: DNI [xxxxx] Matrícula [xx-xxxxx]
     c.setFont("Helvetica-Bold", 7.5)
     c.drawString(cx, cy, "NRO DOC:")
@@ -321,7 +325,7 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
         tipo_doc_label = TIPOS_DOC_IDENTIDAD.get(
             comprobante.cliente_tipo_documento or (cliente.tipo_documento if cliente else ""), "DOC.")
         doc_text = f"{tipo_doc_label} {num_doc}"
-    c.drawString(cx + 22 * mm, cy, doc_text)
+    c.drawString(cx + val_indent, cy, doc_text)
     cy -= 4.5 * mm
 
     # DENOMINACIÓN / RAZÓN SOCIAL según tipo
@@ -333,7 +337,7 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.drawString(cx, cy, label_nombre)
     c.setFont("Helvetica", 7.5)
     nombre_trunc = nombre_cliente[:48] if len(nombre_cliente) > 48 else nombre_cliente
-    c.drawString(cx + 28 * mm, cy, nombre_trunc)
+    c.drawString(cx + val_indent, cy, nombre_trunc)
     cy -= 4.5 * mm
 
     # DIRECCIÓN (siempre, incluso en boleta)
@@ -342,7 +346,7 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
         c.drawString(cx, cy, "DIRECCIÓN:")
         c.setFont("Helvetica", 7)
         dir_trunc = direccion_cliente[:55] if len(direccion_cliente) > 55 else direccion_cliente
-        c.drawString(cx + 22 * mm, cy, dir_trunc)
+        c.drawString(cx + val_indent, cy, dir_trunc)
 
     # Recuadro fecha/moneda - esquinas redondeadas
     fecha_box_x = ml + cliente_box_w + 2 * mm
@@ -551,7 +555,7 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.setFont("Helvetica", 5.5)
     c.setFillColor(COLOR_GRIS_TEXTO)
     c.drawCentredString(w / 2, 8 * mm,
-                        f"Generado por facturalo.pro | {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+                        f"Generado por facturalo.pro | {datetime.now(tz=PERU_TZ).strftime('%d/%m/%Y %H:%M')}")
 
     c.save()
     pdf_bytes = buffer.getvalue()
@@ -765,6 +769,9 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items, codigo_matricul
     c.drawCentredString(ticket_w / 2, y, "Representación impresa del CE")
     y -= 3 * mm
     c.drawCentredString(ticket_w / 2, y, "facturalo.pro")
+    y -= 3 * mm
+    c.drawCentredString(ticket_w / 2, y,
+                        datetime.now(tz=PERU_TZ).strftime('%d/%m/%Y %H:%M'))
 
     c.save()
     pdf_bytes = buffer.getvalue()
