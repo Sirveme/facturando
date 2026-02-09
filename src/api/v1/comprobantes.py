@@ -210,7 +210,7 @@ async def emitir_comprobante(
         if data.fecha_emision:
             fecha_emision = datetime.strptime(data.fecha_emision, "%Y-%m-%d")
         else:
-            fecha_emision = datetime.now(PERU_TZ).replace(tzinfo=None)
+            fecha_emision = datetime.now(tz=timezone(timedelta(hours=-5))).replace(tzinfo=None)
 
         numero_formato = f"{serie}-{numero:08d}"
         
