@@ -397,6 +397,14 @@ from fastapi.responses import Response
 from src.api.v1.pdf_generator import generar_pdf_comprobante
 """
 
+"""
+REEMPLAZA la función obtener_pdf en src/api/v1/comprobantes.py
+
+Imports adicionales al inicio del archivo:
+from fastapi.responses import Response
+from src.api.v1.pdf_generator import generar_pdf_comprobante
+"""
+
 @router.get(
     "/{comprobante_id}/pdf",
     summary="Descargar PDF",
@@ -405,6 +413,7 @@ from src.api.v1.pdf_generator import generar_pdf_comprobante
 async def obtener_pdf(
     comprobante_id: str,
     formato: str = "A4",
+    codigo_matricula: str = None,
     emisor: Emisor = Depends(verificar_api_key),
     db: Session = Depends(get_db)
 ):
@@ -413,39 +422,41 @@ async def obtener_pdf(
         Comprobante.id == comprobante_id,
         Comprobante.emisor_id == emisor.id
     ).first()
-    
+
     if not comprobante:
         raise HTTPException(404, detail={"exito": False, "error": "No encontrado", "codigo": "NOT_FOUND"})
-    
-    # Obtener cliente
+
     cliente = db.query(Cliente).filter(Cliente.id == comprobante.cliente_id).first()
-    
-    # Obtener items
+
     items = db.query(LineaDetalle).filter(
         LineaDetalle.comprobante_id == comprobante_id
     ).order_by(LineaDetalle.orden).all()
-    
-    # Determinar formato (parámetro o configuración del emisor)
+
     fmt = formato.upper()
     if fmt not in ["A4", "A5", "TICKET"]:
         fmt = "A4"
-    
-    # Generar PDF
+
     try:
-        pdf_bytes = generar_pdf_comprobante(comprobante, emisor, cliente, items, formato=fmt)
+        pdf_bytes = generar_pdf_comprobante(
+            comprobante, emisor, cliente, items,
+            formato=fmt,
+            codigo_matricula=codigo_matricula
+        )
     except Exception as e:
-        print(f"❌ Error generando PDF: {e}")
+        print(f"Error generando PDF: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(500, detail={"exito": False, "error": f"Error al generar PDF: {str(e)}"})
-    
-    # Guardar en DB (cache)
+
+    # Cache en DB
     try:
         comprobante.pdf = pdf_bytes
         db.commit()
     except:
-        pass  # No fallar si no se puede guardar
-    
+        pass
+
     numero = f"{comprobante.serie}-{comprobante.numero:08d}"
-    
+
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
