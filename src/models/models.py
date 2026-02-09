@@ -74,6 +74,9 @@ class Emisor(Base):
     categorias = relationship("Categoria", back_populates="emisor")
     productos = relationship("Producto", back_populates="emisor")
 
+    logo = Column(LargeBinary, nullable=True)
+    logo_content_type = Column(String(50), nullable=True)
+
 class Certificado(Base):
     __tablename__ = 'certificado'
 
