@@ -137,84 +137,39 @@ async def descargar_cdr(comprobante_id: str, db: Session = Depends(get_db)):
 def descargar_pdf(comprobante_id: str, db: Session = Depends(get_db)):
     """Descarga el PDF del comprobante"""
     from fastapi.responses import Response
-    from src.services.pdf_generator import generar_pdf_comprobante
+    from src.api.v1.pdf_generator import generar_pdf_comprobante
     
-    # Buscar comprobante
     comprobante = db.query(Comprobante).filter(Comprobante.id == comprobante_id).first()
     if not comprobante:
         raise HTTPException(status_code=404, detail="Comprobante no encontrado")
     
-    # Buscar emisor
     emisor = db.query(Emisor).filter(Emisor.id == comprobante.emisor_id).first()
     if not emisor:
         raise HTTPException(status_code=404, detail="Emisor no encontrado")
     
-    # Buscar items del comprobante
     items = db.query(LineaDetalle).filter(
         LineaDetalle.comprobante_id == comprobante_id
     ).all()
     
-    # TODO: Extraer datos de cliente del XML
-    cliente_ruc = "00000000"
-    cliente_nombre = "Cliente"
-    cliente_direccion = "Lima, Perú"
+    cliente = db.query(Cliente).filter(
+        Cliente.numero_documento == comprobante.cliente_numero_documento
+    ).first()
     
-    # Preparar datos para PDF
-    comprobante_data = {
-        "emisor_ruc": emisor.ruc,
-        "emisor_razon_social": emisor.razon_social,
-        "emisor_direccion": emisor.direccion or "Sin dirección",
-        "emisor_logo": getattr(emisor, 'logo_url', None) or "",
-        "emisor_telefono": getattr(emisor, 'telefono', None) or "",
-        "emisor_email": getattr(emisor, 'email', None) or "",
-        "emisor_web": getattr(emisor, 'web', None) or "",
-        "emisor_lema": getattr(emisor, 'lema', None) or "",
-        "emisor_establecimiento_anexo": getattr(emisor, 'establecimiento_anexo', None) or "",
-        "es_agente_retencion": getattr(emisor, 'es_agente_retencion', False),
-        "es_agente_percepcion": getattr(emisor, 'es_agente_percepcion', False),
-        "color_primario": getattr(emisor, 'color_primario', None) or "#2c3e50",
-        "color_secundario": getattr(emisor, 'color_secundario', None) or "#e74c3c",
-        "tipo_comprobante": comprobante.tipo_documento,
-        "serie": comprobante.serie,
-        "numero": comprobante.numero,
-        "fecha_emision": comprobante.fecha_emision,
-        "cliente_ruc": cliente_ruc,
-        "cliente_razon_social": cliente_nombre,
-        "cliente_direccion": cliente_direccion,
-        "items": [
-            {
-                "orden": item.orden,
-                "descripcion": item.descripcion,
-                "cantidad": float(item.cantidad),
-                "unidad": item.unidad or "NIU",
-                "precio_unitario": float(item.precio_unitario),
-                "tipo_afectacion": getattr(item, 'tipo_afectacion_igv', None) or "10",
-                "es_bonificacion": getattr(item, 'es_bonificacion', False)
-            }
-            for item in items
-        ],
-        "subtotal": comprobante.monto_base,
-        "igv": comprobante.monto_igv,
-        "total": comprobante.monto_total,
-        "moneda": comprobante.moneda or "PEN",
-        "observaciones": getattr(comprobante, 'observaciones', None) or "",
-        "hash_cpe": "",
-        "estado": comprobante.estado
-    }
+    codigo_matricula = getattr(comprobante, 'codigo_matricula', None)
     
     try:
-        # Generar PDF
-        pdf_bytes = generar_pdf_comprobante(comprobante_data)
+        pdf_bytes = generar_pdf_comprobante(
+            comprobante, emisor, cliente, items,
+            formato="A4",
+            codigo_matricula=codigo_matricula,
+        )
         
-        # Construir nombre de archivo
         filename = f"{emisor.ruc}-{comprobante.tipo_documento}-{comprobante.serie}-{comprobante.numero}.pdf"
         
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}"
-            }
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generando PDF: {str(e)}")
