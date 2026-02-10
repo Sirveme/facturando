@@ -467,11 +467,17 @@ async def obtener_pdf(
     # Obtener matrícula de observaciones
     codigo_matricula = comprobante.observaciones if comprobante.observaciones and comprobante.observaciones.startswith("10-") else None
 
+    # URL de consulta desde el emisor
+    url_consulta = getattr(emisor, 'web', None)
+    if url_consulta and not url_consulta.startswith("http"):
+        url_consulta = url_consulta + "/consulta/habilidad"
+
     try:
         pdf_bytes = generar_pdf_comprobante(
             comprobante, emisor, cliente, items,
             formato=fmt,
-            codigo_matricula=codigo_matricula
+            codigo_matricula=codigo_matricula,
+            url_consulta=url_consulta,
         )
     except Exception as e:
         print(f"Error generando PDF: {e}")
