@@ -51,6 +51,7 @@ class ComprobanteRequest(BaseModel):
     """Request para emitir comprobante"""
     tipo_comprobante: str = Field(..., description="01=Factura, 03=Boleta, 07=NC, 08=ND")
     serie: Optional[str] = Field(None, description="Serie (auto si no se especifica)")
+    codigo_matricula: Optional[str] = Field(None, description="Código matrícula del colegiado")
     cliente: ClienteRequest
     items: List[ItemRequest] = Field(..., min_length=1)
     observaciones: Optional[str] = Field(None, max_length=500)

@@ -86,6 +86,12 @@ async def emitir_comprobante(
 ):
     """Emite un comprobante electrónico"""
     inicio = time.time()
+
+    # DEBUG - AGREGAR ESTO
+    print(f"🔍 DEBUG RECIBIDO:")
+    print(f"   fecha_emision: {data.fecha_emision}")
+    print(f"   hora_emision: {getattr(data, 'hora_emision', 'NO EXISTE')}")
+    # FIN DEBUG
     
     try:
         # === VALIDACIONES ===
@@ -252,7 +258,8 @@ async def emitir_comprobante(
             cliente_razon_social=data.cliente.razon_social,
             cliente_direccion=data.cliente.direccion or "",
             observaciones=data.observaciones,
-            referencia_externa=data.referencia_externa
+            referencia_externa=data.referencia_externa,
+            observaciones=data.codigo_matricula
         )
         
         # Referencia para NC/ND
@@ -457,6 +464,9 @@ async def obtener_pdf(
     fmt = formato.upper()
     if fmt not in ["A4", "A5", "TICKET"]:
         fmt = "A4"
+
+    # Obtener matrícula de observaciones
+    codigo_matricula = comprobante.observaciones if comprobante.observaciones and comprobante.observaciones.startswith("10-") else None
 
     try:
         pdf_bytes = generar_pdf_comprobante(
