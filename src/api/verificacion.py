@@ -91,6 +91,33 @@ async def verificar_pdf(
     )
 
 
+@router.get("/{comprobante_id}/xml")
+async def verificar_xml(
+    comprobante_id: str,
+    db: Session = Depends(get_db)
+):
+    """XML público para verificación"""
+    from fastapi.responses import Response
+    from src.models.models import Comprobante
+    
+    comprobante = db.query(Comprobante).filter(
+        Comprobante.id == comprobante_id
+    ).first()
+    
+    if not comprobante:
+        raise HTTPException(404, detail="Comprobante no encontrado")
+    
+    if not comprobante.xml:
+        raise HTTPException(404, detail="XML aún no disponible - comprobante pendiente de envío a SUNAT")
+    
+    filename = f"{comprobante.serie}-{comprobante.numero:08d}.xml"
+    
+    return Response(
+        content=comprobante.xml if isinstance(comprobante.xml, bytes) else comprobante.xml.encode(),
+        media_type="application/xml",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
 def _construir_url_sunat(comp) -> str:
     """Construye URL de verificación en SUNAT."""
     fecha = comp.fecha_emision.strftime("%d/%m/%Y") if comp.fecha_emision else ""
@@ -260,7 +287,7 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
                 <a href="/verificar/{comp.id}/pdf" target="_blank" class="btn btn-primary">
                     📄 Ver PDF
                 </a>
-                <a href="/api/v1/comprobantes/{comp.id}/xml" target="_blank" class="btn btn-outline">
+                <a href="/verificar/{comp.id}/xml" target="_blank" class="btn btn-outline">
                     📥 XML
                 </a>
                 <a href="{sunat_url}" target="_blank" class="btn btn-sunat">
