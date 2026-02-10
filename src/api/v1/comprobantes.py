@@ -207,26 +207,25 @@ async def emitir_comprobante(
         # === CREAR COMPROBANTE ===
         comprobante_id = str(uuid4())
 
+        # Hora actual de Perú
         peru_now = datetime.now(tz=timezone(timedelta(hours=-5))).replace(tzinfo=None)
 
         if data.fecha_emision:
-            fecha_date = datetime.strptime(data.fecha_emision, "%Y-%m-%d")
-            
-            # Usar hora_emision si viene, sino hora actual de Perú
-            if hasattr(data, 'hora_emision') and data.hora_emision:
-                try:
-                    hora_parts = data.hora_emision.split(":")
-                    fecha_emision = fecha_date.replace(
-                        hour=int(hora_parts[0]),
-                        minute=int(hora_parts[1]),
-                        second=int(hora_parts[2]) if len(hora_parts) > 2 else 0
-                    )
-                except:
+            try:
+                # Si viene con hora (formato: 2026-02-09T14:30:00)
+                if 'T' in data.fecha_emision:
+                    fecha_emision = datetime.fromisoformat(data.fecha_emision.replace('Z', ''))
+                else:
+                    # Solo fecha, usar hora actual de Perú
+                    fecha_date = datetime.strptime(data.fecha_emision, "%Y-%m-%d")
                     fecha_emision = fecha_date.replace(hour=peru_now.hour, minute=peru_now.minute, second=peru_now.second)
-            else:
-                fecha_emision = fecha_date.replace(hour=peru_now.hour, minute=peru_now.minute, second=peru_now.second)
+            except:
+                fecha_emision = peru_now
         else:
+            # Sin fecha, usar fecha y hora actual de Perú
             fecha_emision = peru_now
+
+        print(f"📅 Fecha emisión: {fecha_emision}")  # Debug
 
         numero_formato = f"{serie}-{numero:08d}"
         
