@@ -2,8 +2,8 @@
 Router: Verificación pública de comprobantes
 """
 
-from fastapi import APIRouter, Depends
-from fastapi.responses import HTMLResponse, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from urllib.parse import urlencode
