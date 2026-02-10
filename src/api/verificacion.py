@@ -3,7 +3,7 @@ Router: Verificación pública de comprobantes
 """
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from urllib.parse import urlencode
@@ -52,6 +52,43 @@ async def verificar_comprobante(
     
     sunat_url = _construir_url_sunat(comprobante)
     return HTMLResponse(_pagina_verificacion(comprobante, sunat_url))
+
+
+@router.get("/{comprobante_id}/pdf")
+async def verificar_pdf(
+    comprobante_id: str,
+    db: Session = Depends(get_db)
+):
+    """PDF público para verificación (sin auth)"""
+    from fastapi.responses import Response
+    from src.models.models import Comprobante, Emisor, Cliente, LineaDetalle
+    from src.api.v1.pdf_generator import generar_pdf_comprobante
+    
+    comprobante = db.query(Comprobante).filter(
+        Comprobante.id == comprobante_id
+    ).first()
+    
+    if not comprobante:
+        return HTMLResponse(_pagina_no_encontrado(), status_code=404)
+    
+    emisor = db.query(Emisor).filter(Emisor.id == comprobante.emisor_id).first()
+    cliente = db.query(Cliente).filter(Cliente.id == comprobante.cliente_id).first()
+    items = db.query(LineaDetalle).filter(
+        LineaDetalle.comprobante_id == comprobante_id
+    ).order_by(LineaDetalle.orden).all()
+    
+    try:
+        pdf_bytes = generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4")
+    except Exception as e:
+        raise HTTPException(500, detail=f"Error generando PDF: {str(e)}")
+    
+    filename = f"{comprobante.serie}-{comprobante.numero:08d}.pdf"
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'}
+    )
 
 
 def _construir_url_sunat(comp) -> str:
@@ -195,7 +232,7 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
                 </div>
                 <div class="info-row">
                     <span class="info-label">Emisor</span>
-                    <span class="info-value">{(comp.emisor_nombre or "")[:35]}</span>
+                    <span class="info-value">{(comp.emisor_nombre or "")[:55]}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">RUC Emisor</span>
@@ -220,11 +257,8 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
             </div>
             
             <div class="buttons">
-                <a href="/api/v1/comprobantes/{comp.id}/pdf" target="_blank" class="btn btn-primary">
+                <a href="/verificar/{comp.id}/pdf" target="_blank" class="btn btn-primary">
                     📄 Ver PDF
-                </a>
-                <a href="/api/v1/comprobantes/{comp.id}/xml" target="_blank" class="btn btn-outline">
-                    📥 XML
                 </a>
                 <a href="{sunat_url}" target="_blank" class="btn btn-sunat">
                     🔍 Verificar en SUNAT
