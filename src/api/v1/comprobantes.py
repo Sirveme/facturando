@@ -257,9 +257,8 @@ async def emitir_comprobante(
             cliente_numero_documento=data.cliente.numero_documento,
             cliente_razon_social=data.cliente.razon_social,
             cliente_direccion=data.cliente.direccion or "",
-            observaciones=data.observaciones,
-            referencia_externa=data.referencia_externa,
-            observaciones=data.codigo_matricula
+            observaciones=data.codigo_matricula or data.observaciones,
+            referencia_externa=data.referencia_externa
         )
         
         # Referencia para NC/ND
