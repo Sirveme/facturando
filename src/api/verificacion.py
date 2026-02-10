@@ -260,6 +260,9 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
                 <a href="/verificar/{comp.id}/pdf" target="_blank" class="btn btn-primary">
                     📄 Ver PDF
                 </a>
+                <a href="/api/v1/comprobantes/{comp.id}/xml" target="_blank" class="btn btn-outline">
+                    📥 XML
+                </a>
                 <a href="{sunat_url}" target="_blank" class="btn btn-sunat">
                     🔍 Verificar en SUNAT
                 </a>
