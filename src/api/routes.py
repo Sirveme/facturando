@@ -927,7 +927,7 @@ async def guardar_credenciales_sol(
     emisor = await obtener_emisor_actual(request, db)
     
     # Actualizar credenciales
-    emisor.usuario_sol = data.get('usuario_sol')
+    emisor.sol_usuario = data.get('usuario_sol')
     
     if data.get('clave_sol'):
         # Encriptar clave SOL
@@ -936,7 +936,7 @@ async def guardar_credenciales_sol(
         if len(key) < 32:
             key = base64.urlsafe_b64encode(key.ljust(32)[:32])
         fernet = Fernet(key)
-        emisor.clave_sol = fernet.encrypt(data['clave_sol'].encode()).decode()
+        emisor.sol_password = fernet.encrypt(data['clave_sol'].encode()).decode()
     
     db.commit()
 
@@ -946,7 +946,7 @@ async def guardar_credenciales_sol(
         Certificado.activo == True
     ).first()
 
-    if certificado_activo and emisor.usuario_sol:
+    if certificado_activo and emisor.sol_usuario:
         emisor.modo_test = False
         db.commit()
     
