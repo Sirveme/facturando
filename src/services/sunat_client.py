@@ -115,25 +115,43 @@ def _extract_meta_from_xml(xml_bytes: bytes) -> dict:
 
 def _parse_cdr(cdr_bytes: bytes) -> dict:
     """Parsea CDR de SUNAT extrayendo código y descripción."""
+    # Log diagnóstico: ver qué recibimos
+    try:
+        preview = cdr_bytes[:500].decode('utf-8', errors='replace')
+    except Exception:
+        preview = str(cdr_bytes[:500])
+    logger.info("[CDR_PARSE] Raw CDR preview (%d bytes): %s", len(cdr_bytes), preview)
+    print(f"[CDR_PARSE] Raw CDR ({len(cdr_bytes)} bytes): {preview}")
+
     try:
         doc = etree.fromstring(cdr_bytes)
-    except Exception:
+    except Exception as e:
+        logger.error("[CDR_PARSE] No se pudo parsear XML: %s", e)
+        print(f"[CDR_PARSE] ❌ No es XML válido: {e}")
         return {"codigo": None, "descripcion": None, "cdr_xml": cdr_bytes}
+
+    # Log todos los tags del CDR para diagnóstico
+    all_tags = [el.tag.split('}')[-1] if '}' in el.tag else el.tag for el in doc.iter()]
+    logger.info("[CDR_PARSE] Tags en CDR: %s", all_tags[:30])
+    print(f"[CDR_PARSE] Tags: {all_tags[:30]}")
 
     def find_text(names):
         for n in names:
-            # Usar xpath() en lugar de find()
             els = doc.xpath(".//*[local-name()='%s']" % n)
             if els and els[0].text:
+                logger.info("[CDR_PARSE] Encontrado %s = %s", n, els[0].text.strip())
                 return els[0].text.strip()
         return None
 
     codigo = find_text(
-        ["codigo", "Codigo", "ResponseCode", "responseCode", "Code"]
+        ["ResponseCode", "responseCode", "Code", "codigo", "Codigo"]
     )
     descripcion = find_text(
-        ["descripcion", "Descripcion", "Description", "Mensaje", "Message"]
+        ["Description", "description", "Descripcion", "descripcion", "Mensaje", "Message"]
     )
+
+    logger.info("[CDR_PARSE] Resultado: codigo=%s, descripcion=%s", codigo, descripcion)
+    print(f"[CDR_PARSE] Resultado: codigo={codigo}, descripcion={descripcion}")
     return {"codigo": codigo, "descripcion": descripcion, "cdr_xml": cdr_bytes}
 
 
@@ -195,17 +213,33 @@ def enviar_comprobante(
 
             _log_soap_history(history)
 
+            # Log tipo de respuesta
+            logger.info("[SOAP] Tipo de respuesta: %s", type(resp))
+            print(f"[SOAP] Respuesta tipo: {type(resp)}, valor: {str(resp)[:200]}")
+
             # Extraer applicationResponse
             app_resp = None
             if hasattr(resp, "applicationResponse"):
                 app_resp = resp.applicationResponse
+                logger.info("[SOAP] applicationResponse encontrado (hasattr)")
             elif isinstance(resp, dict) and "applicationResponse" in resp:
                 app_resp = resp["applicationResponse"]
+                logger.info("[SOAP] applicationResponse encontrado (dict)")
+            elif isinstance(resp, bytes):
+                # Respuesta directa en bytes (algunos endpoints)
+                app_resp = base64.b64encode(resp).decode('ascii')
+                logger.info("[SOAP] Respuesta directa en bytes")
+            else:
+                logger.warning("[SOAP] No se encontró applicationResponse. resp=%s", str(resp)[:300])
+                print(f"[SOAP] ⚠️ Sin applicationResponse. resp={str(resp)[:300]}")
 
             if app_resp is not None:
+                logger.info("[SOAP] applicationResponse len=%d", len(str(app_resp)))
                 resp_bytes = base64.b64decode(app_resp)
+                print(f"[SOAP] Decoded response: {len(resp_bytes)} bytes")
             else:
                 resp_bytes = _extract_from_history(history)
+                print(f"[SOAP] Fallback a history: {len(resp_bytes)} bytes")
 
             cdr_bytes = _try_unzip(resp_bytes)
 
