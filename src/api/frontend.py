@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from src.models.models import Comprobante, Emisor, LineaDetalle
 from src.api.dependencies import get_db
+from src.api.auth_utils import obtener_emisor_actual
 
 # Configurar templates
 templates_path = Path(__file__).parent.parent / "templates"
@@ -55,12 +56,9 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     from datetime import datetime, timedelta, timezone
     from sqlalchemy import func
     
-    session = request.cookies.get("session")
-    if not session:
-        return RedirectResponse(url="/login")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session).first()
-    if not emisor:
+    try:
+        emisor = await obtener_emisor_actual(request, db)
+    except:
         return RedirectResponse(url="/login")
     
     # Zona horaria Perú
@@ -136,7 +134,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "emisor": emisor,
-            "user_ruc": session,
+            "user_ruc": emisor.ruc,
             # Montos
             "total_hoy": float(total_hoy),
             "total_semana": float(total_semana),
@@ -182,13 +180,9 @@ async def comprobantes_lista(
 ):
     """Lista de comprobantes con filtros"""
     # Verificar sesión
-    session = request.cookies.get("session")
-    if not session:
-        return RedirectResponse(url="/login")
-    
-    # Buscar emisor
-    emisor = db.query(Emisor).filter(Emisor.ruc == session).first()
-    if not emisor:
+    try:
+        emisor = await obtener_emisor_actual(request, db)
+    except:
         return RedirectResponse(url="/login")
     
     # Query base
@@ -245,7 +239,7 @@ async def comprobantes_lista(
         "dashboard/comprobantes.html",
         {
             "request": request,
-            "user_ruc": session,
+            "user_ruc": emisor.ruc,
             "emisor": emisor,
             "comprobantes": comprobantes,
             "total": total,
@@ -268,12 +262,9 @@ async def comprobantes_lista(
 @router.get("/clientes", response_class=HTMLResponse)
 async def clientes_page(request: Request, db: Session = Depends(get_db)):
     """Página de clientes"""
-    session = request.cookies.get("session")
-    if not session:
-        return RedirectResponse(url="/login")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session).first()
-    if not emisor:
+    try:
+        emisor = await obtener_emisor_actual(request, db)
+    except:
         return RedirectResponse(url="/login")
     
     # Obtener clientes del emisor (si tienes tabla de clientes)
@@ -284,7 +275,7 @@ async def clientes_page(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "emisor": emisor,
-            "user_ruc": session,
+            "user_ruc": emisor.ruc,
             # "clientes": clientes
         }
     )
@@ -293,12 +284,9 @@ async def clientes_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/comprobantes/emitir", response_class=HTMLResponse)
 async def emitir_comprobante_page(request: Request, db: Session = Depends(get_db)):
     """Página para emitir nuevo comprobante"""
-    session = request.cookies.get("session")
-    if not session:
-        return RedirectResponse(url="/login")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session).first()
-    if not emisor:
+    try:
+        emisor = await obtener_emisor_actual(request, db)
+    except:
         return RedirectResponse(url="/login")
     
     return templates.TemplateResponse(
@@ -306,7 +294,7 @@ async def emitir_comprobante_page(request: Request, db: Session = Depends(get_db
         {
             "request": request,
             "emisor": emisor,
-            "user_ruc": session
+            "user_ruc": emisor.ruc
         }
     )
 
@@ -316,12 +304,9 @@ async def configuracion_page(request: Request, db: Session = Depends(get_db)):
     """Página de configuración del emisor"""
     from datetime import datetime, timedelta, timezone
     
-    session = request.cookies.get("session")
-    if not session:
-        return RedirectResponse(url="/login")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session).first()
-    if not emisor:
+    try:
+        emisor = await obtener_emisor_actual(request, db)
+    except:
         return RedirectResponse(url="/login")
     
     # Zona horaria Perú
@@ -343,7 +328,7 @@ async def configuracion_page(request: Request, db: Session = Depends(get_db)):
             "emisor": emisor,
             "certificado": certificado,
             "certificado_dias_restantes": certificado_dias_restantes,
-            "user_ruc": session,
+            "user_ruc": emisor.ruc,
             "today": hoy
         }
     )
@@ -352,12 +337,9 @@ async def configuracion_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/comprobantes/nota-credito", response_class=HTMLResponse)
 async def nota_credito_page(request: Request, db: Session = Depends(get_db)):
     """Página para emitir Nota de Crédito"""
-    session = request.cookies.get("session")
-    if not session:
-        return RedirectResponse(url="/login")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session).first()
-    if not emisor:
+    try:
+        emisor = await obtener_emisor_actual(request, db)
+    except:
         return RedirectResponse(url="/login")
     
     # Obtener comprobantes que pueden tener NC (Facturas y Boletas aceptadas)
@@ -374,7 +356,7 @@ async def nota_credito_page(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "emisor": emisor,
-            "user_ruc": session,
+            "user_ruc": emisor.ruc,
             "comprobantes_disponibles": comprobantes_disponibles
         }
     )
@@ -383,12 +365,9 @@ async def nota_credito_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/productos", response_class=HTMLResponse)
 async def productos_page(request: Request, db: Session = Depends(get_db)):
     """Página de productos/catálogo"""
-    session = request.cookies.get("session")
-    if not session:
-        return RedirectResponse(url="/login")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session).first()
-    if not emisor:
+    try:
+        emisor = await obtener_emisor_actual(request, db)
+    except:
         return RedirectResponse(url="/login")
     
     return templates.TemplateResponse(
@@ -396,6 +375,6 @@ async def productos_page(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "emisor": emisor,
-            "user_ruc": session
+            "user_ruc": emisor.ruc
         }
     )
