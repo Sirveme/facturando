@@ -181,7 +181,8 @@ def _build_factura_boleta_xml(comprobante, emisor: dict) -> bytes:
     type_code.set('listID', '0101')
     type_code.set('listAgencyName', 'PE:SUNAT')
     type_code.set('listName', 'Tipo de Documento')
-    type_code.set('listURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo51')
+    type_code.set('listURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo01')
+    type_code.set('listSchemeURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo51')
     invoice.append(type_code)
 
     invoice.append(_cbc('DocumentCurrencyCode', moneda))
