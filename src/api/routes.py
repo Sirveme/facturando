@@ -902,7 +902,7 @@ async def subir_certificado(
     db.commit()
 
     # Auto-activar producción si tiene certificado Y credenciales SOL
-    if emisor.usuario_sol:
+    if emisor.sol_usuario:
         emisor.modo_test = False
         db.commit()
     
