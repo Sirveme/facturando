@@ -39,8 +39,6 @@ class Emisor(Base):
     color_secundario = Column(String(7), default='#e74c3c')
     telefono = Column(String(20))
     web = Column(String(200))
-    usuario_sol = Column(String(20))
-    clave_sol = Column(Text)  # Encriptado
     formato_factura = Column(String(10), default='A4')
     formato_boleta = Column(String(10), default='A4')
     formato_ticket = Column(String(10), default='TICKET')
