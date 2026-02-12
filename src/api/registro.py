@@ -21,6 +21,7 @@ import hashlib
 import secrets
 import re
 import json
+import os
 
 # === IMPORTAR DESDE TU PROYECTO ===
 from src.api.dependencies import get_db
@@ -43,7 +44,7 @@ router = APIRouter()
 # ─────────────────────────────────────────────
 # CONFIGURACIÓN (mover a .env en producción)
 # ─────────────────────────────────────────────
-SECRET_KEY = "CAMBIAR-EN-PRODUCCION-usar-variable-de-entorno"  # os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-cambiar-en-produccion")
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 24 * 7  # 1 semana
 TRIAL_DAYS = 15
@@ -282,6 +283,7 @@ async def procesar_registro(
         httponly=True,
         secure=True,     # Cambiar a False en localhost
         samesite="lax",
+        path="/",
         max_age=TOKEN_EXPIRE_HOURS * 3600
     )
     return response
@@ -345,6 +347,7 @@ async def procesar_login(
         httponly=True,
         secure=True,
         samesite="lax",
+        path="/",
         max_age=TOKEN_EXPIRE_HOURS * 3600
     )
     return response
