@@ -3,11 +3,20 @@ Generador de XML UBL 2.1 para Comprobantes Electrónicos - SUNAT Perú
 Compatible con producción SUNAT.
 
 Soporta: Factura (01), Boleta (03), Nota de Crédito (07), Nota de Débito (08)
+
+Incluye:
+- PaymentTerms (Contado/Crédito) - obligatorio RS 000193-2020/SUNAT
+- InvoiceTypeCode con atributos catálogo 01 y 51
+- Elementos de dirección condicionales (no emite vacíos)
+- Logging de diagnóstico para trazabilidad
 """
 
 from lxml import etree
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal, ROUND_HALF_UP
+import logging
+
+logger = logging.getLogger(__name__)
 
 PERU_TZ = timezone(timedelta(hours=-5))
 
@@ -114,6 +123,9 @@ def _build_signature_ref(emisor: dict):
 
 def build_invoice_xml(comprobante, emisor: dict) -> bytes:
     tipo_doc = getattr(comprobante, 'tipo_documento', '01')
+    logger.info(f"[XML_GEN] build_invoice_xml tipo={tipo_doc}")
+    print(f"[XML_GEN] build_invoice_xml tipo={tipo_doc}")
+
     if tipo_doc == '07':
         return _build_credit_note_xml(comprobante, emisor)
     elif tipo_doc == '08':
@@ -129,38 +141,104 @@ def _build_factura_boleta_xml(comprobante, emisor: dict) -> bytes:
     fecha_emision = getattr(comprobante, 'fecha_emision', None)
     items = getattr(comprobante, 'items', [])
 
+    logger.info(f"[XML_GEN] Factura/Boleta {serie}-{numero}, moneda={moneda}, items={len(items)}")
+    print(f"[XML_GEN] Factura/Boleta {serie}-{numero}, moneda={moneda}, items={len(items)}")
+
     invoice = etree.Element(etree.QName(NSMAP[None], 'Invoice'), nsmap=NSMAP)
 
+    # 1. UBLExtensions
     invoice.append(_build_ubl_extensions())
+    logger.info("[XML_GEN] ✓ UBLExtensions")
+
+    # 2. Cabecera
     invoice.append(_cbc('UBLVersionID', '2.1'))
     invoice.append(_cbc('CustomizationID', '2.0'))
     invoice.append(_cbc('ID', f"{serie}-{numero}"))
     invoice.append(_cbc('IssueDate', _format_date(fecha_emision)))
     invoice.append(_cbc('IssueTime', _format_time(fecha_emision)))
 
-    # InvoiceTypeCode - Catálogo 01 + Catálogo 51
+    # 3. InvoiceTypeCode - Catálogo 01 + Catálogo 51
     type_code = _cbc('InvoiceTypeCode', tipo_doc)
-    type_code.set('listID', '0101')
+    type_code.set('listID', '0101')  # Catálogo 51: Venta interna
     type_code.set('listAgencyName', 'PE:SUNAT')
     type_code.set('listName', 'Tipo de Documento')
     type_code.set('listURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo01')
     type_code.set('name', 'Tipo de Operacion')
     type_code.set('listSchemeURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo51')
     invoice.append(type_code)
+    logger.info(f"[XML_GEN] ✓ InvoiceTypeCode={tipo_doc} listID=0101")
 
     invoice.append(_cbc('DocumentCurrencyCode', moneda))
-    invoice.append(_build_signature_ref(emisor))
-    invoice.append(_build_supplier(emisor))
-    invoice.append(_build_customer(comprobante))
 
+    # 4. Signature reference
+    invoice.append(_build_signature_ref(emisor))
+    logger.info("[XML_GEN] ✓ Signature reference")
+
+    # 5. Supplier
+    invoice.append(_build_supplier(emisor))
+    logger.info("[XML_GEN] ✓ AccountingSupplierParty")
+
+    # 6. Customer
+    invoice.append(_build_customer(comprobante))
+    logger.info("[XML_GEN] ✓ AccountingCustomerParty")
+
+    # 7. PaymentTerms - OBLIGATORIO desde RS 000193-2020/SUNAT
+    #    Sin esto: error 3244 "tipo de transaccion"
+    forma_pago = getattr(comprobante, 'forma_pago', 'Contado') or 'Contado'
+    invoice.append(_build_payment_terms(comprobante, moneda, forma_pago))
+    logger.info(f"[XML_GEN] ✓ PaymentTerms forma_pago={forma_pago}")
+
+    # 8. Totales
     totales = _calcular_totales(items, moneda)
     invoice.append(_build_tax_total(totales, moneda))
-    invoice.append(_build_monetary_total(totales, moneda))
+    logger.info(f"[XML_GEN] ✓ TaxTotal igv={totales['igv_total']}")
 
+    invoice.append(_build_monetary_total(totales, moneda))
+    logger.info(f"[XML_GEN] ✓ LegalMonetaryTotal total={totales['total']}")
+
+    # 9. Lines
     for idx, item in enumerate(items, start=1):
         invoice.append(_build_invoice_line(idx, item, moneda))
+    logger.info(f"[XML_GEN] ✓ {len(items)} InvoiceLine(s)")
 
-    return etree.tostring(invoice, xml_declaration=True, encoding='UTF-8')
+    xml_bytes = etree.tostring(invoice, xml_declaration=True, encoding='UTF-8')
+    logger.info(f"[XML_GEN] XML generado OK ({len(xml_bytes)} bytes)")
+    print(f"[XML_GEN] XML generado OK ({len(xml_bytes)} bytes)")
+    return xml_bytes
+
+
+# =============================================
+# PAYMENT TERMS (Forma de Pago)
+# Obligatorio desde RS 000193-2020/SUNAT
+# =============================================
+
+def _build_payment_terms(comprobante, moneda='PEN', forma_pago='Contado'):
+    """Construye PaymentTerms.
+
+    Para Contado:
+        <cac:PaymentTerms>
+            <cbc:ID>FormaPago</cbc:ID>
+            <cbc:PaymentMeansID>Contado</cbc:PaymentMeansID>
+        </cac:PaymentTerms>
+
+    Para Crédito:
+        <cac:PaymentTerms>
+            <cbc:ID>FormaPago</cbc:ID>
+            <cbc:PaymentMeansID>Credito</cbc:PaymentMeansID>
+            <cbc:Amount currencyID="PEN">total</cbc:Amount>
+        </cac:PaymentTerms>
+        + cuotas adicionales
+    """
+    pt = _cac('PaymentTerms')
+    pt.append(_cbc('ID', 'FormaPago'))
+    pt.append(_cbc('PaymentMeansID', forma_pago))
+
+    if forma_pago == 'Credito':
+        # Para crédito, agregar el monto total pendiente
+        totales = _calcular_totales(getattr(comprobante, 'items', []), moneda)
+        pt.append(_amount('Amount', totales['total'], moneda))
+
+    return pt
 
 
 # =============================================
@@ -176,6 +254,8 @@ def _build_credit_note_xml(comprobante, emisor: dict) -> bytes:
     motivo = getattr(comprobante, 'motivo_nota', '01')
     doc_ref_tipo = getattr(comprobante, 'doc_referencia_tipo', '01')
     doc_ref_numero = getattr(comprobante, 'doc_referencia_numero', '')
+
+    logger.info(f"[XML_GEN] NC {serie}-{numero} ref={doc_ref_numero} motivo={motivo}")
 
     root = etree.Element(etree.QName(NSMAP_NC[None], 'CreditNote'), nsmap=NSMAP_NC)
 
@@ -215,7 +295,9 @@ def _build_credit_note_xml(comprobante, emisor: dict) -> bytes:
         root.append(_build_invoice_line(idx, item, moneda, line_tag='CreditNoteLine',
                                         qty_tag='CreditedQuantity'))
 
-    return etree.tostring(root, xml_declaration=True, encoding='UTF-8')
+    xml_bytes = etree.tostring(root, xml_declaration=True, encoding='UTF-8')
+    logger.info(f"[XML_GEN] NC XML generado OK ({len(xml_bytes)} bytes)")
+    return xml_bytes
 
 
 # =============================================
@@ -231,6 +313,8 @@ def _build_debit_note_xml(comprobante, emisor: dict) -> bytes:
     motivo = getattr(comprobante, 'motivo_nota', '01')
     doc_ref_tipo = getattr(comprobante, 'doc_referencia_tipo', '01')
     doc_ref_numero = getattr(comprobante, 'doc_referencia_numero', '')
+
+    logger.info(f"[XML_GEN] ND {serie}-{numero} ref={doc_ref_numero} motivo={motivo}")
 
     root = etree.Element(etree.QName(NSMAP_ND[None], 'DebitNote'), nsmap=NSMAP_ND)
 
@@ -268,7 +352,9 @@ def _build_debit_note_xml(comprobante, emisor: dict) -> bytes:
         root.append(_build_invoice_line(idx, item, moneda, line_tag='DebitNoteLine',
                                         qty_tag='DebitedQuantity'))
 
-    return etree.tostring(root, xml_declaration=True, encoding='UTF-8')
+    xml_bytes = etree.tostring(root, xml_declaration=True, encoding='UTF-8')
+    logger.info(f"[XML_GEN] ND XML generado OK ({len(xml_bytes)} bytes)")
+    return xml_bytes
 
 
 # =============================================
@@ -278,7 +364,6 @@ def _build_debit_note_xml(comprobante, emisor: dict) -> bytes:
 def _build_supplier(emisor: dict):
     """Construye AccountingSupplierParty.
     NO emite CityName/CountrySubentity/District si están vacíos.
-    SUNAT rechaza elementos XML vacíos.
     """
     supplier = _cac('AccountingSupplierParty')
     party = _cac('Party')
@@ -299,19 +384,14 @@ def _build_supplier(emisor: dict):
     ple = _cac('PartyLegalEntity')
     ple.append(_cbc('RegistrationName', emisor.get('razon_social', '')))
 
-    # RegistrationAddress - orden UBL 2.1 estricto
     addr = _cac('RegistrationAddress')
 
-    # 1. ID (ubigeo) - requerido
+    # Orden UBL 2.1 estricto
     addr.append(_cbc('ID', emisor.get('ubigeo', '') or '150101'))
-
-    # 2. AddressTypeCode - requerido
     addr.append(_cbc('AddressTypeCode', '0000'))
-
-    # 3. CitySubdivisionName (urbanización)
     addr.append(_cbc('CitySubdivisionName', emisor.get('urbanizacion', '-') or '-'))
 
-    # 4-6. Solo si tienen valor (SUNAT rechaza elementos vacíos)
+    # Solo si tienen valor (SUNAT rechaza elementos vacíos)
     provincia = (emisor.get('provincia', '') or '').strip()
     departamento = (emisor.get('departamento', '') or '').strip()
     distrito = (emisor.get('distrito', '') or '').strip()
@@ -323,15 +403,18 @@ def _build_supplier(emisor: dict):
     if distrito:
         addr.append(_cbc('District', distrito))
 
-    # 7. AddressLine
     addr_line = _cac('AddressLine')
     addr_line.append(_cbc('Line', emisor.get('direccion', '') or '-'))
     addr.append(addr_line)
 
-    # 8. Country
     country = _cac('Country')
     country.append(_cbc('IdentificationCode', 'PE'))
     addr.append(country)
+
+    # Log diagnóstico de dirección
+    logger.info("[XML_GEN] Emisor dirección: ubigeo=%s, prov=%s, dept=%s, dist=%s",
+                emisor.get('ubigeo'), provincia or '(vacío)', departamento or '(vacío)',
+                distrito or '(vacío)')
 
     ple.append(addr)
     party.append(ple)
@@ -349,6 +432,9 @@ def _build_customer(comprobante):
     cliente_nombre = (getattr(comprobante, 'cliente_razon_social', None) or
                       getattr(comprobante, 'cliente_nombre', None) or '')
     cliente_direccion = (getattr(comprobante, 'cliente_direccion', None) or '').strip()
+
+    logger.info(f"[XML_GEN] Cliente: tipo={cliente_tipo_doc}, doc={cliente_num_doc}, "
+                f"nombre={cliente_nombre[:30]}, dir={cliente_direccion[:30] if cliente_direccion else '(vacío)'}")
 
     customer = _cac('AccountingCustomerParty')
     party = _cac('Party')
