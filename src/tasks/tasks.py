@@ -156,15 +156,24 @@ def emitir_comprobante_task(self, comprobante_id: str, test_mode: bool = False):
 
         # send to SUNAT
         try:
-            # Log SOL credentials being used (for debug)
-            try:
-                username_used = f"{emisor.ruc}{emisor.sol_usuario}" if emisor.sol_usuario else None
-                password_used = emisor.sol_password
-                logger.info(f"Using SOL credentials - Username: {username_used} Password: {password_used}")
-                print(f"Using SOL credentials - Username: {username_used} Password: {password_used}")
-            except Exception:
-                logger.exception("Error preparing SOL credentials log")
-            cdr = enviar_comprobante(signed_xml, emisor.ruc, sol_usuario=emisor.sol_usuario, sol_password=emisor.sol_password)
+            # Desencriptar clave SOL
+            from cryptography.fernet import Fernet
+            from src.core.config import settings
+
+            sol_password_plain = emisor.sol_password
+            if emisor.sol_password:
+                try:
+                    f = Fernet(settings.encryption_key.encode())
+                    sol_password_plain = f.decrypt(emisor.sol_password.encode()).decode()
+                    logger.info("SOL password desencriptada OK")
+                except Exception:
+                    logger.warning("SOL password no encriptada, usando tal cual")
+                    sol_password_plain = emisor.sol_password
+
+            username_used = f"{emisor.ruc}{emisor.sol_usuario}" if emisor.sol_usuario else None
+            logger.info(f"Enviando a SUNAT - Username: {username_used}")
+
+            cdr = enviar_comprobante(signed_xml, emisor.ruc, sol_usuario=emisor.sol_usuario, sol_password=sol_password_plain)
         except Exception as e:
             # If enviar_comprobante raises, log and try to save raw exception as respuesta
             err_text = str(e)
