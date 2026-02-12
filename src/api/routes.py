@@ -706,11 +706,8 @@ async def emitir_comprobante(
     igv = round(subtotal_gravado * 0.18, 2)
     total = round(subtotal_gravado + igv + subtotal_exonerado + subtotal_inafecto, 2)
     
-    igv = round(subtotal * 0.18, 2)
-    total = round(subtotal + igv, 2)
-    
     peru_tz = timezone(timedelta(hours=-5))
-    fecha_peru = datetime.now(peru_tz).date()
+    fecha_peru = datetime.now(peru_tz).replace(tzinfo=None)
 
     # Crear comprobante
     comprobante = Comprobante(
