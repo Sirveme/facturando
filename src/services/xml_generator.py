@@ -408,18 +408,18 @@ def _build_supplier(emisor: dict):
 
     # Dirección del emisor
     addr = _cac('RegistrationAddress')
-    addr.append(_cbc('ID', emisor.get('ubigeo', '160101')))  # Ubigeo
-    addr.append(_cbc('AddressTypeCode', '0000'))  # Domicilio fiscal
+    addr.append(_cbc('ID', emisor.get('ubigeo', '160101')))
+    addr.append(_cbc('AddressTypeCode', '0000'))
+
+    # Orden UBL requerido por SUNAT:
+    addr.append(_cbc('CitySubdivisionName', '-'))
+    addr.append(_cbc('CityName', emisor.get('provincia', '')))
+    addr.append(_cbc('CountrySubentity', emisor.get('departamento', '')))
+    addr.append(_cbc('District', emisor.get('distrito', '')))
 
     addr_line = _cac('AddressLine')
     addr_line.append(_cbc('Line', emisor.get('direccion', '')))
     addr.append(addr_line)
-
-    city = _cac('CitySubdivisionName') if False else None  # No requerido
-    country_sub = _cbc('CityName', emisor.get('provincia', ''))
-    addr.append(country_sub)
-    addr.append(_cbc('CountrySubentity', emisor.get('departamento', '')))
-    addr.append(_cbc('District', emisor.get('distrito', '')))
 
     country = _cac('Country')
     country.append(_cbc('IdentificationCode', 'PE'))
