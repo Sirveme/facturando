@@ -82,7 +82,12 @@ async function subirCertificado() {
     formData.append('password', password);
 
     try {
-        const res = await fetch('/api/configuracion/certificado', { method: 'POST', body: formData });
+        const res = await fetch('/api/configuracion/certificado', 
+            { 
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin' 
+            });
         const data = await res.json();
 
         if (res.ok && data.exito) {
@@ -116,7 +121,8 @@ async function guardarCredencialesSOL() {
     try {
         const res = await fetch('/api/configuracion/credenciales-sol', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json',
+            credentials: 'same-origin' },
             body: JSON.stringify({ usuario_sol: usuario, clave_sol: clave })
         });
         const data = await res.json();
@@ -153,7 +159,8 @@ async function guardarFormato() {
         const res = await fetch('/api/configuracion/formato', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
+            credentials: 'same-origin'
         });
         const result = await res.json();
 
