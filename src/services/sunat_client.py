@@ -22,22 +22,16 @@ SUNAT_BETA_URL = "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService"
 SUNAT_PROD_WSDL = "https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl"
 SUNAT_PROD_URL = "https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService"
 
-# Caché global del cliente SOAP (evita re-descargar WSDL en cada envío)
+# Caché global del cliente SOAP
 _cached_client = None
 _cached_wsdl_url = None
 
 
 def _get_or_create_client(wsdl_url: str, wsse, force_new: bool = False):
-    """Obtiene cliente SOAP cacheado o crea uno nuevo.
-
-    El WSDL de SUNAT rara vez cambia, así que cacheamos el cliente
-    para evitar re-descargarlo en cada envío. Esto también evita
-    el error 401 en schemas importados (?ns1.wsdl).
-    """
+    """Obtiene cliente SOAP cacheado o crea uno nuevo."""
     global _cached_client, _cached_wsdl_url
 
     if _cached_client is not None and _cached_wsdl_url == wsdl_url and not force_new:
-        # Reusar cliente existente, solo actualizar credenciales WSSE
         _cached_client.wsse = wsse
         logger.info("Reusando cliente SOAP cacheado")
         return _cached_client
@@ -47,18 +41,16 @@ def _get_or_create_client(wsdl_url: str, wsse, force_new: bool = False):
     try:
         from zeep import Client
         from zeep.transports import Transport
-        from zeep.plugins import HistoryPlugin
         import requests
     except ImportError as e:
         raise RuntimeError("zeep es requerido: pip install zeep") from e
 
-    # Session con headers y timeouts adecuados
     session = requests.Session()
     session.headers.update({
         'Content-Type': 'text/xml; charset=utf-8',
         'Accept': 'text/xml, application/xml',
     })
-    # Retry adapter para requests HTTP (descarga de WSDL/schemas)
+
     from requests.adapters import HTTPAdapter
     from urllib3.util.retry import Retry
     retry_strategy = Retry(
@@ -72,7 +64,6 @@ def _get_or_create_client(wsdl_url: str, wsse, force_new: bool = False):
     session.mount("http://", adapter)
 
     transport = Transport(session=session, timeout=60, operation_timeout=60)
-
     client = Client(wsdl=wsdl_url, transport=transport, wsse=wsse)
 
     _cached_client = client
@@ -87,13 +78,13 @@ def _extract_meta_from_xml(xml_bytes: bytes) -> dict:
 
     Returns:
         {'serie': str, 'numero': str, 'tipo': str}
-        tipo: '01'=factura, '03'=boleta, '07'=NC, '08'=ND
     """
     parser = etree.XMLParser(recover=True)
     doc = etree.fromstring(xml_bytes, parser=parser)
 
     # Extraer serie-numero del elemento ID
     serie, numero = "", ""
+    # Usar xpath() en lugar de find() porque local-name() es XPath, no ElementPath
     ids = doc.xpath("//*[local-name()='ID']")
     if ids and ids[0].text:
         text = ids[0].text.strip()
@@ -106,12 +97,14 @@ def _extract_meta_from_xml(xml_bytes: bytes) -> dict:
     # Extraer tipo de comprobante
     tipo = "01"
     for tag in ["InvoiceTypeCode", "CreditNoteTypeCode", "DebitNoteTypeCode"]:
-        el = doc.find(".//*[local-name()='%s']" % tag)  # noqa: UP031
+        # IMPORTANTE: usar xpath(), NO find() - lxml find() no soporta local-name()
+        els = doc.xpath("//*[local-name()='%s']" % tag)
+        el = els[0] if els else None
         if el is not None and el.text:
             tipo = el.text.strip()
             break
 
-    # Inferir tipo por serie si no se encontró tag
+    # Inferir tipo por serie si no se encontró tag específico
     if tipo == "01" and serie:
         prefix = serie[0].upper()
         if prefix == "B":
@@ -129,9 +122,10 @@ def _parse_cdr(cdr_bytes: bytes) -> dict:
 
     def find_text(names):
         for n in names:
-            el = doc.find(".//{*}%s" % n)
-            if el is not None and el.text:
-                return el.text.strip()
+            # Usar xpath() en lugar de find()
+            els = doc.xpath(".//*[local-name()='%s']" % n)
+            if els and els[0].text:
+                return els[0].text.strip()
         return None
 
     codigo = find_text(
@@ -150,28 +144,16 @@ def enviar_comprobante(
     sol_password: str | None = None,
     use_production: bool = False,
 ) -> dict:
-    """Envía comprobante firmado a SUNAT Beta/Producción y retorna CDR parseado.
-
-    Args:
-        xml_firmado: XML firmado (bytes)
-        emisor_ruc: RUC del emisor
-        sol_usuario: Usuario SOL (sin RUC, ej: "MODDATOS")
-        sol_password: Clave SOL
-        use_production: Si True, usa endpoint de producción
-
-    Returns:
-        {'codigo': str|None, 'descripcion': str|None, 'cdr_xml': bytes}
-    """
+    """Envía comprobante firmado a SUNAT Beta/Producción y retorna CDR parseado."""
     from zeep.wsse.username import UsernameToken
     from zeep.plugins import HistoryPlugin
 
-    # Extraer metadata del XML para armar nombre correcto del ZIP
+    # Extraer metadata del XML
     meta = _extract_meta_from_xml(xml_firmado)
     serie = meta["serie"]
     numero = meta["numero"]
     tipo = meta["tipo"]
 
-    # Nombre según estándar SUNAT: {RUC}-{TIPO}-{SERIE}-{NUMERO}
     base_name = f"{emisor_ruc}-{tipo}-{serie}-{numero}"
     xml_name = f"{base_name}.xml"
     zip_name = f"{base_name}.zip"
@@ -200,7 +182,7 @@ def enviar_comprobante(
     last_error = None
     for attempt in range(3):
         try:
-            force_new = (attempt > 0)  # Forzar nuevo cliente en reintentos
+            force_new = (attempt > 0)
             client = _get_or_create_client(wsdl_url, wsse, force_new=force_new)
 
             history = HistoryPlugin()
@@ -211,7 +193,6 @@ def enviar_comprobante(
                 contentFile=content_b64
             )
 
-            # Log SOAP para debug
             _log_soap_history(history)
 
             # Extraer applicationResponse
@@ -226,7 +207,6 @@ def enviar_comprobante(
             else:
                 resp_bytes = _extract_from_history(history)
 
-            # Descomprimir ZIP de respuesta (CDR viene como ZIP)
             cdr_bytes = _try_unzip(resp_bytes)
 
             parsed = _parse_cdr(cdr_bytes)
@@ -236,15 +216,13 @@ def enviar_comprobante(
         except Exception as e:
             last_error = e
             err_text = str(e)
-            logger.warning(
-                "Intento %d/3 falló: %s", attempt + 1, err_text
-            )
+            logger.warning("Intento %d/3 falló: %s", attempt + 1, err_text)
 
             # Si es 401 o error de conexión, invalidar caché y reintentar
             if "401" in err_text or "Unauthorized" in err_text or "ConnectionError" in err_text:
                 global _cached_client
                 _cached_client = None
-                logger.info("Caché de cliente SOAP invalidado por error de auth/conexión")
+                logger.info("Caché de cliente SOAP invalidado")
 
                 if attempt < 2:
                     wait = 3 * (attempt + 1)
@@ -253,15 +231,13 @@ def enviar_comprobante(
                     time.sleep(wait)
                     continue
 
-            # Si es error SOAP de SUNAT (no de red), no reintentar
-            # Retornar el error como CDR para que envio_sunat.py lo procese
+            # Error no recuperable - retornar
             return {
                 "codigo": None,
                 "descripcion": err_text,
                 "cdr_xml": err_text.encode("utf-8"),
             }
 
-    # Si agotamos todos los intentos
     return {
         "codigo": None,
         "descripcion": str(last_error),
@@ -270,7 +246,6 @@ def enviar_comprobante(
 
 
 def _log_soap_history(history):
-    """Log SOAP request/response para debugging."""
     try:
         if history.last_sent:
             logger.debug(
@@ -287,7 +262,6 @@ def _log_soap_history(history):
 
 
 def _extract_from_history(history) -> bytes:
-    """Intenta extraer respuesta del historial SOAP de zeep."""
     try:
         if history.last_received is not None:
             envelope = getattr(history.last_received, "envelope", None)
@@ -295,11 +269,10 @@ def _extract_from_history(history) -> bytes:
                 return etree.tostring(envelope, encoding="utf-8")
     except Exception:
         pass
-    return b"<error>No applicationResponse received</error>"
+    return b"<e>No applicationResponse received</e>"
 
 
 def _try_unzip(data: bytes) -> bytes:
-    """Si data es un ZIP, extrae el primer XML. Si no, retorna tal cual."""
     try:
         b = BytesIO(data)
         with zipfile.ZipFile(b) as zf:
