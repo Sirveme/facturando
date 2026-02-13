@@ -315,3 +315,156 @@ a:hover {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+
+/* =============================================
+   FIX PACK - Pegar al FINAL de variables.css
+   (reemplaza el bloque "FIX CONTRASTE DARK MODE" existente)
+   ============================================= */
+
+/* --- FIX 1: Título de página visible en dark mode --- */
+[data-theme="dark"] .page-title,
+.page-title {
+    color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .page-description,
+.page-description {
+    color: #a1a1aa !important;
+}
+
+[data-theme="dark"] .header-right,
+[data-theme="dark"] .header-right span {
+    color: #e4e4e7 !important;
+}
+
+[data-theme="dark"] .text-secondary,
+.text-secondary {
+    color: #a1a1aa !important;
+}
+
+/* --- FIX 2: Totales siempre a la derecha --- */
+.totales-grid {
+    display: flex !important;
+    justify-content: flex-end !important;
+}
+
+.totales-box {
+    min-width: 280px;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: var(--space-4) !important;
+}
+
+.total-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: var(--space-3) 0 !important;
+    color: var(--text-primary) !important;
+}
+
+.total-row span:first-child {
+    color: var(--text-secondary) !important;
+}
+
+.total-row span:last-child {
+    color: var(--text-primary) !important;
+    font-weight: var(--weight-semibold) !important;
+}
+
+.total-row.total-final {
+    font-size: var(--text-2xl) !important;
+    font-weight: var(--weight-bold) !important;
+    border-top: 2px solid var(--primary) !important;
+    padding-top: var(--space-4) !important;
+    margin-top: var(--space-2) !important;
+}
+
+.total-row.total-final span:last-child {
+    color: var(--success-text) !important;
+}
+
+/* --- FIX 3: Ref-cards nota de crédito visibles --- */
+.ref-card {
+    background: var(--bg-tertiary) !important;
+    border: 1px solid #3F3F3F !important;
+    border-radius: var(--radius-lg) !important;
+    padding: var(--space-4) !important;
+    margin-bottom: var(--space-3) !important;
+    cursor: pointer !important;
+    transition: all 200ms ease !important;
+}
+
+.ref-card:hover {
+    border-color: var(--primary) !important;
+    background: var(--bg-elevated) !important;
+}
+
+.ref-card.selected {
+    border-color: var(--primary) !important;
+    background: rgba(94, 106, 210, 0.15) !important;
+    box-shadow: 0 0 0 1px var(--primary) !important;
+}
+
+.ref-card-numero {
+    font-weight: var(--weight-bold) !important;
+    color: var(--text-primary) !important;
+    font-size: var(--text-base) !important;
+}
+
+.ref-card-monto {
+    font-weight: var(--weight-bold) !important;
+    color: var(--success-text) !important;
+    font-size: var(--text-lg) !important;
+}
+
+.ref-info {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: var(--space-3) !important;
+    margin-top: var(--space-3) !important;
+    padding-top: var(--space-3) !important;
+    border-top: 1px solid var(--border-color) !important;
+}
+
+.ref-info-label {
+    font-size: var(--text-xs) !important;
+    color: var(--text-tertiary) !important;
+    text-transform: uppercase !important;
+}
+
+.ref-info-value {
+    font-size: var(--text-sm) !important;
+    color: var(--text-primary) !important;
+}
+
+/* --- FIX 4: Items emitir - Total por línea visible --- */
+.item-row .item-total {
+    color: var(--text-primary) !important;
+    font-weight: var(--weight-semibold) !important;
+    background: var(--bg-secondary) !important;
+}
+
+/* --- FIX 5: Motivos NC visibles --- */
+.motivo-option {
+    background: var(--bg-tertiary) !important;
+    border: 2px solid var(--border-color) !important;
+}
+
+.motivo-option:hover {
+    border-color: var(--primary) !important;
+}
+
+.motivo-option:has(input:checked) {
+    border-color: var(--primary) !important;
+    background: rgba(94, 106, 210, 0.12) !important;
+}
+
+.motivo-option strong {
+    color: var(--text-primary) !important;
+}
+
+.motivo-option p {
+    color: var(--text-secondary) !important;
+}
