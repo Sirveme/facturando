@@ -106,9 +106,14 @@ def _extract_meta_from_xml(xml_bytes: bytes) -> dict:
 
     # Inferir tipo por serie si no se encontró tag específico
     if tipo == "01" and serie:
-        prefix = serie[0].upper()
-        if prefix == "B":
-            tipo = "03"
+        prefix2 = serie[:2].upper()
+        prefix1 = serie[0].upper()
+        if prefix2 == "FC" or prefix2 == "BC":
+            tipo = "07"  # Nota de Crédito
+        elif prefix2 == "FD" or prefix2 == "BD":
+            tipo = "08"  # Nota de Débito
+        elif prefix1 == "B":
+            tipo = "03"  # Boleta
 
     return {"serie": serie, "numero": numero, "tipo": tipo}
 
