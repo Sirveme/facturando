@@ -4,16 +4,14 @@ Factura, Boleta, NC, ND - Formato SUNAT Perú
 
 src/api/v1/pdf_generator.py  (facturalo.pro)
 
-v4 - Cambios:
-- Alineación horizontal: top del logo+emisor = top del recuadro comprobante
-- Sección cliente: Factura (RUC+RazónSocial+Dirección) vs Boleta (DNI+Matr+Nombre+Dir)
-- Descripción 3 líneas: concepto / apellidos nombres / DNI + Cód.Matr.
-- Reducción de espacio vacío en área de items
-- Hash/RESUMEN siempre visible
-- Pie: "Facturación electrónica por facturalo.pro"
-- Línea de verificación: ccploreto.org.pe/consulta/habilidad
-- Web emisor junto a teléfono/email
-- Estado HÁBIL del colegiado (opcional)
+v5 - Cambios:
+- FIX: Valor Venta e IGV por ítem calculados desde cantidad × precio_unitario
+- RESUMEN (hash) debajo de ACEPTADO POR SUNAT
+- Pie de página reubicado debajo del rectángulo (no se pierde al recortar)
+- Distrito, Provincia, Departamento del cliente debajo de dirección
+- Distrito, Provincia, Departamento del emisor (condicional)
+- Branding facturalo.pro más visible + contador de empresas
+- Glosas completas: Gravada, Exonerada, Inafecta, IGV, Total (siempre)
 """
 import io
 import os
@@ -167,6 +165,14 @@ def _rounded_rect(c, x, y, w, h, r=3*mm, stroke=1, fill=0,
     c.roundRect(x, y, w, h, r, stroke=stroke, fill=fill)
 
 
+def _safe_float(val, default=0.0):
+    """Convierte a float de forma segura"""
+    try:
+        return float(val) if val is not None else default
+    except (ValueError, TypeError):
+        return default
+
+
 # =============================================
 # GENERADOR PRINCIPAL (A4/A5)
 # =============================================
@@ -174,23 +180,6 @@ def _rounded_rect(c, x, y, w, h, r=3*mm, stroke=1, fill=0,
 def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
                             codigo_matricula=None, estado_colegiado=None,
                             habil_hasta=None, url_consulta=None):
-    """
-    Genera PDF de comprobante electrónico.
-
-    Args:
-        comprobante: objeto Comprobante (SQLAlchemy)
-        emisor: objeto Emisor
-        cliente: objeto Cliente
-        items: lista de LineaDetalle
-        formato: "A4", "A5" o "TICKET"
-        codigo_matricula: código de matrícula del colegiado (opcional)
-        estado_colegiado: "HÁBIL" o "INHÁBIL" (opcional)
-        habil_hasta: fecha vigencia como string "31/01/2026" (opcional)
-        url_consulta: URL de consulta de habilidad del emisor (opcional)
-
-    Returns:
-        bytes del PDF
-    """
     buffer = io.BytesIO()
 
     if formato == "TICKET":
@@ -219,32 +208,26 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
 
     # =============================================
     # HEADER: Logo + Emisor | Recuadro Documento
-    # Alineados en la MISMA horizontal superior
     # =============================================
-    header_top = y  # Línea superior compartida
+    header_top = y
 
-    # --- Recuadro tipo documento (derecha) ---
-    # Lo dibujamos primero para definir la altura de referencia
     box_w = 62 * mm
     box_h = 34 * mm
     box_x = mr - box_w
-    box_y = header_top - box_h  # Borde superior = header_top
+    box_y = header_top - box_h
 
     _rounded_rect(c, box_x, box_y, box_w, box_h, r=3 * mm,
                   stroke_color=COLOR_BORDE, line_width=1.5)
 
-    # RUC
     c.setFillColor(black)
     c.setFont("Helvetica-Bold", 8)
     c.drawCentredString(box_x + box_w / 2, box_y + box_h - 10 * mm, f"RUC      {emisor.ruc}")
 
-    # Tipo (FACTURA / BOLETA)
     c.setFont("Helvetica-Bold", 13)
     c.drawCentredString(box_x + box_w / 2, box_y + box_h - 18 * mm, tipo_corto)
     c.setFont("Helvetica-Bold", 9)
     c.drawCentredString(box_x + box_w / 2, box_y + box_h - 23.5 * mm, "ELECTRÓNICA")
 
-    # Banda gris para el número
     band_h = 7 * mm
     band_y = box_y + 2 * mm
     band_x = box_x + 3 * mm
@@ -255,16 +238,13 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.setFont("Helvetica-Bold", 9)
     c.drawCentredString(box_x + box_w / 2, band_y + 2 * mm, numero_formato)
 
-    # --- Logo del emisor (izquierda, alineado con top del recuadro) ---
+    # --- Logo ---
     logo_w = 22 * mm
     logo_h = 22 * mm
     text_start_x = ml
     logo_loaded = False
-
-    # Logo Y: alineado al top del header
     logo_y = header_top - logo_h - 1 * mm
 
-    # Opción 1: bytes en DB
     if hasattr(emisor, 'logo') and emisor.logo:
         try:
             logo_buffer = io.BytesIO(emisor.logo)
@@ -274,7 +254,6 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
         except Exception:
             pass
 
-    # Opción 2: URL (logo_url)
     if not logo_loaded and hasattr(emisor, 'logo_url') and emisor.logo_url:
         try:
             import urllib.request
@@ -289,11 +268,8 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     if logo_loaded:
         text_start_x = ml + logo_w + 4 * mm
 
-    # Ancho disponible para texto del emisor (hasta el recuadro)
-    max_emisor_w = box_x - text_start_x - 5 * mm
-
-    # --- Datos emisor (alineados al top del header) ---
-    ey = header_top - 4 * mm  # Mismo nivel visual que top del recuadro
+    # --- Datos emisor ---
+    ey = header_top - 4 * mm
 
     c.setFont("Helvetica-Bold", 12)
     c.setFillColor(black)
@@ -306,13 +282,14 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.setFont("Helvetica", 7.5)
     c.setFillColor(COLOR_GRIS_TEXTO)
 
-    # Dirección
     if hasattr(emisor, 'direccion') and emisor.direccion:
         c.drawString(text_start_x, ey, emisor.direccion)
         ey -= 3.5 * mm
 
-    # Ubicación (Provincia - Departamento)
+    # [PUNTO 5] Distrito - Provincia - Departamento del emisor
     ubicacion_parts = []
+    if hasattr(emisor, 'distrito') and emisor.distrito:
+        ubicacion_parts.append(emisor.distrito)
     if hasattr(emisor, 'provincia') and emisor.provincia:
         ubicacion_parts.append(emisor.provincia)
     if hasattr(emisor, 'departamento') and emisor.departamento:
@@ -321,17 +298,14 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
         c.drawString(text_start_x, ey, " - ".join(ubicacion_parts))
         ey -= 3.5 * mm
 
-    # Teléfono
     if hasattr(emisor, 'telefono') and emisor.telefono:
         c.drawString(text_start_x, ey, f"Tel: {emisor.telefono}")
         ey -= 3.5 * mm
 
-    # Email
     if hasattr(emisor, 'email') and emisor.email:
         c.drawString(text_start_x, ey, emisor.email)
         ey -= 3.5 * mm
 
-    # Web institucional
     if hasattr(emisor, 'web') and emisor.web:
         c.setFillColor(COLOR_SECUNDARIO)
         c.drawString(text_start_x, ey, emisor.web)
@@ -339,13 +313,12 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
 
     # =============================================
     # DATOS DEL CLIENTE
-    # Factura: RUC + Razón Social + Dirección
-    # Boleta:  DNI + Matrícula + Nombre + Dirección
+    # [PUNTO 4] Incluye Distrito, Provincia, Departamento
     # =============================================
     y = box_y - 8 * mm
 
     cliente_box_w = content_w * 0.60
-    cliente_box_h = 24 * mm
+    cliente_box_h = 28 * mm
 
     _rounded_rect(c, ml, y - cliente_box_h, cliente_box_w, cliente_box_h, r=2.5 * mm,
                   stroke_color=COLOR_BORDE, line_width=0.75)
@@ -358,6 +331,11 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     nombre_cliente = comprobante.cliente_razon_social or (cliente.razon_social if cliente else "")
     direccion_cliente = comprobante.cliente_direccion or (getattr(cliente, 'direccion', '') if cliente else "")
 
+    # Obtener ubicación del cliente
+    cliente_distrito = getattr(comprobante, 'cliente_distrito', '') or ''
+    cliente_provincia = getattr(comprobante, 'cliente_provincia', '') or ''
+    cliente_departamento = getattr(comprobante, 'cliente_departamento', '') or ''
+
     c.setFont("Helvetica-Bold", 7.5)
     c.drawString(cx, cy, "CLIENTE:")
     cy -= 4.5 * mm
@@ -365,7 +343,6 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     val_indent = 28 * mm
 
     if es_factura:
-        # ── FACTURA: RUC + Razón Social + Dirección del pagador ──
         c.setFont("Helvetica-Bold", 7.5)
         c.drawString(cx, cy, "RUC:")
         c.setFont("Helvetica", 7.5)
@@ -385,9 +362,9 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
             c.setFont("Helvetica", 7)
             dir_trunc = direccion_cliente[:55] if len(direccion_cliente) > 55 else direccion_cliente
             c.drawString(cx + val_indent, cy, dir_trunc)
+            cy -= 4.5 * mm
 
     else:
-        # ── BOLETA: COD matrícula + Nombre + Dirección ──
         c.setFont("Helvetica-Bold", 7.5)
         c.drawString(cx, cy, "NRO DOC:")
         c.setFont("Helvetica", 7.5)
@@ -414,6 +391,21 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
             c.setFont("Helvetica", 7)
             dir_trunc = direccion_cliente[:55] if len(direccion_cliente) > 55 else direccion_cliente
             c.drawString(cx + val_indent, cy, dir_trunc)
+            cy -= 4.5 * mm
+
+    # [PUNTO 4] Ubicación del cliente
+    ubic_parts = []
+    if cliente_distrito:
+        ubic_parts.append(cliente_distrito.strip())
+    if cliente_provincia:
+        ubic_parts.append(cliente_provincia.strip())
+    if cliente_departamento:
+        ubic_parts.append(cliente_departamento.strip())
+    if ubic_parts:
+        c.setFont("Helvetica", 6.5)
+        c.setFillColor(COLOR_GRIS_TEXTO)
+        c.drawString(cx + val_indent, cy, " - ".join(ubic_parts))
+        c.setFillColor(black)
 
     # Recuadro fecha/moneda (derecha)
     fecha_box_x = ml + cliente_box_w + 2 * mm
@@ -447,10 +439,7 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
 
     # =============================================
     # TABLA DE ITEMS
-    # Descripción en 3 líneas con Paragraph:
-    #   L1: Concepto (negrita, 7.5pt)
-    #   L2: Apellidos y Nombres (gris, 6.5pt)
-    #   L3: DNI [xxx] Cód. Matr. [xxx] (gris, 6pt)
+    # [PUNTO 1] Valor Venta e IGV calculados
     # =============================================
     y = y - cliente_box_h - 5 * mm
 
@@ -461,7 +450,6 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     col_desc = content_w - col_cant - col_valor - col_igv - col_importe
     col_widths = [col_cant, col_desc, col_valor, col_igv, col_importe]
 
-    # Estilo base para Paragraphs en la tabla
     style_desc = ParagraphStyle(
         'ItemDesc',
         fontName='Helvetica',
@@ -472,35 +460,46 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     table_data = [["Cant.", "Descripcion", "Valor Venta", "IGV", "Importe"]]
 
     for item in items:
-        cantidad = f"{float(item.cantidad):.0f}" if item.cantidad else "1"
+        cantidad_num = _safe_float(item.cantidad, 1)
+        precio_num = _safe_float(getattr(item, 'precio_unitario', None) or
+                                 getattr(item, 'valor_unitario', None), 0)
+        cantidad = f"{cantidad_num:.0f}"
         desc = item.descripcion or ""
-        valor = f"{float(item.subtotal or 0):.2f}"
-        igv_item = f"{float(item.igv or 0):.2f}"
-        total_item = float(item.monto_linea or item.subtotal or 0) + float(item.igv or 0)
 
-        # Soporte multilínea: \n separa las líneas
+        # [FIX PUNTO 1] Calcular valor venta e IGV
+        valor_venta = _safe_float(item.subtotal, 0) or _safe_float(item.monto_linea, 0)
+        if valor_venta == 0 and precio_num > 0:
+            valor_venta = round(cantidad_num * precio_num, 2)
+
+        tipo_afectacion = str(getattr(item, 'tipo_afectacion_igv', '10') or '10')
+        igv_calculado = _safe_float(item.igv, 0)
+        if igv_calculado == 0 and tipo_afectacion == '10' and valor_venta > 0:
+            igv_calculado = round(valor_venta * 0.18, 2)
+
+        importe_total = round(valor_venta + igv_calculado, 2)
+
+        valor_str = f"{valor_venta:,.2f}"
+        igv_str = f"{igv_calculado:,.2f}"
+        importe_str = f"{importe_total:,.2f}"
+
         if '\n' in desc:
             lineas = desc.split('\n')
-            # Construir HTML para Paragraph
             html_parts = [f'<font size="7.5"><b>{lineas[0]}</b></font>']
             for extra_line in lineas[1:]:
                 html_parts.append(f'<br/><font size="6.5" color="#64748b">{extra_line}</font>')
-            desc_html = ''.join(html_parts)
-            desc_cell = Paragraph(desc_html, style_desc)
+            desc_cell = Paragraph(''.join(html_parts), style_desc)
         else:
             desc_cell = desc
 
-        table_data.append([cantidad, desc_cell, valor, igv_item, f"{total_item:.2f}"])
+        table_data.append([cantidad, desc_cell, valor_str, igv_str, importe_str])
 
     table = Table(table_data, colWidths=col_widths)
     table.setStyle(TableStyle([
-        # Header
         ('BACKGROUND', (0, 0), (-1, 0), COLOR_GRIS_OSCURO),
         ('TEXTCOLOR', (0, 0), (-1, 0), white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 8),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        # Body
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 1), (-1, -1), 7.5),
         ('ALIGN', (0, 1), (0, -1), 'CENTER'),
@@ -508,11 +507,9 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
         ('ALIGN', (3, 1), (3, -1), 'RIGHT'),
         ('ALIGN', (4, 1), (4, -1), 'RIGHT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        # Bordes
         ('BOX', (0, 0), (-1, -1), 0.75, COLOR_BORDE),
         ('LINEBELOW', (0, 0), (-1, 0), 1, COLOR_BORDE),
         ('INNERGRID', (0, 0), (-1, 0), 0.5, COLOR_GRIS_OSCURO),
-        # Padding
         ('TOPPADDING', (0, 0), (-1, -1), 3),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
         ('LEFTPADDING', (0, 0), (-1, -1), 5),
@@ -523,7 +520,6 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     table.drawOn(c, ml, y - table_h)
     y = y - table_h
 
-    # Espacio mínimo proporcional (reducido: ya no 50mm fijo)
     n_items = len(items) if items else 1
     if n_items <= 2:
         min_items_area = 25 * mm
@@ -537,18 +533,23 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
         y -= (min_items_area - items_area_used)
 
     # =============================================
-    # TOTALES
+    # TOTALES [PUNTO 7] Siempre todas las glosas
     # =============================================
     y -= 3 * mm
 
     totales_label_x = mr - 68 * mm
     totales_valor_x = mr - 3 * mm
 
-    op_gravada = float(comprobante.op_gravada or 0)
-    op_exonerada = float(comprobante.op_exonerada or 0)
-    op_inafecta = float(comprobante.op_inafecta or 0)
-    monto_igv = float(comprobante.monto_igv or 0)
-    total = float(comprobante.monto_total or 0)
+    op_gravada = _safe_float(comprobante.op_gravada, 0)
+    op_exonerada = _safe_float(comprobante.op_exonerada, 0)
+    op_inafecta = _safe_float(comprobante.op_inafecta, 0)
+    monto_igv = _safe_float(comprobante.monto_igv, 0)
+    total = _safe_float(comprobante.monto_total, 0)
+
+    if op_gravada == 0 and monto_igv > 0:
+        op_gravada = round(monto_igv / 0.18, 2)
+
+    subtotal_venta = op_gravada + op_exonerada + op_inafecta
 
     def draw_total_line(label, valor, y_pos, bold=False, size=8.5):
         font = "Helvetica-Bold" if bold else "Helvetica"
@@ -559,25 +560,25 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
         c.drawRightString(totales_valor_x, y_pos, f"{valor:,.2f}")
         return y_pos - 5 * mm
 
-    if op_gravada > 0:
-        y = draw_total_line("OP. GRAVADA", op_gravada, y)
-    if op_exonerada > 0:
-        y = draw_total_line("VALOR VENTA", op_exonerada, y)
-    if op_inafecta > 0:
-        y = draw_total_line("OP. INAFECTA", op_inafecta, y)
+    y = draw_total_line("Op. Gravada", op_gravada, y)
+    y = draw_total_line("Op. Inafecta", op_inafecta, y)
+    y = draw_total_line("Op. Exonerada", op_exonerada, y)
+    y = draw_total_line("Sub Total", subtotal_venta, y)
+
+    c.setStrokeColor(COLOR_LINEA)
+    c.setLineWidth(0.5)
+    c.line(totales_label_x, y + 3 * mm, mr, y + 3 * mm)
 
     y = draw_total_line("IGV 18%", monto_igv, y)
     y = draw_total_line("TOTAL", total, y, bold=True, size=9.5)
 
-    # =============================================
-    # ESTADO DEL COLEGIADO (opcional, debajo de totales)
-    # =============================================
+    # Estado colegiado (opcional)
     if estado_colegiado and codigo_matricula:
         y -= 2 * mm
         if estado_colegiado.upper() == "HÁBIL":
             c.setFont("Helvetica-Bold", 7)
             c.setFillColor(COLOR_HABIL)
-            estado_text = f"Colegiado HÁBIL"
+            estado_text = "Colegiado HÁBIL"
             if habil_hasta:
                 estado_text += f" vigente hasta: {habil_hasta}"
             c.drawRightString(mr, y, estado_text)
@@ -606,13 +607,15 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     y -= letras_h
 
     # =============================================
-    # FOOTER: Representación + RESUMEN + QR
+    # FOOTER: Representación + Estado + Hash + QR
+    # [PUNTO 2] Hash debajo de ACEPTADO
+    # [PUNTO 3] Pie debajo del rectángulo
     # =============================================
     y -= 5 * mm
 
     qr_size = 24 * mm
     footer_text_w = content_w - qr_size - 5 * mm
-    footer_h = 24 * mm  # Un poco más alto para caber hash + estado + consulta
+    footer_h = 28 * mm
 
     _rounded_rect(c, ml, y - footer_h, footer_text_w, footer_h, r=2 * mm,
                   stroke_color=COLOR_BORDE, line_width=0.75)
@@ -622,28 +625,26 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.setFont("Helvetica-Bold", 7.5)
     c.drawString(ml + 4 * mm, y - 5.5 * mm, f"Representación impresa de la {tipo_nombre}")
 
-    # Línea 2: RESUMEN (hash)
-    hash_cpe = getattr(comprobante, 'hash_cpe', None) or ""
-    hash_y = y - 11 * mm
-    if hash_cpe:
-        c.setFont("Helvetica-Bold", 7)
-        c.drawString(ml + 4 * mm, hash_y, "RESUMEN:")
-        c.setFont("Helvetica", 7)
-        c.drawString(ml + 23 * mm, hash_y, hash_cpe)
-        next_y = hash_y - 5 * mm
-    else:
-        next_y = hash_y
-
-    # Línea 3: Estado SUNAT
+    # Línea 2: Estado SUNAT
+    next_y = y - 12 * mm
     estado = getattr(comprobante, 'estado', '')
     if estado == "aceptado":
-        c.setFont("Helvetica-Bold", 7)
+        c.setFont("Helvetica-Bold", 7.5)
         c.setFillColor(COLOR_VERDE)
         c.drawString(ml + 4 * mm, next_y, "ACEPTADO POR SUNAT")
+        next_y -= 5 * mm
     elif estado == "rechazado":
-        c.setFont("Helvetica-Bold", 7)
+        c.setFont("Helvetica-Bold", 7.5)
         c.setFillColor(COLOR_ROJO)
         c.drawString(ml + 4 * mm, next_y, "RECHAZADO POR SUNAT")
+        next_y -= 5 * mm
+
+    # [PUNTO 2] Línea 3: Resumen (hash) debajo del estado
+    hash_cpe = getattr(comprobante, 'hash_cpe', None) or ""
+    if hash_cpe:
+        c.setFont("Helvetica-Bold", 6.5)
+        c.setFillColor(COLOR_GRIS_TEXTO)
+        c.drawString(ml + 4 * mm, next_y, f"Resumen: {hash_cpe}")
 
     # --- QR (derecha) ---
     qr_x = mr - qr_size
@@ -668,11 +669,11 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
         c.drawCentredString(qr_x + qr_size / 2, qr_y + qr_size / 2, "QR")
 
     # =============================================
-    # LÍNEA DE CONSULTA + CUENTAS BANCARIAS
+    # [PUNTO 3] PIE debajo del rectángulo
+    # [PUNTO 6] Branding facturalo.pro más visible
     # =============================================
-    y = min(y - footer_h, qr_y) - 4 * mm
+    y = min(y - footer_h, qr_y) - 3 * mm
 
-    # URL de consulta de habilidad
     consulta_url = url_consulta or getattr(emisor, 'url_consulta', None)
     if consulta_url:
         c.setFont("Helvetica", 6.5)
@@ -681,18 +682,28 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
                             f"Consulte el estado de habilitación en {consulta_url}")
         y -= 4 * mm
 
-    # Cuentas bancarias del emisor (si existen)
     if hasattr(emisor, 'cuentas_bancarias') and emisor.cuentas_bancarias:
         c.setFont("Helvetica", 6)
         c.setFillColor(COLOR_GRIS_TEXTO)
         c.drawCentredString(w / 2, y, f"Cuentas para pagos: {emisor.cuentas_bancarias}")
         y -= 4 * mm
 
-    # --- Pie de página ---
+    # [PUNTO 6] Línea separadora + branding
+    pie_y = y - 2 * mm
+
+    c.setStrokeColor(COLOR_LINEA)
+    c.setLineWidth(0.5)
+    c.line(ml + 30 * mm, pie_y + 3 * mm, mr - 30 * mm, pie_y + 3 * mm)
+
+    c.setFont("Helvetica", 7)
+    c.setFillColor(COLOR_GRIS_OSCURO)
+    c.drawCentredString(w / 2, pie_y,
+                        f"Facturación electrónica por facturalo.pro  |  {datetime.now(tz=PERU_TZ).strftime('%d/%m/%Y %H:%M')}")
+
     c.setFont("Helvetica", 5.5)
     c.setFillColor(COLOR_GRIS_TEXTO)
-    c.drawCentredString(w / 2, 8 * mm,
-                        f"Facturación electrónica por facturalo.pro | {datetime.now(tz=PERU_TZ).strftime('%d/%m/%Y %H:%M')}")
+    c.drawCentredString(w / 2, pie_y - 4 * mm,
+                        "Más de 80 empresas ya usan Facturalo.pro")
 
     c.save()
     pdf_bytes = buffer.getvalue()
@@ -709,7 +720,7 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
     """Genera PDF en formato ticket (80mm)"""
     ticket_w = 80 * mm
     base_h = 200 * mm
-    extra_per_item = 15 * mm  # Un poco más por las 3 líneas
+    extra_per_item = 15 * mm
     n_items = len(items) if items else 1
     total_h = base_h + (n_items * extra_per_item)
 
@@ -726,7 +737,6 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
     hora = comprobante.fecha_emision.strftime("%H:%M") if comprobante.fecha_emision else ""
     es_factura = comprobante.tipo_documento == "01"
 
-    # Emisor
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(black)
     c.drawCentredString(ticket_w / 2, y, emisor.razon_social or "")
@@ -745,7 +755,6 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
         c.drawCentredString(ticket_w / 2, y, emisor.web)
         y -= 3.5 * mm
 
-    # Separador
     y -= 2 * mm
     c.setStrokeColor(COLOR_LINEA)
     c.setLineWidth(0.5)
@@ -754,7 +763,6 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
     c.setDash()
     y -= 4 * mm
 
-    # Tipo + número
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(black)
     c.drawCentredString(ticket_w / 2, y, tipo_nombre)
@@ -763,13 +771,11 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
     c.drawCentredString(ticket_w / 2, y, numero_formato)
     y -= 5 * mm
 
-    # Fecha/hora
     c.setFont("Helvetica", 6)
     c.setFillColor(COLOR_GRIS)
     c.drawString(ml, y, f"Fecha: {fecha}  Hora: {hora}")
     y -= 4 * mm
 
-    # Cliente
     num_doc = comprobante.cliente_numero_documento or (cliente.numero_documento if cliente else "")
     nombre_cliente = comprobante.cliente_razon_social or (cliente.razon_social if cliente else "")
 
@@ -794,14 +800,12 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
 
     y -= 5 * mm
 
-    # Separador
     c.setStrokeColor(COLOR_LINEA)
     c.setDash(1, 2)
     c.line(ml, y, mr, y)
     c.setDash()
     y -= 4 * mm
 
-    # Items header
     c.setFont("Helvetica-Bold", 6)
     c.drawString(ml, y, "Cant.")
     c.drawString(ml + 12 * mm, y, "Descripción")
@@ -811,12 +815,22 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
     c.line(ml, y, mr, y)
     y -= 3.5 * mm
 
-    # Items
     c.setFont("Helvetica", 5.5)
     for item in items:
-        cantidad = f"{float(item.cantidad):.0f}" if item.cantidad else "1"
+        cantidad_num = _safe_float(item.cantidad, 1)
+        precio_num = _safe_float(getattr(item, 'precio_unitario', None) or
+                                 getattr(item, 'valor_unitario', None), 0)
+        cantidad = f"{cantidad_num:.0f}"
         desc = item.descripcion or ""
-        total_item = float(item.monto_linea or item.subtotal or 0) + float(item.igv or 0)
+
+        valor_venta = _safe_float(item.subtotal, 0) or _safe_float(item.monto_linea, 0)
+        if valor_venta == 0 and precio_num > 0:
+            valor_venta = round(cantidad_num * precio_num, 2)
+        tipo_afectacion = str(getattr(item, 'tipo_afectacion_igv', '10') or '10')
+        igv_item = _safe_float(item.igv, 0)
+        if igv_item == 0 and tipo_afectacion == '10' and valor_venta > 0:
+            igv_item = round(valor_venta * 0.18, 2)
+        total_item = round(valor_venta + igv_item, 2)
 
         c.setFillColor(black)
         c.drawString(ml, y, cantidad)
@@ -839,15 +853,13 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
 
         y -= 4 * mm
 
-    # Separador
     c.setStrokeColor(COLOR_LINEA)
     c.line(ml, y, mr, y)
     y -= 4 * mm
 
-    # Totales
-    total = float(comprobante.monto_total or 0)
-    monto_igv = float(comprobante.monto_igv or 0)
-    op_exonerada = float(comprobante.op_exonerada or 0)
+    total = _safe_float(comprobante.monto_total, 0)
+    monto_igv = _safe_float(comprobante.monto_igv, 0)
+    op_exonerada = _safe_float(comprobante.op_exonerada, 0)
 
     if op_exonerada > 0:
         c.setFont("Helvetica", 6)
@@ -865,18 +877,16 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
     c.drawRightString(mr, y, f"S/ {total:.2f}")
     y -= 5 * mm
 
-    # Estado colegiado
     if estado_colegiado and codigo_matricula:
         if estado_colegiado.upper() == "HÁBIL":
             c.setFont("Helvetica-Bold", 6)
             c.setFillColor(COLOR_HABIL)
-            texto_estado = f"Colegiado HÁBIL"
+            texto_estado = "Colegiado HÁBIL"
             if habil_hasta:
                 texto_estado += f" hasta {habil_hasta}"
             c.drawCentredString(ticket_w / 2, y, texto_estado)
         y -= 4 * mm
 
-    # Importe en letras
     c.setFont("Helvetica", 5.5)
     c.setFillColor(COLOR_GRIS)
     importe_letras = numero_a_letras(total)
@@ -888,7 +898,6 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
         c.drawString(ml, y, importe_letras)
     y -= 4 * mm
 
-    # QR
     try:
         qr_url = f"{FACTURALO_URL}/verificar/{comprobante.id}"
         qr_img = qrcode.make(qr_url, box_size=2, border=1)
@@ -902,7 +911,6 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
     except Exception:
         y -= 3 * mm
 
-    # Footer: Representación → Hash → facturalo.pro
     c.setFont("Helvetica", 5.5)
     c.setFillColor(COLOR_GRIS)
     c.drawCentredString(ticket_w / 2, y, f"Representación impresa de la {tipo_nombre}")
@@ -914,6 +922,7 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
         c.drawCentredString(ticket_w / 2, y, f"Resumen: {hash_cpe}")
         y -= 3 * mm
 
+    c.setFont("Helvetica", 5.5)
     c.drawCentredString(ticket_w / 2, y, "Facturación electrónica por facturalo.pro")
 
     c.save()
