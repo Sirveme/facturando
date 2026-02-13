@@ -277,3 +277,341 @@
     font-size: 10px;
   }
 }
+
+
+
+
+/* Preview del comprobante */
+.comprobante-preview {
+    padding: var(--space-4);
+}
+
+
+
+/* Spinner loading */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-8);
+    color: var(--text-secondary);
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Botón icono sin fondo */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 16px;
+    transition: all var(--transition-base);
+}
+
+.btn-icon:hover {
+    background: var(--bg-tertiary);
+}
+
+/* =============================================
+   MODAL VER COMPROBANTE - FIX COMPLETO
+   ============================================= */
+
+/* Overlay centrado */
+#modal-ver {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    display: none;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 99999 !important;
+}
+
+#modal-ver.active {
+    display: flex !important;
+}
+
+#modal-ver .modal {
+    display: block !important;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    max-width: 800px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+    margin: auto;
+}
+
+/* Header del modal */
+#modal-ver .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+#modal-ver .modal-title {
+    margin: 0;
+    font-size: var(--text-lg);
+    color: var(--text-primary);
+}
+
+#modal-ver .modal-close {
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    line-height: 1;
+    padding: 0;
+}
+
+#modal-ver .modal-close:hover {
+    color: var(--danger);
+}
+
+/* Body del modal */
+#modal-ver .modal-body {
+    padding: var(--space-6);
+}
+
+/* Footer del modal */
+#modal-ver .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+/* =============================================
+   PREVIEW DEL COMPROBANTE
+   ============================================= */
+
+.comprobante-preview {
+    color: var(--text-primary);
+}
+
+/* Header: Emisor + Número documento */
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-4);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.preview-emisor h4 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-lg);
+    color: var(--text-primary);
+}
+
+.preview-emisor p {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.preview-doc {
+    text-align: center;
+    padding: var(--space-4) var(--space-6);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-md);
+    background: rgba(212, 175, 55, 0.1);
+    flex-shrink: 0;
+}
+
+.preview-doc-tipo {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.preview-doc-numero {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-top: var(--space-1);
+}
+
+/* Info grid: Fecha, Cliente, RUC, Dirección */
+.preview-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+    padding: var(--space-4);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.preview-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.preview-row .label {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.preview-row > span:not(.label) {
+    font-size: var(--text-base);
+    color: var(--text-tertiary);
+    font-weight: var(--weight-medium);
+}
+
+/* Tabla de items */
+.preview-items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: var(--space-6);
+}
+
+.preview-items thead th {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-weight: var(--weight-semibold);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.preview-items tbody td {
+    padding: var(--space-3) var(--space-4);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--text-sm);
+}
+
+.preview-items tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+/* Alinear columnas numéricas a la derecha */
+.preview-items th:nth-child(3),
+.preview-items th:nth-child(4),
+.preview-items th:nth-child(5),
+.preview-items td:nth-child(3),
+.preview-items td:nth-child(4),
+.preview-items td:nth-child(5) {
+    text-align: right;
+}
+
+/* Totales */
+.preview-totales {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-bottom: var(--space-6);
+}
+
+.preview-totales .total-row {
+    display: flex;
+    justify-content: space-between;
+    width: 280px;
+    padding: var(--space-2) 0;
+    font-size: var(--text-sm);
+}
+
+.preview-totales .total-row span:first-child {
+    color: var(--text-secondary);
+}
+
+.preview-totales .total-row span:last-child {
+    color: var(--text-primary);
+    font-weight: var(--weight-medium);
+}
+
+.preview-totales .total-final {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    border-top: 2px solid var(--primary);
+    padding-top: var(--space-3);
+    margin-top: var(--space-2);
+}
+
+.preview-totales .total-final span:last-child {
+    color: var(--success-text);
+}
+
+/* Estado del comprobante */
+.preview-estado {
+    text-align: center;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-color);
+}
+
+.preview-estado .badge {
+    font-size: var(--text-sm);
+    padding: var(--space-2) var(--space-4);
+}
+
+.preview-estado p {
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .preview-header {
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+    
+    .preview-doc {
+        align-self: flex-start;
+    }
+    
+    .preview-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .preview-totales .total-row {
+        width: 100%;
+    }
+}

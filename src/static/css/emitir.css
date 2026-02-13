@@ -210,3 +210,70 @@
         width: 100%;
     }
 }
+
+/* ========================================
+   CLASES ADICIONALES PARA NUEVO TEMPLATE
+   ======================================== */
+
+/* Botón eliminar item (alternativo) */
+.btn-icon-danger {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-md);
+    color: var(--danger);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    flex-shrink: 0;
+}
+
+.btn-icon-danger:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* Totales - Grid layout */
+.totales-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-6);
+}
+
+.totales-box {
+    min-width: 280px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-3) 0;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+}
+
+.total-row.total-final {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    border-top: 2px solid var(--primary);
+    padding-top: var(--space-4);
+    margin-top: var(--space-2);
+}
+
+.total-row.total-final span:last-child {
+    color: var(--success-text);
+}
+
+/* Responsive adicional */
+@media (max-width: 768px) {
+    .totales-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .item-row .input-group {
+        flex: 1 1 45% !important;
+    }
+}

@@ -13,6 +13,7 @@
   --text-primary: #FFFFFF;     /* Blanco puro */
   --text-secondary: #CCCCCC;   /* Gris muy claro */
   --text-tertiary: #999999;    /* Gris medio */
+  --text-muted: #777777;       /* Gris suave */
   
   --border-color: #2F2F2F;
   --border-hover: #3F3F3F;
@@ -104,138 +105,139 @@
   --z-tooltip: 1070;
 }
 
-/* Light mode - MÁS CONTRASTE con dark */
+/* Light mode */
 [data-theme="light"] {
-  --bg-primary: #E5E7EB;       /* Gris claro */
-  --bg-secondary: #F3F4F6;     /* Casi blanco */
-  --bg-tertiary: #FFFFFF;      /* Blanco */
-  --bg-elevated: #FFFFFF;      /* Blanco */
+  --bg-primary: #E5E7EB;
+  --bg-secondary: #F3F4F6;
+  --bg-tertiary: #FFFFFF;
+  --bg-elevated: #FFFFFF;
   
-  --text-primary: #111827;     /* Casi negro */
-  --text-secondary: #4B5563;   /* Gris oscuro */
-  --text-tertiary: #6B7280;    /* Gris medio */
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-tertiary: #6B7280;
+  --text-muted: #9CA3AF;
   
   --border-color: #D1D5DB;
   --border-hover: #9CA3AF;
   --shadow-color: rgba(0, 0, 0, 0.1);
   
-  /* Mantener colores de acento iguales */
   --primary: #5E6AD2;
   --primary-light: #E0E7FF;
   --success-text: #059669;
   --danger-text: #DC2626;
   --warning-text: #D97706;
-}
-
-/* FORZAR visibilidad en light mode */
-[data-theme="light"] .page-title,
-[data-theme="light"] .page-description,
-[data-theme="light"] .card-title,
-[data-theme="light"] .stat-card-title,
-[data-theme="light"] .stat-card-value,
-[data-theme="light"] .sidebar-link span,
-[data-theme="light"] .header-user-name,
-[data-theme="light"] .input-label,
-[data-theme="light"] .comprobante-serie,
-[data-theme="light"] .cliente-name,
-[data-theme="light"] .monto-total,
-[data-theme="light"] .totales-row span,
-[data-theme="light"] .modal-title,
-[data-theme="light"] .bottom-nav-label,
-[data-theme="light"] h1,
-[data-theme="light"] h2,
-[data-theme="light"] h3,
-[data-theme="light"] h4 {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="light"] .page-description,
-[data-theme="light"] .stat-card-change,
-[data-theme="light"] .comprobante-date,
-[data-theme="light"] .cliente-ruc,
-[data-theme="light"] .monto-detalle,
-[data-theme="light"] .input-helper,
-[data-theme="light"] .pagination-info,
-[data-theme="light"] .header-user-role {
-  color: var(--text-secondary) !important;
-}
-
-/* Botones en light mode */
-[data-theme="light"] .btn {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="light"] .btn-ghost {
-  border-color: var(--border-color);
-  background: var(--bg-tertiary);
-}
-
-[data-theme="light"] .btn-ghost:hover {
-  background: var(--bg-elevated);
-  border-color: var(--border-hover);
-}
-
-[data-theme="light"] .btn-primary {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: white !important;
-}
-
-/* SVG icons en light mode */
-[data-theme="light"] .btn svg,
-[data-theme="light"] .sidebar-link svg,
-[data-theme="light"] .header svg {
-  color: currentColor;
+  --info-text: #2563EB;
 }
 
 
 /* ========================================
-   APLICACIÓN GLOBAL DEL TEMA
+   GLOBAL STYLES
    ======================================== */
 
-/* FORZAR contraste en TODO */
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
 }
 
+/* ========================================
+   THEME TOGGLE - Mostrar/ocultar iconos
+   ======================================== */
 
-/* Todos los textos importantes */
-.input-label,
-.card-title,
+/* Dark mode (default): mostrar luna, ocultar sol */
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+
+/* Light mode: mostrar sol, ocultar luna */
+[data-theme="light"] .theme-toggle .icon-sun { display: block; }
+[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+.theme-toggle {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+}
+
+.theme-toggle:hover {
+  background: var(--bg-elevated);
+  border-color: var(--primary);
+}
+
+
+/* ========================================
+   TEXTO - Visibilidad garantizada
+   ======================================== */
+
+/* Textos primarios - SIEMPRE visibles */
 .page-title,
-.page-description,
+.card-title,
+.input-label,
 .sidebar-link span,
-.btn,
-.totales-row span,
-.stat-label,
-.stat-card-title,
-.comparison-label,
-.pricing-plan,
-.pagination-info,
-h1, h2, h3, h4, h5, h6,
-label,
-th,
-td,
-.input,
-select,
 .header-user-name,
-.header-user-role,
 .comprobante-serie,
 .cliente-name,
-.monto-total {
+.monto-total,
+.modal-title,
+.motivo-option strong,
+.ref-card-numero,
+.nc-item-desc,
+.descuento-preview-row.total span,
+h1, h2, h3, h4, h5, h6,
+label,
+th, td,
+.btn {
   color: var(--text-primary) !important;
 }
 
 /* Textos secundarios */
+.page-description,
+.text-secondary,
 .comprobante-date,
 .cliente-ruc,
 .monto-detalle,
-.input-helper {
+.input-helper,
+.header-user-role,
+.pagination-info,
+.ref-info-label,
+.motivo-option p,
+.nc-item-original,
+.stat-card-change {
   color: var(--text-secondary) !important;
 }
 
-/* Inputs */
+/* Textos terciarios */
+.text-tertiary,
+.text-muted {
+  color: var(--text-tertiary) !important;
+}
+
+/* Valores info (ref-cards, stats) */
+.ref-info-value,
+.stat-card-value,
+.stat-card-title,
+.stat-label,
+.comparison-label {
+  color: var(--text-primary) !important;
+}
+
+/* Montos verdes */
+.ref-card-monto,
+.total-row.total-final span:last-child,
+.totales-row.total span {
+  color: var(--success-text) !important;
+}
+
+
+/* ========================================
+   INPUTS
+   ======================================== */
+
 .input,
 select,
 textarea {
@@ -253,12 +255,87 @@ textarea {
   border-color: var(--primary) !important;
 }
 
-/* Asegurar que los badges sean legibles */
+
+/* ========================================
+   TOTALES (emitir.html y nota_credito.html)
+   ======================================== */
+
+.totales-grid {
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+
+.totales-box {
+  min-width: 280px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.total-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  padding: var(--space-3) 0 !important;
+}
+
+.total-row span:first-child {
+  color: var(--text-secondary) !important;
+}
+
+.total-row span:last-child {
+  color: var(--text-primary) !important;
+  font-weight: var(--weight-semibold) !important;
+}
+
+.total-row.total-final {
+  font-size: var(--text-2xl) !important;
+  font-weight: var(--weight-bold) !important;
+  border-top: 2px solid var(--primary) !important;
+  padding-top: var(--space-4) !important;
+  margin-top: var(--space-2) !important;
+}
+
+.total-row.total-final span:last-child {
+  color: var(--success-text) !important;
+}
+
+/* Totales emitir - filas */
+.totales-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: var(--space-4) 0 !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.totales-row span {
+  color: var(--text-primary) !important;
+}
+
+.totales-row.total {
+  border-top: 3px solid var(--primary) !important;
+  border-bottom: none !important;
+}
+
+.totales-row.total span {
+  color: var(--success-text) !important;
+}
+
+
+/* ========================================
+   BADGES
+   ======================================== */
+
 .badge {
   font-weight: var(--weight-semibold);
 }
 
-/* Mejorar contraste de tablas */
+
+/* ========================================
+   TABLAS
+   ======================================== */
+
 .table thead {
   background: var(--bg-primary);
 }
@@ -275,7 +352,11 @@ textarea {
   background: var(--bg-tertiary);
 }
 
-/* Links y botones */
+
+/* ========================================
+   LINKS
+   ======================================== */
+
 a {
   color: var(--primary-bright);
   transition: color var(--transition-fast);
@@ -285,7 +366,11 @@ a:hover {
   color: var(--primary);
 }
 
-/* Scrollbars personalizadas (Webkit) */
+
+/* ========================================
+   SCROLLBAR
+   ======================================== */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -304,167 +389,48 @@ a:hover {
   background: var(--bg-elevated);
 }
 
-/* Selection */
+
+/* ========================================
+   SELECTION & FOCUS
+   ======================================== */
+
 ::selection {
   background: var(--primary-light);
   color: var(--primary-bright);
 }
 
-/* Focus visible para accesibilidad */
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
 
-/* =============================================
-   FIX PACK - Pegar al FINAL de variables.css
-   (reemplaza el bloque "FIX CONTRASTE DARK MODE" existente)
-   ============================================= */
+/* ========================================
+   LIGHT MODE - Overrides específicos
+   ======================================== */
 
-/* --- FIX 1: Título de página visible en dark mode --- */
-[data-theme="dark"] .page-title,
-.page-title {
-    color: #FFFFFF !important;
+[data-theme="light"] .btn {
+  color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .page-description,
-.page-description {
-    color: #a1a1aa !important;
+[data-theme="light"] .btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white !important;
 }
 
-[data-theme="dark"] .header-right,
-[data-theme="dark"] .header-right span {
-    color: #e4e4e7 !important;
+[data-theme="light"] .btn-ghost {
+  border-color: var(--border-color);
+  background: var(--bg-tertiary);
 }
 
-[data-theme="dark"] .text-secondary,
-.text-secondary {
-    color: #a1a1aa !important;
+[data-theme="light"] .btn-ghost:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-hover);
 }
 
-/* --- FIX 2: Totales siempre a la derecha --- */
-.totales-grid {
-    display: flex !important;
-    justify-content: flex-end !important;
-}
-
-.totales-box {
-    min-width: 280px;
-    background: var(--bg-secondary) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: var(--radius-lg) !important;
-    padding: var(--space-4) !important;
-}
-
-.total-row {
-    display: flex !important;
-    justify-content: space-between !important;
-    padding: var(--space-3) 0 !important;
-    color: var(--text-primary) !important;
-}
-
-.total-row span:first-child {
-    color: var(--text-secondary) !important;
-}
-
-.total-row span:last-child {
-    color: var(--text-primary) !important;
-    font-weight: var(--weight-semibold) !important;
-}
-
-.total-row.total-final {
-    font-size: var(--text-2xl) !important;
-    font-weight: var(--weight-bold) !important;
-    border-top: 2px solid var(--primary) !important;
-    padding-top: var(--space-4) !important;
-    margin-top: var(--space-2) !important;
-}
-
-.total-row.total-final span:last-child {
-    color: var(--success-text) !important;
-}
-
-/* --- FIX 3: Ref-cards nota de crédito visibles --- */
-.ref-card {
-    background: var(--bg-tertiary) !important;
-    border: 1px solid #3F3F3F !important;
-    border-radius: var(--radius-lg) !important;
-    padding: var(--space-4) !important;
-    margin-bottom: var(--space-3) !important;
-    cursor: pointer !important;
-    transition: all 200ms ease !important;
-}
-
-.ref-card:hover {
-    border-color: var(--primary) !important;
-    background: var(--bg-elevated) !important;
-}
-
-.ref-card.selected {
-    border-color: var(--primary) !important;
-    background: rgba(94, 106, 210, 0.15) !important;
-    box-shadow: 0 0 0 1px var(--primary) !important;
-}
-
-.ref-card-numero {
-    font-weight: var(--weight-bold) !important;
-    color: var(--text-primary) !important;
-    font-size: var(--text-base) !important;
-}
-
-.ref-card-monto {
-    font-weight: var(--weight-bold) !important;
-    color: var(--success-text) !important;
-    font-size: var(--text-lg) !important;
-}
-
-.ref-info {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: var(--space-3) !important;
-    margin-top: var(--space-3) !important;
-    padding-top: var(--space-3) !important;
-    border-top: 1px solid var(--border-color) !important;
-}
-
-.ref-info-label {
-    font-size: var(--text-xs) !important;
-    color: var(--text-tertiary) !important;
-    text-transform: uppercase !important;
-}
-
-.ref-info-value {
-    font-size: var(--text-sm) !important;
-    color: var(--text-primary) !important;
-}
-
-/* --- FIX 4: Items emitir - Total por línea visible --- */
-.item-row .item-total {
-    color: var(--text-primary) !important;
-    font-weight: var(--weight-semibold) !important;
-    background: var(--bg-secondary) !important;
-}
-
-/* --- FIX 5: Motivos NC visibles --- */
-.motivo-option {
-    background: var(--bg-tertiary) !important;
-    border: 2px solid var(--border-color) !important;
-}
-
-.motivo-option:hover {
-    border-color: var(--primary) !important;
-}
-
-.motivo-option:has(input:checked) {
-    border-color: var(--primary) !important;
-    background: rgba(94, 106, 210, 0.12) !important;
-}
-
-.motivo-option strong {
-    color: var(--text-primary) !important;
-}
-
-.motivo-option p {
-    color: var(--text-secondary) !important;
+[data-theme="light"] .btn svg,
+[data-theme="light"] .sidebar-link svg,
+[data-theme="light"] .header svg {
+  color: currentColor;
 }
