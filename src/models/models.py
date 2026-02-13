@@ -133,6 +133,7 @@ class Comprobante(Base):
     referencia_externa = Column(String(100), index=True)
     tipo_documento = Column(String(2), nullable=False)
     tipo_operacion = Column(String(4), default='0101')  # 0101=Venta interna
+    hash_cpe = Column(String(100), nullable=True)
 
     emisor = relationship('Emisor', back_populates='comprobantes')
     lineas = relationship('LineaDetalle', back_populates='comprobante', cascade='all, delete-orphan')
