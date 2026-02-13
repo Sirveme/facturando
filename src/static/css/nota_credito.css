@@ -1,0 +1,300 @@
+/* =============================================
+   NOTA DE CRÉDITO - ESTILOS
+   ============================================= */
+
+/* Tarjeta de referencia */
+.ref-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-bottom: var(--space-3);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.ref-card:hover {
+    border-color: var(--primary);
+}
+
+.ref-card.selected {
+    border-color: var(--primary);
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.ref-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ref-card-numero {
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+}
+
+.ref-card-monto {
+    font-weight: var(--weight-bold);
+    color: var(--success-text);
+}
+
+.ref-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+}
+
+.ref-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ref-info-label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ref-info-value {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+
+/* Motivos */
+.motivo-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+}
+
+.motivo-option {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.motivo-option:hover {
+    border-color: var(--primary);
+}
+
+.motivo-option:has(input:checked) {
+    border-color: var(--primary);
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.motivo-option input {
+    display: none;
+}
+
+.motivo-option strong {
+    display: block;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.motivo-option p {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
+/* Panel de detalle dinámico */
+.detalle-panel {
+    display: none;
+    padding: var(--space-4);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-top: var(--space-4);
+}
+
+.detalle-panel.active {
+    display: block;
+}
+
+/* Mensaje informativo */
+.info-message {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+
+.info-message.warning {
+    background: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.3);
+}
+
+/* Items de NC */
+.nc-items {
+    margin-top: var(--space-4);
+}
+
+.nc-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-2);
+}
+
+.nc-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.nc-item-info {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.nc-item-desc {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+.nc-item-original {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+.nc-item-input {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.nc-item-input input {
+    width: 100px;
+}
+
+.nc-item-input select {
+    width: 60px;
+}
+
+.nc-item-monto {
+    min-width: 100px;
+    text-align: right;
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+}
+
+/* Descuento global */
+.descuento-global-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-4);
+}
+
+.descuento-global-form .input-group {
+    flex: 0 0 auto;
+}
+
+.descuento-preview {
+    padding: var(--space-4);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-4);
+}
+
+.descuento-preview-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+}
+
+.descuento-preview-row.total {
+    font-weight: var(--weight-bold);
+    font-size: var(--text-lg);
+    border-top: 2px solid var(--primary);
+    margin-top: var(--space-2);
+    padding-top: var(--space-3);
+}
+
+/* Totales */
+.totales-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    max-width: 300px;
+    margin-left: auto;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    color: var(--text-primary);
+}
+
+.total-row span:first-child {
+    color: var(--text-secondary);
+}
+
+.total-final {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    border-top: 2px solid var(--primary);
+    margin-top: var(--space-2);
+    padding-top: var(--space-3);
+}
+
+.total-final span:last-child {
+    color: var(--success-text);
+}
+
+/* Acciones rápidas */
+.nc-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .ref-info {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .motivo-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .nc-item {
+        flex-wrap: wrap;
+    }
+    
+    .nc-item-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .descuento-global-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
