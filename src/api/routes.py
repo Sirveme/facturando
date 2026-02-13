@@ -29,17 +29,16 @@ from src.models.models import Comprobante, LineaDetalle, Emisor, Certificado, Lo
 from src.services.sunat_service import SunatService
 from src.api.auth_utils import obtener_emisor_actual
 
-# Importar tarea Celery
+# Verificar Celery disponible
 try:
-    from src.tasks.envio_sunat import enviar_comprobante_task
+    from src.tasks.celery_app import celery_app
     CELERY_DISPONIBLE = True
 except ImportError:
     print("⚠️  Celery no disponible, usando procesamiento síncrono")
     CELERY_DISPONIBLE = False
-    enviar_comprobante_task = None
+    celery_app = None
 
 from src.schemas.schemas import ComprobanteCreate, StandardResponse
-from src.tasks.tasks import emitir_comprobante_task, reenviar_comprobante_task
 
 from src.core.config import settings
 from typing import Optional
@@ -352,15 +351,12 @@ async def reenviar_todos_rechazados(
     
     db.commit()
     
-    # Luego encolar tareas
-    if CELERY_DISPONIBLE and enviar_comprobante_task:
+   # Luego encolar tareas
+    if CELERY_DISPONIBLE:
+        from src.tasks.celery_app import celery_app
         for comp in rechazados:
             try:
-                tarea_id = str(uuid4())
-                enviar_comprobante_task.apply_async(
-                    args=[comp.id],
-                    task_id=tarea_id
-                )
+                celery_app.send_task('enviar_comprobante_sunat', args=[comp.id])
                 reenviados += 1
             except Exception as e:
                 print(f"Error encolando {comp.id}: {e}")
