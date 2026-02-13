@@ -269,7 +269,13 @@ def _build_credit_note_xml(comprobante, emisor: dict) -> bytes:
 
     discrepancy = _cac('DiscrepancyResponse')
     discrepancy.append(_cbc('ReferenceID', doc_ref_numero))
-    discrepancy.append(_cbc('ResponseCode', motivo))
+    
+    resp_code = _cbc('ResponseCode', motivo)
+    resp_code.set('listAgencyName', 'PE:SUNAT')
+    resp_code.set('listName', 'Tipo de nota de credito')
+    resp_code.set('listURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo09')
+    discrepancy.append(resp_code)
+
     discrepancy.append(_cbc('Description', _motivo_nc_descripcion(motivo)))
     root.append(discrepancy)
 
@@ -328,7 +334,13 @@ def _build_debit_note_xml(comprobante, emisor: dict) -> bytes:
 
     discrepancy = _cac('DiscrepancyResponse')
     discrepancy.append(_cbc('ReferenceID', doc_ref_numero))
-    discrepancy.append(_cbc('ResponseCode', motivo))
+    
+    resp_code = _cbc('ResponseCode', motivo)
+    resp_code.set('listAgencyName', 'PE:SUNAT')
+    resp_code.set('listName', 'Tipo de nota de debito')
+    resp_code.set('listURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo10')
+    discrepancy.append(resp_code)
+
     discrepancy.append(_cbc('Description', _motivo_nd_descripcion(motivo)))
     root.append(discrepancy)
 
