@@ -258,14 +258,16 @@ def enviar_comprobante_task(self, comprobante_id: str):
                 comp.descripcion_respuesta = cdr.get('descripcion', '')
                 print(f"❌ {comp.serie}-{comp.numero} RECHAZADO: {cdr.get('descripcion')}")
 
-            # Guardar hash del CDR para campo RESUMEN del PDF
+            # Extraer DigestValue del XML firmado (= RESUMEN del CPE)
             try:
-                import hashlib
-                if cdr.get('cdr_xml'):
-                    cdr_bytes = cdr['cdr_xml'] if isinstance(cdr['cdr_xml'], bytes) else cdr['cdr_xml'].encode('utf-8')
-                    comp.hash_cpe = hashlib.sha256(cdr_bytes).hexdigest()[:20]
-            except Exception:
-                pass
+                from lxml import etree
+                doc = etree.fromstring(signed_xml)
+                digest_els = doc.xpath("//*[local-name()='DigestValue']")
+                if digest_els and digest_els[0].text:
+                    comp.hash_cpe = digest_els[0].text.strip()
+                    logger.info(f"Hash CPE (DigestValue): {comp.hash_cpe}")
+            except Exception as e:
+                logger.warning(f"No se pudo extraer DigestValue: {e}")
 
             db.commit()
 
