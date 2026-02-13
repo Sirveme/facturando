@@ -296,8 +296,8 @@ async def emitir_comprobante(
         db.commit()
         
         # === ENVIAR A SUNAT VÍA CELERY ===
-        from src.tasks.tasks import emitir_comprobante_task
-        emitir_comprobante_task.delay(comprobante_id, test_mode=True)
+        from src.tasks.celery_app import celery_app
+        celery_app.send_task('enviar_comprobante_sunat', args=[comprobante_id])
         
         # === RESPONSE ===
         response = {
