@@ -5,11 +5,19 @@ from sqlalchemy.orm import sessionmaker
 from src.core.config import settings
 from src.models.models import Base, Emisor, Comprobante
 from src.schemas.schemas import ComprobanteCreate, StandardResponse
+
 from datetime import datetime
 import decimal
 
 DATABASE_URL = settings.database_url
-engine = create_engine(DATABASE_URL, future=True)
+
+engine = create_engine(
+    DATABASE_URL,
+    future=True,
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 app = FastAPI(title='facturalo.pro API')
