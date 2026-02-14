@@ -91,6 +91,7 @@ async def emitir_comprobante(
     print(f"🔍 DEBUG RECIBIDO:")
     print(f"   fecha_emision: {data.fecha_emision}")
     print(f"   hora_emision: {getattr(data, 'hora_emision', 'NO EXISTE')}")
+    print(f"🔍 NC DEBUG: ref_tipo={data.documento_ref_tipo}, ref_serie={data.documento_ref_serie}, ref_numero={data.documento_ref_numero}, motivo={data.motivo_nota}")
     # FIN DEBUG
     
     try:
