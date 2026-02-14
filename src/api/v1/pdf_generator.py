@@ -436,6 +436,13 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.setFont("Helvetica", 8)
     moneda_texto = "SOLES" if (comprobante.moneda or "PEN") == "PEN" else comprobante.moneda
     c.drawRightString(fxr, fy, moneda_texto)
+    fy -= 5.5 * mm
+
+    c.setFont("Helvetica-Bold", 7.5)
+    c.drawString(fx, fy, "Forma Pago:")
+    c.setFont("Helvetica", 8)
+    forma_pago_texto = getattr(comprobante, 'forma_pago', 'Contado') or 'Contado'
+    c.drawRightString(fxr, fy, forma_pago_texto.upper())
 
     # =============================================
     # TABLA DE ITEMS
@@ -774,6 +781,9 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
     c.setFont("Helvetica", 6)
     c.setFillColor(COLOR_GRIS)
     c.drawString(ml, y, f"Fecha: {fecha}  Hora: {hora}")
+    y -= 3.5 * mm
+    forma_pago_texto = getattr(comprobante, 'forma_pago', 'Contado') or 'Contado'
+    c.drawString(ml, y, f"Forma de pago: {forma_pago_texto}")
     y -= 4 * mm
 
     num_doc = comprobante.cliente_numero_documento or (cliente.numero_documento if cliente else "")

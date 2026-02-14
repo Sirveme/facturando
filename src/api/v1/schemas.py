@@ -59,6 +59,7 @@ class ComprobanteRequest(BaseModel):
     hora_emision: Optional[str] = None
     enviar_email: bool = Field(False, description="Enviar por email al cliente")
     referencia_externa: Optional[str] = Field(None, description="ID en sistema origen", max_length=100)
+    forma_pago: str = "Contado"
     
     # Para NC/ND
     documento_ref_tipo: Optional[str] = Field(None, description="Tipo doc referencia")

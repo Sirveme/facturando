@@ -246,6 +246,7 @@ async def emitir_comprobante(
             numero_formato=numero_formato,
             fecha_emision=fecha_emision,
             moneda="PEN",
+            forma_pago=data.forma_pago or "Contado",
             monto_base=subtotal,
             monto_igv=igv_total,
             monto_total=total,
