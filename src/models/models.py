@@ -43,6 +43,7 @@ class Emisor(Base):
     formato_boleta = Column(String(10), default='A4')
     formato_ticket = Column(String(10), default='TICKET')
     formato_nc_nd = Column(String(10), default='A4')
+    produccion = Column(Boolean, default=False, nullable=False)
 
     # API
     api_key = Column(String(64), unique=True)
@@ -101,6 +102,7 @@ class Comprobante(Base):
     numero_formato = Column(String(16))
     fecha_emision = Column(Date, nullable=False)
     moneda = Column(String(3), default='PEN')
+    forma_pago = Column(String(20), default='Contado')
     monto_base = Column(Numeric(14,2), default=Decimal('0.00'))
     monto_igv = Column(Numeric(14,2), default=Decimal('0.00'))
     monto_total = Column(Numeric(14,2), default=Decimal('0.00'))
