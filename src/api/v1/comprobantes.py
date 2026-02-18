@@ -495,8 +495,8 @@ async def obtener_pdf(
     except:
         pass
 
-    num_doc_cliente = comprobante.cliente_numero_documento or ""
-    filename = f"{comprobante.serie}-{comprobante.numero:08d}--{num_doc_cliente}.pdf"
+    fecha_str = comprobante.fecha_emision.strftime("%Y%m%d") if comprobante.fecha_emision else ""
+    filename = f"{emisor.ruc}_{comprobante.serie}-{comprobante.numero:08d}_{fecha_str}.pdf"
 
     return Response(
         content=pdf_bytes,

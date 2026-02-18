@@ -180,6 +180,28 @@ def _safe_float(val, default=0.0):
 def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
                             codigo_matricula=None, estado_colegiado=None,
                             habil_hasta=None, url_consulta=None):
+    # === ROUTING POR NICHO (si el emisor tiene template específico) ===
+    try:
+        from src.services.pdf_templates import get_emisor_nicho, get_template_generator
+        _nicho = get_emisor_nicho(emisor)
+        print(f"📄 PDF ROUTING: emisor={emisor.ruc}, nicho={_nicho}, formato={formato}")
+        if _nicho not in ("default", "ccploreto"):
+            _template_fn = get_template_generator(_nicho)
+            if _template_fn:
+                print(f"📄 → Usando template: {_nicho}")
+                return _template_fn(
+                    comprobante, emisor, cliente, items, formato,
+                    codigo_matricula, estado_colegiado, habil_hasta, url_consulta
+                )
+            else:
+                print(f"📄 → Template '{_nicho}' no encontrado, usando default")
+        else:
+            print(f"📄 → Usando template default (nicho={_nicho})")
+    except Exception as _e:
+        print(f"📄 ⚠️ Error en routing de template: {_e}")
+        import traceback
+        traceback.print_exc()
+
     buffer = io.BytesIO()
 
     if formato == "TICKET":
@@ -707,10 +729,16 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.drawCentredString(w / 2, pie_y,
                         f"Facturación electrónica por facturalo.pro  |  {datetime.now(tz=PERU_TZ).strftime('%d/%m/%Y %H:%M')}")
 
+    # Slogan dinámico por nicho del emisor
+    try:
+        from src.services.pdf_templates import get_emisor_nicho, get_slogan
+        _footer_slogan = get_slogan(get_emisor_nicho(emisor))
+    except Exception:
+        _footer_slogan = "Más de 80 empresas ya usan Facturalo.pro"
+
     c.setFont("Helvetica", 5.5)
     c.setFillColor(COLOR_GRIS_TEXTO)
-    c.drawCentredString(w / 2, pie_y - 4 * mm,
-                        "Más de 80 empresas ya usan Facturalo.pro")
+    c.drawCentredString(w / 2, pie_y - 4 * mm, _footer_slogan)
 
     c.save()
     pdf_bytes = buffer.getvalue()
