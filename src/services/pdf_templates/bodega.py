@@ -586,7 +586,7 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     """Genera PDF en formato ticket (80mm) con precio unitario visible."""
     ticket_w = 80 * mm
     base_h = 200 * mm
-    extra_per_item = 15 * mm
+    extra_per_item = 20 * mm  # 2 líneas por item: descripción + datos
     n_items = len(items) if items else 1
     total_h = base_h + (n_items * extra_per_item)
 
@@ -681,26 +681,26 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.setDash()
     y -= 4 * mm
 
-    # --- Header de items: Cant | Descripción | P.U | Total ---
+    # --- Header de items: Cant | Unid | Precio | Total ---
     c.setFont("Helvetica-Bold", 5.5)
     c.setFillColor(black)
     c.drawString(ml, y, "Cant")
-    c.drawString(ml + 10 * mm, y, "Descripción")
-    c.drawRightString(mr - 16 * mm, y, "P.U")
+    c.drawString(ml + 10 * mm, y, "Unid")
+    c.drawRightString(mr - 16 * mm, y, "Precio")
     c.drawRightString(mr, y, "Total")
     y -= 3 * mm
     c.setStrokeColor(COLOR_LINEA)
     c.line(ml, y, mr, y)
     y -= 3.5 * mm
 
-    # --- Items ---
-    c.setFont("Helvetica", 5.5)
+    # --- Items (descripción en línea propia + Cant | Unid | Precio | Total) ---
     for item in items:
         cantidad_num = _safe_float(item.cantidad, 1)
         cantidad = f"{cantidad_num:.0f}"
         desc = item.descripcion or ""
+        unidad = getattr(item, 'unidad_medida', None) or "NIU"
 
-        # Precio unitario (mismo cálculo robusto que A4)
+        # Precio unitario (cálculo robusto)
         precio_unitario = _safe_float(getattr(item, 'precio_unitario', None), 0)
         valor_unitario = _safe_float(getattr(item, 'valor_unitario', None), 0)
         subtotal_linea = _safe_float(item.subtotal, 0)
@@ -726,25 +726,27 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
 
         c.setFillColor(black)
 
+        # Línea 1: descripción del producto
+        desc_limpia = desc.split('\n')[0] if '\n' in desc else desc
+        c.setFont("Helvetica-Bold", 5.5)
+        c.drawString(ml, y, desc_limpia[:42])
+        y -= 3.5 * mm
+
+        # Sub-líneas de descripción si hay saltos de línea
         if '\n' in desc:
-            lineas = desc.split('\n')
-            c.setFont("Helvetica-Bold", 5.5)
-            c.drawString(ml, y, cantidad)
-            c.drawString(ml + 10 * mm, y, lineas[0][:28])
-            c.drawRightString(mr - 16 * mm, y, f"{precio_display:.2f}")
-            c.drawRightString(mr, y, f"{total_item:.2f}")
-            for extra in lineas[1:]:
-                y -= 3 * mm
+            for extra in desc.split('\n')[1:]:
                 c.setFont("Helvetica", 5)
                 c.setFillColor(COLOR_GRIS)
-                c.drawString(ml + 10 * mm, y, extra[:35])
+                c.drawString(ml + 2 * mm, y, extra[:40])
+                y -= 3 * mm
             c.setFillColor(black)
-            c.setFont("Helvetica", 5.5)
-        else:
-            c.drawString(ml, y, cantidad)
-            c.drawString(ml + 10 * mm, y, desc[:28])
-            c.drawRightString(mr - 16 * mm, y, f"{precio_display:.2f}")
-            c.drawRightString(mr, y, f"{total_item:.2f}")
+
+        # Línea 2: Cant | Unid | Precio | Total
+        c.setFont("Helvetica", 5.5)
+        c.drawString(ml + 2 * mm, y, cantidad)
+        c.drawString(ml + 10 * mm, y, unidad)
+        c.drawRightString(mr - 16 * mm, y, f"{precio_display:.2f}")
+        c.drawRightString(mr, y, f"{total_item:.2f}")
 
         y -= 4 * mm
 
