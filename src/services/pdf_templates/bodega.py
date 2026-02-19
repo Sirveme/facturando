@@ -40,7 +40,8 @@ def generar_pdf_bodega(comprobante, emisor, cliente, items, formato="A4",
 
     if formato == "TICKET":
         return _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
-                                      codigo_matricula, estado_colegiado, habil_hasta)
+                                      codigo_matricula, estado_colegiado, habil_hasta,
+                                      es_ticket=True)
 
     if formato == "A5":
         pagesize = (148 * mm, 210 * mm)
@@ -582,7 +583,7 @@ def generar_pdf_bodega(comprobante, emisor, cliente, items, formato="A4",
 
 def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
                            codigo_matricula=None, estado_colegiado=None,
-                           habil_hasta=None):
+                           habil_hasta=None, es_ticket=False):
     """Genera PDF en formato ticket (80mm) con precio unitario visible."""
     ticket_w = 80 * mm
     base_h = 200 * mm
@@ -597,8 +598,14 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     y = total_h - 5 * mm
 
     numero_formato = f"{comprobante.serie}-{comprobante.numero:08d}"
-    tipo_nombre = TIPOS_DOCUMENTO.get(comprobante.tipo_documento, "COMPROBANTE")
-    tipo_corto = TIPOS_DOC_CORTO.get(comprobante.tipo_documento, "COMPROBANTE")
+
+    # Titulo: TICKET DE VENTA ELECTRÓNICO cuando es formato ticket
+    if es_ticket and comprobante.tipo_documento == "03":
+        tipo_nombre = "TICKET DE VENTA ELECTRÓNICO"
+        tipo_corto = "TICKET"
+    else:
+        tipo_nombre = TIPOS_DOCUMENTO.get(comprobante.tipo_documento, "COMPROBANTE")
+        tipo_corto = TIPOS_DOC_CORTO.get(comprobante.tipo_documento, "COMPROBANTE")
     fecha = comprobante.fecha_emision.strftime("%d/%m/%Y") if comprobante.fecha_emision else ""
     hora = comprobante.fecha_emision.strftime("%H:%M") if comprobante.fecha_emision else ""
     es_factura = comprobante.tipo_documento == "01"
@@ -805,7 +812,8 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     # --- Pie de ticket ---
     c.setFont("Helvetica", 5.5)
     c.setFillColor(COLOR_GRIS)
-    c.drawCentredString(ticket_w / 2, y, f"Representación impresa de la {tipo_nombre}")
+    prep = "del" if es_ticket else "de la"
+    c.drawCentredString(ticket_w / 2, y, f"Representación impresa {prep} {tipo_nombre}")
     y -= 3 * mm
 
     hash_cpe = getattr(comprobante, 'hash_cpe', None) or ""
