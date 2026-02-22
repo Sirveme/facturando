@@ -581,55 +581,150 @@ def generar_pdf_bodega(comprobante, emisor, cliente, items, formato="A4",
 # Cant | Descripción | P.U | Total
 # =============================================
 
+# =============================================
+# TICKET BODEGA MEJORADO (80mm)
+# Reemplazar en: C:\facturalo\src\services\pdf_templates\bodega.py
+# 
+# Características:
+# - Logo del negocio
+# - RUC destacado
+# - Datos del cliente (o guiones si vacío)
+# - Tabla con Cant | Unid | Precio | Total
+# - Catálogo virtual destacado (https://quevendi.pro/{whatsapp})
+# - QR + URL de verificación facturalo.pro/verificar
+# - Código interno QVDI-{sale_id}
+# - Leyenda Amazonía condicional por ubigeo
+# - Espaciado "con aire" entre secciones
+# =============================================
+
 def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
                            codigo_matricula=None, estado_colegiado=None,
                            habil_hasta=None, es_ticket=False):
-    """Genera PDF en formato ticket (80mm) con precio unitario visible."""
+    """Genera PDF en formato ticket (80mm) con diseño mejorado para bodegas."""
+    
+    # Imports necesarios (asegurar que estén al inicio del archivo bodega.py)
+    # from reportlab.lib.units import mm
+    # from reportlab.lib.colors import black, white, HexColor
+    # import qrcode, io
+    
     ticket_w = 80 * mm
-    base_h = 200 * mm
-    extra_per_item = 20 * mm  # 2 líneas por item: descripción + datos
+    base_h = 280 * mm  # Aumentado para más contenido
+    extra_per_item = 12 * mm
     n_items = len(items) if items else 1
     total_h = base_h + (n_items * extra_per_item)
 
     c = canvas.Canvas(buffer, pagesize=(ticket_w, total_h))
 
-    ml = 3 * mm
-    mr = ticket_w - 3 * mm
+    ml = 3 * mm  # Margen izquierdo
+    mr = ticket_w - 3 * mm  # Margen derecho
+    center_x = ticket_w / 2
     y = total_h - 5 * mm
 
+    # === DATOS DEL COMPROBANTE ===
     numero_formato = f"{comprobante.serie}-{comprobante.numero:08d}"
-
-    # Titulo: TICKET DE VENTA ELECTRÓNICO cuando es formato ticket
-    if es_ticket and comprobante.tipo_documento == "03":
-        tipo_nombre = "TICKET DE VENTA ELECTRÓNICO"
-        tipo_corto = "TICKET"
+    tipo_doc = comprobante.tipo_documento
+    
+    # Determinar título según tipo
+    if tipo_doc == "01":
+        tipo_nombre = "FACTURA ELECTRÓNICA"
+    elif tipo_doc == "03":
+        tipo_nombre = "BOLETA DE VENTA ELECTRÓNICA"
+    elif tipo_doc == "07":
+        tipo_nombre = "NOTA DE CRÉDITO ELECTRÓNICA"
+    elif tipo_doc == "08":
+        tipo_nombre = "NOTA DE DÉBITO ELECTRÓNICA"
     else:
-        tipo_nombre = TIPOS_DOCUMENTO.get(comprobante.tipo_documento, "COMPROBANTE")
-        tipo_corto = TIPOS_DOC_CORTO.get(comprobante.tipo_documento, "COMPROBANTE")
+        tipo_nombre = "COMPROBANTE ELECTRÓNICO"
+    
     fecha = comprobante.fecha_emision.strftime("%d/%m/%Y") if comprobante.fecha_emision else ""
     hora = comprobante.fecha_emision.strftime("%H:%M") if comprobante.fecha_emision else ""
-    es_factura = comprobante.tipo_documento == "01"
 
-    # --- Cabecera ---
-    c.setFont("Helvetica-Bold", 8)
+    # === UBIGEOS AMAZONÍA (para leyenda condicional) ===
+    UBIGEOS_AMAZONIA = ["16", "17", "22", "25", "01"]  # Loreto, MDD, San Martín, Ucayali, Amazonas
+    config = getattr(emisor, 'config_json', {}) or {}
+    es_amazonia = config.get('es_amazonia', False)
+
+    # =============================================
+    # SECCIÓN 1: LOGO + DATOS DEL EMISOR
+    # =============================================
+    
+    # Logo (si existe)
+    logo_loaded = False
+    logo_h_used = 0
+    
+    if hasattr(emisor, 'logo') and emisor.logo:
+        try:
+            logo_buffer = io.BytesIO(emisor.logo)
+            logo_size = 18 * mm
+            c.drawImage(ImageReader(logo_buffer), center_x - logo_size/2, y - logo_size,
+                        logo_size, logo_size, preserveAspectRatio=True, mask='auto')
+            logo_loaded = True
+            logo_h_used = logo_size + 2 * mm
+            y -= logo_h_used
+        except Exception:
+            pass
+    
+    if not logo_loaded and hasattr(emisor, 'logo_url') and emisor.logo_url:
+        try:
+            import urllib.request
+            logo_data = urllib.request.urlopen(emisor.logo_url, timeout=5).read()
+            logo_buffer = io.BytesIO(logo_data)
+            logo_size = 18 * mm
+            c.drawImage(ImageReader(logo_buffer), center_x - logo_size/2, y - logo_size,
+                        logo_size, logo_size, preserveAspectRatio=True, mask='auto')
+            logo_loaded = True
+            logo_h_used = logo_size + 2 * mm
+            y -= logo_h_used
+        except Exception:
+            pass
+
+    # Razón Social / Nombre Comercial
+    nombre_mostrar = emisor.nombre_comercial or emisor.razon_social or ""
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(black)
-    c.drawCentredString(ticket_w / 2, y, emisor.razon_social or "")
+    
+    # Si el nombre es muy largo, reducir fuente
+    if len(nombre_mostrar) > 30:
+        c.setFont("Helvetica-Bold", 7)
+    c.drawCentredString(center_x, y, nombre_mostrar[:45])
     y -= 4 * mm
 
+    # RUC (destacado)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(center_x, y, f"RUC: {emisor.ruc}")
+    y -= 4 * mm
+
+    # Dirección
     c.setFont("Helvetica", 6)
-    c.setFillColor(COLOR_GRIS)
-    c.drawCentredString(ticket_w / 2, y, f"RUC: {emisor.ruc}")
-    y -= 3.5 * mm
-
+    c.setFillColor(COLOR_GRIS_TEXTO)
     if hasattr(emisor, 'direccion') and emisor.direccion:
-        c.drawCentredString(ticket_w / 2, y, emisor.direccion)
-        y -= 3.5 * mm
+        direccion = emisor.direccion[:50]
+        c.drawCentredString(center_x, y, direccion)
+        y -= 3 * mm
 
-    if hasattr(emisor, 'web') and emisor.web:
-        c.drawCentredString(ticket_w / 2, y, emisor.web)
-        y -= 3.5 * mm
+    # Teléfono y Email en una línea
+    contacto_parts = []
+    telefono_emisor = getattr(emisor, 'telefono', '') or ''
+    email_emisor = getattr(emisor, 'email', '') or ''
+    
+    if telefono_emisor:
+        contacto_parts.append(f"Tel: {telefono_emisor}")
+    if email_emisor:
+        contacto_parts.append(email_emisor)
+    
+    if contacto_parts:
+        c.setFont("Helvetica", 5.5)
+        c.drawCentredString(center_x, y, "  |  ".join(contacto_parts))
+        y -= 3 * mm
 
-    # --- Separador ---
+    # Establecimiento anexo / Sucursal
+    establecimiento = getattr(emisor, 'establecimiento_anexo', '') or ''
+    if establecimiento:
+        c.setFont("Helvetica", 5.5)
+        c.drawCentredString(center_x, y, f"Sucursal: {establecimiento[:40]}")
+        y -= 3 * mm
+
+    # === SEPARADOR CON AIRE ===
     y -= 2 * mm
     c.setStrokeColor(COLOR_LINEA)
     c.setLineWidth(0.5)
@@ -638,74 +733,116 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.setDash()
     y -= 4 * mm
 
-    # --- Tipo documento ---
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(black)
-    c.drawCentredString(ticket_w / 2, y, tipo_nombre)
-    y -= 4 * mm
+    # =============================================
+    # SECCIÓN 2: TIPO DE DOCUMENTO
+    # =============================================
+    
     c.setFont("Helvetica-Bold", 9)
-    c.drawCentredString(ticket_w / 2, y, numero_formato)
-    y -= 5 * mm
-
-    # --- Fecha/Hora ---
-    c.setFont("Helvetica", 6)
-    c.setFillColor(COLOR_GRIS)
-    c.drawString(ml, y, f"Fecha: {fecha}  Hora: {hora}")
-    y -= 3.5 * mm
-    forma_pago_texto = getattr(comprobante, 'forma_pago', 'Contado') or 'Contado'
-    c.drawString(ml, y, f"Forma de pago: {forma_pago_texto}")
-    y -= 4 * mm
-
-    # --- Cliente ---
-    num_doc = comprobante.cliente_numero_documento or (cliente.numero_documento if cliente else "")
-    nombre_cliente = comprobante.cliente_razon_social or (cliente.razon_social if cliente else "")
-
-    c.setFont("Helvetica-Bold", 6)
     c.setFillColor(black)
-    c.drawString(ml, y, "CLIENTE:")
-    y -= 3.5 * mm
-
-    if es_factura:
-        c.setFont("Helvetica", 6)
-        c.drawString(ml, y, f"RUC: {num_doc}")
-        y -= 3.5 * mm
-        c.drawString(ml, y, nombre_cliente[:40])
-    else:
-        c.setFont("Helvetica", 6)
-        if codigo_matricula:
-            c.drawString(ml, y, f"COD {codigo_matricula}")
-        else:
-            c.drawString(ml, y, f"DNI: {num_doc}")
-        y -= 3.5 * mm
-        c.drawString(ml, y, nombre_cliente[:40])
-
+    c.drawCentredString(center_x, y, tipo_nombre)
+    y -= 4.5 * mm
+    
+    c.setFont("Helvetica-Bold", 10)
+    c.drawCentredString(center_x, y, numero_formato)
     y -= 5 * mm
 
-    # --- Separador ---
+    # Fecha, Hora, Forma de Pago
+    c.setFont("Helvetica", 6)
+    c.setFillColor(COLOR_GRIS_TEXTO)
+    forma_pago = getattr(comprobante, 'forma_pago', 'Contado') or 'Contado'
+    c.drawString(ml, y, f"Fecha: {fecha}  Hora: {hora}")
+    c.drawRightString(mr, y, f"F. Pago: {forma_pago}")
+    y -= 3.5 * mm
+
+    # Cajero (si está disponible)
+    cajero = getattr(comprobante, 'cajero', None) or getattr(comprobante, 'usuario', None)
+    if cajero:
+        c.drawString(ml, y, f"Cajero: {cajero}")
+        y -= 3.5 * mm
+
+    # === SEPARADOR CON AIRE ===
+    y -= 2 * mm
     c.setStrokeColor(COLOR_LINEA)
     c.setDash(1, 2)
     c.line(ml, y, mr, y)
     c.setDash()
     y -= 4 * mm
 
-    # --- Header de items: Cant | Unid | Precio | Total ---
-    c.setFont("Helvetica-Bold", 5.5)
+    # =============================================
+    # SECCIÓN 3: DATOS DEL CLIENTE
+    # =============================================
+    
+    num_doc = comprobante.cliente_numero_documento or (cliente.numero_documento if cliente else "")
+    nombre_cliente = comprobante.cliente_razon_social or (cliente.razon_social if cliente else "")
+    direccion_cliente = comprobante.cliente_direccion or (getattr(cliente, 'direccion', '') if cliente else "")
+    tipo_doc_cliente = comprobante.cliente_tipo_documento or (cliente.tipo_documento if cliente else "0")
+
+    # Mostrar guiones si no hay datos
+    if not num_doc or num_doc in ["00000000", "0"]:
+        num_doc = "-"
+    if not nombre_cliente or nombre_cliente.upper() in ["CLIENTE VARIOS", "CLIENTES VARIOS", ""]:
+        nombre_cliente = "CLIENTE VARIOS"
+    if not direccion_cliente:
+        direccion_cliente = "-"
+
+    # Etiqueta del tipo de documento
+    if tipo_doc_cliente == "6":
+        label_doc = "RUC"
+    elif tipo_doc_cliente == "1":
+        label_doc = "DNI"
+    else:
+        label_doc = "Doc"
+
+    c.setFont("Helvetica-Bold", 6)
     c.setFillColor(black)
-    c.drawString(ml, y, "Cant")
-    c.drawString(ml + 10 * mm, y, "Unid")
-    c.drawRightString(mr - 16 * mm, y, "Precio")
-    c.drawRightString(mr, y, "Total")
-    y -= 3 * mm
-    c.setStrokeColor(COLOR_LINEA)
-    c.line(ml, y, mr, y)
+    c.drawString(ml, y, "CLIENTE:")
     y -= 3.5 * mm
 
-    # --- Items (descripción en línea propia + Cant | Unid | Precio | Total) ---
+    c.setFont("Helvetica", 6)
+    c.drawString(ml, y, f"{label_doc}: {num_doc}")
+    y -= 3.5 * mm
+    
+    # Nombre (puede ser largo, truncar si es necesario)
+    c.drawString(ml, y, f"Nombre: {nombre_cliente[:35]}")
+    y -= 3.5 * mm
+    
+    c.drawString(ml, y, f"Dirección: {direccion_cliente[:35]}")
+    y -= 4 * mm
+
+    # === SEPARADOR CON AIRE ===
+    y -= 2 * mm
+    c.setStrokeColor(COLOR_LINEA)
+    c.setDash(1, 2)
+    c.line(ml, y, mr, y)
+    c.setDash()
+    y -= 4 * mm
+
+    # =============================================
+    # SECCIÓN 4: TABLA DE ITEMS
+    # =============================================
+    
+    # Header de tabla
+    c.setFont("Helvetica-Bold", 5.5)
+    c.setFillColor(black)
+    c.drawString(ml, y, "Producto")
+    c.drawString(ml + 38 * mm, y, "Cant")
+    c.drawString(ml + 46 * mm, y, "Unid")
+    c.drawRightString(mr - 12 * mm, y, "Precio")
+    c.drawRightString(mr, y, "Total")
+    y -= 2.5 * mm
+    
+    c.setStrokeColor(COLOR_LINEA)
+    c.setLineWidth(0.5)
+    c.line(ml, y, mr, y)
+    y -= 3 * mm
+
+    # Items
+    c.setFont("Helvetica", 5.5)
     for item in items:
         cantidad_num = _safe_float(item.cantidad, 1)
-        cantidad = f"{cantidad_num:.0f}"
+        cantidad = f"{cantidad_num:.0f}" if cantidad_num == int(cantidad_num) else f"{cantidad_num:.2f}"
         desc = item.descripcion or ""
-        unidad = getattr(item, 'unidad_medida', None) or "NIU"
+        unidad = getattr(item, 'unidad_medida', None) or getattr(item, 'unidad', None) or "NIU"
 
         # Precio unitario (cálculo robusto)
         precio_unitario = _safe_float(getattr(item, 'precio_unitario', None), 0)
@@ -722,115 +859,221 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
             precio_display = 0
 
         # Importe total de la línea
-        valor_venta = subtotal_linea or _safe_float(item.monto_linea, 0)
+        valor_venta = subtotal_linea or _safe_float(getattr(item, 'monto_linea', 0), 0)
         if valor_venta == 0 and precio_display > 0:
             valor_venta = round(cantidad_num * precio_display, 2)
-        tipo_afectacion = str(getattr(item, 'tipo_afectacion_igv', '10') or '10')
-        igv_item = _safe_float(item.igv, 0)
+        
+        tipo_afectacion = str(getattr(item, 'tipo_afectacion_igv', '20') or '20')
+        igv_item = _safe_float(getattr(item, 'igv', 0), 0)
         if igv_item == 0 and tipo_afectacion == '10' and valor_venta > 0:
             igv_item = round(valor_venta * 0.18, 2)
+        
         total_item = round(valor_venta + igv_item, 2)
 
         c.setFillColor(black)
 
-        # Línea 1: descripción del producto
+        # Línea 1: Descripción del producto
         desc_limpia = desc.split('\n')[0] if '\n' in desc else desc
         c.setFont("Helvetica-Bold", 5.5)
-        c.drawString(ml, y, desc_limpia[:42])
+        c.drawString(ml, y, desc_limpia[:28])
         y -= 3.5 * mm
-
-        # Sub-líneas de descripción si hay saltos de línea
-        if '\n' in desc:
-            for extra in desc.split('\n')[1:]:
-                c.setFont("Helvetica", 5)
-                c.setFillColor(COLOR_GRIS)
-                c.drawString(ml + 2 * mm, y, extra[:40])
-                y -= 3 * mm
-            c.setFillColor(black)
 
         # Línea 2: Cant | Unid | Precio | Total
         c.setFont("Helvetica", 5.5)
-        c.drawString(ml + 2 * mm, y, cantidad)
-        c.drawString(ml + 10 * mm, y, unidad)
-        c.drawRightString(mr - 16 * mm, y, f"{precio_display:.2f}")
+        c.drawString(ml + 38 * mm, y, cantidad)
+        c.drawString(ml + 46 * mm, y, unidad[:6])
+        c.drawRightString(mr - 12 * mm, y, f"{precio_display:.2f}")
         c.drawRightString(mr, y, f"{total_item:.2f}")
-
         y -= 4 * mm
 
-    # --- Separador ---
+    # === SEPARADOR ===
+    y -= 1 * mm
     c.setStrokeColor(COLOR_LINEA)
     c.line(ml, y, mr, y)
     y -= 4 * mm
 
-    # --- Totales ---
+    # =============================================
+    # SECCIÓN 5: TOTALES
+    # =============================================
+    
     total = _safe_float(comprobante.monto_total, 0)
     monto_igv = _safe_float(comprobante.monto_igv, 0)
+    op_gravada = _safe_float(comprobante.op_gravada, 0)
     op_exonerada = _safe_float(comprobante.op_exonerada, 0)
+    op_inafecta = _safe_float(comprobante.op_inafecta, 0)
+
+    c.setFont("Helvetica", 6)
+    c.setFillColor(black)
+
+    if op_gravada > 0:
+        c.drawString(ml, y, "Op. Gravada:")
+        c.drawRightString(mr, y, f"S/ {op_gravada:.2f}")
+        y -= 3.5 * mm
 
     if op_exonerada > 0:
-        c.setFont("Helvetica", 6)
-        c.drawString(ml, y, "VALOR VENTA:")
+        c.drawString(ml, y, "Op. Exonerada:")
         c.drawRightString(mr, y, f"S/ {op_exonerada:.2f}")
         y -= 3.5 * mm
 
-    c.setFont("Helvetica", 6)
+    if op_inafecta > 0:
+        c.drawString(ml, y, "Op. Inafecta:")
+        c.drawRightString(mr, y, f"S/ {op_inafecta:.2f}")
+        y -= 3.5 * mm
+
     c.drawString(ml, y, "IGV 18%:")
     c.drawRightString(mr, y, f"S/ {monto_igv:.2f}")
-    y -= 4 * mm
+    y -= 4.5 * mm
 
-    c.setFont("Helvetica-Bold", 7)
+    # TOTAL destacado
+    c.setFont("Helvetica-Bold", 8)
     c.drawString(ml, y, "TOTAL:")
     c.drawRightString(mr, y, f"S/ {total:.2f}")
     y -= 5 * mm
 
-    # --- Importe en letras ---
-    c.setFont("Helvetica", 5.5)
-    c.setFillColor(COLOR_GRIS)
+    # Importe en letras
+    c.setFont("Helvetica", 5)
+    c.setFillColor(COLOR_GRIS_TEXTO)
     importe_letras = numero_a_letras(total)
-    if len(importe_letras) > 45:
-        c.drawString(ml, y, importe_letras[:45])
-        y -= 3 * mm
-        c.drawString(ml, y, importe_letras[45:])
-    else:
-        c.drawString(ml, y, importe_letras)
-    y -= 4 * mm
+    c.drawCentredString(center_x, y, f"[son: {importe_letras}]")
+    y -= 5 * mm
 
-    # --- QR ---
+    # =============================================
+    # SECCIÓN 6: CATÁLOGO VIRTUAL (DESTACADO)
+    # =============================================
+    
+    if telefono_emisor:
+        # Recuadro destacado
+        box_h = 14 * mm
+        box_y = y - box_h
+        
+        c.setStrokeColor(COLOR_BORDE)
+        c.setLineWidth(1)
+        c.rect(ml, box_y, mr - ml, box_h)
+        
+        c.setFont("Helvetica-Bold", 6)
+        c.setFillColor(COLOR_GRIS_TEXTO)
+        c.drawCentredString(center_x, y - 3 * mm, "HAZ TUS PEDIDOS EN LÍNEA GRATIS")
+        
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(COLOR_SECUNDARIO)
+        c.drawCentredString(center_x, y - 7 * mm, f"HTTPS://QUEVENDI.PRO/{telefono_emisor}")
+        
+        c.setFont("Helvetica", 5.5)
+        c.setFillColor(COLOR_GRIS_TEXTO)
+        c.drawCentredString(center_x, y - 11 * mm, "PARA RECOJOS O DELIVERY")
+        
+        y = box_y - 4 * mm
+
+    # =============================================
+    # SECCIÓN 7: QR + VERIFICACIÓN
+    # =============================================
+    
+    y -= 2 * mm
+    
+    # QR
+    qr_size = 18 * mm
+    qr_x = ml
+    qr_y = y - qr_size
+    
+    qr_url = f"{FACTURALO_URL}/verificar/{comprobante.id}"
+    
     try:
-        qr_url = f"{FACTURALO_URL}/verificar/{comprobante.id}"
         qr_img = qrcode.make(qr_url, box_size=2, border=1)
         qr_buffer = io.BytesIO()
         qr_img.save(qr_buffer, format='PNG')
         qr_buffer.seek(0)
-        qr_size = 20 * mm
-        c.drawImage(ImageReader(qr_buffer), (ticket_w - qr_size) / 2, y - qr_size,
-                    qr_size, qr_size)
-        y -= qr_size + 3 * mm
+        c.drawImage(ImageReader(qr_buffer), qr_x, qr_y, qr_size, qr_size)
     except Exception:
-        y -= 3 * mm
+        c.setStrokeColor(COLOR_LINEA)
+        c.rect(qr_x, qr_y, qr_size, qr_size)
+        c.setFont("Helvetica", 5)
+        c.drawCentredString(qr_x + qr_size/2, qr_y + qr_size/2, "QR")
 
-    # --- Pie de ticket ---
-    c.setFont("Helvetica", 5.5)
-    c.setFillColor(COLOR_GRIS)
-    prep = "del" if es_ticket else "de la"
-    c.drawCentredString(ticket_w / 2, y, f"Representación impresa {prep} {tipo_nombre}")
-    y -= 3 * mm
+    # Texto de verificación (al lado del QR)
+    text_x = qr_x + qr_size + 3 * mm
+    text_y = y - 3 * mm
+    
+    c.setFont("Helvetica", 5)
+    c.setFillColor(COLOR_GRIS_TEXTO)
+    c.drawString(text_x, text_y, "Representación impresa de la")
+    text_y -= 3 * mm
+    c.drawString(text_x, text_y, f"{tipo_nombre}.")
+    text_y -= 4 * mm
+    c.drawString(text_x, text_y, "Verifique en:")
+    text_y -= 3 * mm
+    c.setFillColor(COLOR_SECUNDARIO)
+    c.drawString(text_x, text_y, "https://facturalo.pro/verificar")
+    text_y -= 3 * mm
+    c.setFillColor(COLOR_GRIS_TEXTO)
+    c.drawString(text_x, text_y, "o en https://sunat.gob.pe")
 
+    y = qr_y - 4 * mm
+
+    # Hash / Resumen
     hash_cpe = getattr(comprobante, 'hash_cpe', None) or ""
     if hash_cpe:
-        c.setFont("Helvetica", 5)
-        c.drawCentredString(ticket_w / 2, y, f"Resumen: {hash_cpe}")
+        c.setFont("Helvetica", 4.5)
+        c.setFillColor(COLOR_GRIS_TEXTO)
+        c.drawString(ml, y, f"Resumen: {hash_cpe[:40]}")
         y -= 3 * mm
 
-    c.setFont("Helvetica", 5.5)
-    c.drawCentredString(ticket_w / 2, y, "Facturación electrónica por facturalo.pro")
-    y -= 3 * mm
+    # Código interno (referencia de QueVendi)
+    ref_externa = getattr(comprobante, 'referencia_externa', '') or ''
+    if ref_externa and 'QUEVENDI-VENTA-' in ref_externa:
+        sale_id = ref_externa.replace('QUEVENDI-VENTA-', '')
+        codigo_interno = f"QVDI-{sale_id.zfill(8)}"
+        c.setFont("Helvetica", 5)
+        c.drawString(ml, y, f"Interno: {codigo_interno}")
+        y -= 3 * mm
 
-    # Slogan bodega
+    # =============================================
+    # SECCIÓN 8: LEYENDA AMAZONÍA (condicional)
+    # =============================================
+    
+    if es_amazonia:
+        y -= 3 * mm
+        c.setStrokeColor(COLOR_LINEA)
+        c.setDash(1, 2)
+        c.line(ml, y, mr, y)
+        c.setDash()
+        y -= 4 * mm
+        
+        c.setFont("Helvetica-Bold", 5)
+        c.setFillColor(black)
+        c.drawCentredString(center_x, y, '"BIENES TRANSFERIDOS EN LA AMAZONÍA')
+        y -= 3 * mm
+        c.drawCentredString(center_x, y, 'PARA SER CONSUMIDOS EN LA MISMA"')
+        y -= 4 * mm
+
+    # =============================================
+    # SECCIÓN 9: PIE DE PÁGINA
+    # =============================================
+    
+    y -= 2 * mm
+    c.setStrokeColor(COLOR_LINEA)
+    c.setDash(1, 2)
+    c.line(ml + 15 * mm, y, mr - 15 * mm, y)
+    c.setDash()
+    y -= 4 * mm
+
+    c.setFont("Helvetica", 5.5)
+    c.setFillColor(COLOR_GRIS_TEXTO)
+    c.drawCentredString(center_x, y, "Facturación electrónica por")
+    y -= 3 * mm
+    
+    c.setFont("Helvetica-Bold", 6)
+    c.setFillColor(COLOR_SECUNDARIO)
+    c.drawCentredString(center_x, y, "facturalo.pro")
+    y -= 4 * mm
+
+    # Slogan del nicho
+    from src.services.pdf_templates import get_slogan
     slogan = get_slogan("bodega")
     c.setFont("Helvetica", 5)
-    c.drawCentredString(ticket_w / 2, y, slogan)
+    c.setFillColor(COLOR_GRIS_TEXTO)
+    c.drawCentredString(center_x, y, slogan)
 
+    # === FIN ===
     c.save()
     pdf_bytes = buffer.getvalue()
     buffer.close()
