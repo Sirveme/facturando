@@ -620,10 +620,18 @@ def generar_pdf_bodega(comprobante, emisor, cliente, items, formato="A4",
 # - Datos del emisor alineados correctamente
 # =============================================
 
+# =============================================
+# TICKET BODEGA v4 FINAL (80mm)
+# Reemplazar función _generar_ticket_bodega en:
+# C:\facturalo\src\services\pdf_templates\bodega.py
+# 
+# ICONOS: Opción A aprobada
+# =============================================
+
 def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
                            codigo_matricula=None, estado_colegiado=None,
                            habil_hasta=None, es_ticket=False):
-    """Genera PDF en formato ticket (80mm) con diseño mejorado v3 para bodegas."""
+    """Genera PDF en formato ticket (80mm) con diseño final v4 para bodegas."""
     
     ticket_w = 80 * mm
     base_h = 300 * mm
@@ -633,8 +641,8 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
 
     c = canvas.Canvas(buffer, pagesize=(ticket_w, total_h))
 
-    ml = 3 * mm  # Margen izquierdo
-    mr = ticket_w - 3 * mm  # Margen derecho
+    ml = 3 * mm
+    mr = ticket_w - 3 * mm
     center_x = ticket_w / 2
     y = total_h - 5 * mm
 
@@ -672,7 +680,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     logo_box_x = ml
     logo_box_y = y - logo_box_h
     
-    # Área de texto al lado del logo
     text_start_x = logo_box_x + logo_box_w + 3 * mm
     text_y = y
     
@@ -704,91 +711,7 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     
     # Si no hay logo, dibujar icono profesional del nicho
     if not logo_loaded:
-        # Rectángulo con esquinas redondeadas
-        c.setStrokeColor(COLOR_GRIS_OSCURO)
-        c.setLineWidth(1)
-        c.roundRect(logo_box_x, logo_box_y, logo_box_w, logo_box_h, 2*mm, stroke=1, fill=0)
-        
-        # Dibujar icono según nicho (formas geométricas profesionales)
-        icon_center_x = logo_box_x + logo_box_w / 2
-        icon_center_y = logo_box_y + logo_box_h / 2
-        
-        c.setFillColor(COLOR_GRIS_OSCURO)
-        c.setStrokeColor(COLOR_GRIS_OSCURO)
-        c.setLineWidth(0.8)
-        
-        if nicho == "bodega":
-            # Icono: Estante/Anaquel (rectángulos apilados)
-            c.rect(icon_center_x - 5*mm, icon_center_y + 2*mm, 10*mm, 2*mm, stroke=1, fill=0)
-            c.rect(icon_center_x - 5*mm, icon_center_y - 1*mm, 10*mm, 2*mm, stroke=1, fill=0)
-            c.rect(icon_center_x - 5*mm, icon_center_y - 4*mm, 10*mm, 2*mm, stroke=1, fill=0)
-            # Pequeños productos en estantes
-            c.setFillColor(COLOR_GRIS_TEXTO)
-            c.rect(icon_center_x - 4*mm, icon_center_y + 2.3*mm, 2*mm, 1.5*mm, stroke=0, fill=1)
-            c.rect(icon_center_x + 1*mm, icon_center_y + 2.3*mm, 2*mm, 1.5*mm, stroke=0, fill=1)
-            c.rect(icon_center_x - 2*mm, icon_center_y - 0.7*mm, 3*mm, 1.5*mm, stroke=0, fill=1)
-            
-        elif nicho == "farmacia":
-            # Icono: Cruz médica
-            c.setLineWidth(2)
-            c.line(icon_center_x, icon_center_y - 5*mm, icon_center_x, icon_center_y + 5*mm)
-            c.line(icon_center_x - 5*mm, icon_center_y, icon_center_x + 5*mm, icon_center_y)
-            
-        elif nicho == "ferreteria":
-            # Icono: Llave inglesa (forma simplificada)
-            c.setLineWidth(1.5)
-            # Mango
-            c.line(icon_center_x - 4*mm, icon_center_y - 4*mm, icon_center_x + 2*mm, icon_center_y + 2*mm)
-            # Cabeza circular
-            c.circle(icon_center_x + 3*mm, icon_center_y + 3*mm, 2.5*mm, stroke=1, fill=0)
-            
-        elif nicho == "restaurante":
-            # Icono: Plato con cubiertos
-            c.circle(icon_center_x, icon_center_y, 5*mm, stroke=1, fill=0)
-            c.setLineWidth(1)
-            # Tenedor (izquierda)
-            c.line(icon_center_x - 7*mm, icon_center_y - 4*mm, icon_center_x - 7*mm, icon_center_y + 4*mm)
-            # Cuchillo (derecha)
-            c.line(icon_center_x + 7*mm, icon_center_y - 4*mm, icon_center_x + 7*mm, icon_center_y + 4*mm)
-            
-        elif nicho == "libreria":
-            # Icono: Libro abierto
-            c.setLineWidth(1)
-            # Lomo del libro
-            c.line(icon_center_x, icon_center_y - 4*mm, icon_center_x, icon_center_y + 4*mm)
-            # Páginas izquierda
-            c.line(icon_center_x, icon_center_y + 4*mm, icon_center_x - 5*mm, icon_center_y + 2*mm)
-            c.line(icon_center_x - 5*mm, icon_center_y + 2*mm, icon_center_x - 5*mm, icon_center_y - 4*mm)
-            c.line(icon_center_x - 5*mm, icon_center_y - 4*mm, icon_center_x, icon_center_y - 4*mm)
-            # Páginas derecha
-            c.line(icon_center_x, icon_center_y + 4*mm, icon_center_x + 5*mm, icon_center_y + 2*mm)
-            c.line(icon_center_x + 5*mm, icon_center_y + 2*mm, icon_center_x + 5*mm, icon_center_y - 4*mm)
-            c.line(icon_center_x + 5*mm, icon_center_y - 4*mm, icon_center_x, icon_center_y - 4*mm)
-            
-        elif nicho == "minimarket":
-            # Icono: Carrito de compras simplificado
-            c.setLineWidth(1)
-            # Cuerpo del carrito
-            c.line(icon_center_x - 5*mm, icon_center_y + 2*mm, icon_center_x - 3*mm, icon_center_y - 3*mm)
-            c.line(icon_center_x - 3*mm, icon_center_y - 3*mm, icon_center_x + 4*mm, icon_center_y - 3*mm)
-            c.line(icon_center_x + 4*mm, icon_center_y - 3*mm, icon_center_x + 5*mm, icon_center_y + 2*mm)
-            c.line(icon_center_x - 5*mm, icon_center_y + 2*mm, icon_center_x + 5*mm, icon_center_y + 2*mm)
-            # Ruedas
-            c.circle(icon_center_x - 2*mm, icon_center_y - 5*mm, 1*mm, stroke=1, fill=1)
-            c.circle(icon_center_x + 3*mm, icon_center_y - 5*mm, 1*mm, stroke=1, fill=1)
-            
-        else:
-            # Icono genérico: Tienda/Comercio (casa con puerta)
-            c.setLineWidth(1)
-            # Techo
-            c.line(icon_center_x - 6*mm, icon_center_y, icon_center_x, icon_center_y + 5*mm)
-            c.line(icon_center_x, icon_center_y + 5*mm, icon_center_x + 6*mm, icon_center_y)
-            # Paredes
-            c.line(icon_center_x - 5*mm, icon_center_y, icon_center_x - 5*mm, icon_center_y - 5*mm)
-            c.line(icon_center_x + 5*mm, icon_center_y, icon_center_x + 5*mm, icon_center_y - 5*mm)
-            c.line(icon_center_x - 5*mm, icon_center_y - 5*mm, icon_center_x + 5*mm, icon_center_y - 5*mm)
-            # Puerta
-            c.rect(icon_center_x - 1.5*mm, icon_center_y - 5*mm, 3*mm, 4*mm, stroke=1, fill=0)
+        _dibujar_icono_nicho(c, nicho, logo_box_x, logo_box_y, logo_box_w, logo_box_h)
 
     # =============================================
     # DATOS DEL EMISOR (al lado del logo)
@@ -796,24 +719,20 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     
     nombre_mostrar = emisor.nombre_comercial or emisor.razon_social or ""
     
-    # Razón social: DESTACADA
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(black)
     
-    # Ajustar fuente si es muy largo
     if len(nombre_mostrar) > 22:
         c.setFont("Helvetica-Bold", 7)
     
     c.drawString(text_start_x, text_y - 4*mm, nombre_mostrar[:28])
     
-    # Dirección (segunda línea, más pequeña)
     c.setFont("Helvetica", 6)
     c.setFillColor(COLOR_GRIS_TEXTO)
     direccion = getattr(emisor, 'direccion', '') or ''
     if direccion:
         c.drawString(text_start_x, text_y - 8*mm, direccion[:32])
     
-    # Teléfono | Email (tercera línea)
     contacto_line = ""
     if telefono_emisor:
         contacto_line = f"Teléfono: {telefono_emisor}"
@@ -827,13 +746,11 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         c.setFont("Helvetica", 5)
         c.drawString(text_start_x, text_y - 11.5*mm, contacto_line[:38])
     
-    # Sucursales (cuarta línea, si existe)
     establecimiento = getattr(emisor, 'establecimiento_anexo', '') or ''
     if establecimiento:
         c.setFont("Helvetica", 5)
         c.drawString(text_start_x, text_y - 14.5*mm, f"Sucursales: {establecimiento[:30]}")
 
-    # Moverse debajo del header
     y = logo_box_y - 3 * mm
 
     # =============================================
@@ -845,7 +762,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.drawCentredString(center_x, y, f"RUC: {emisor.ruc}")
     y -= 5 * mm
 
-    # === SEPARADOR ===
     c.setStrokeColor(COLOR_LINEA)
     c.setLineWidth(0.5)
     c.setDash(1, 2)
@@ -867,7 +783,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.drawCentredString(center_x, y, numero_formato)
     y -= 5 * mm
 
-    # Fecha | Hora | Forma Pago
     c.setFont("Helvetica", 6)
     c.setFillColor(COLOR_GRIS_TEXTO)
     forma_pago = getattr(comprobante, 'forma_pago', 'Contado') or 'Contado'
@@ -875,7 +790,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.drawRightString(mr, y, f"F. Pago: {forma_pago}")
     y -= 4 * mm
 
-    # === SEPARADOR ===
     c.setStrokeColor(COLOR_LINEA)
     c.setDash(1, 2)
     c.line(ml, y, mr, y)
@@ -891,7 +805,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     direccion_cliente = comprobante.cliente_direccion or (getattr(cliente, 'direccion', '') if cliente else "")
     tipo_doc_cliente = comprobante.cliente_tipo_documento or (cliente.tipo_documento if cliente else "0")
 
-    # Valores por defecto
     if not num_doc or num_doc in ["00000000", "0"]:
         num_doc = "-"
     if not nombre_cliente or nombre_cliente.upper() in ["CLIENTE VARIOS", "CLIENTES VARIOS", ""]:
@@ -919,7 +832,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.drawString(ml, y, f"Dirección: {direccion_cliente[:35]}")
     y -= 4 * mm
 
-    # === SEPARADOR ===
     y -= 2 * mm
     c.setStrokeColor(COLOR_LINEA)
     c.setDash(1, 2)
@@ -945,7 +857,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.line(ml, y, mr, y)
     y -= 3 * mm
 
-    # Items
     for item in items:
         cantidad_num = _safe_float(item.cantidad, 1)
         cantidad = f"{cantidad_num:.0f}" if cantidad_num == int(cantidad_num) else f"{cantidad_num:.2f}"
@@ -990,7 +901,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         c.drawRightString(mr, y, f"{total_item:.2f}")
         y -= 4 * mm
 
-    # === SEPARADOR ===
     y -= 1 * mm
     c.setStrokeColor(COLOR_LINEA)
     c.line(ml, y, mr, y)
@@ -1011,7 +921,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.setFont("Helvetica", 6)
     c.setFillColor(black)
 
-    # Solo mostrar líneas con valor > 0
     if op_gravada > 0:
         c.drawString(ml, y, "Op. Gravada:")
         c.drawRightString(mr, y, f"S/ {op_gravada:.2f}")
@@ -1044,13 +953,11 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
 
     y -= 1 * mm
 
-    # TOTAL destacado
     c.setFont("Helvetica-Bold", 9)
     c.drawString(ml, y, "TOTAL:")
     c.drawRightString(mr, y, f"S/ {total:.2f}")
     y -= 5 * mm
 
-    # Importe en letras
     c.setFont("Helvetica", 5)
     c.setFillColor(COLOR_GRIS_TEXTO)
     importe_letras = numero_a_letras(total)
@@ -1131,7 +1038,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
 
     y = qr_y - 4 * mm
 
-    # Hash
     hash_cpe = getattr(comprobante, 'hash_cpe', None) or ""
     if hash_cpe:
         c.setFont("Helvetica", 4.5)
@@ -1139,7 +1045,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         c.drawString(ml, y, f"Resumen: {hash_cpe[:45]}")
         y -= 3 * mm
 
-    # Código interno
     ref_externa = getattr(comprobante, 'referencia_externa', '') or ''
     if ref_externa and 'QUEVENDI-VENTA-' in ref_externa:
         sale_id = ref_externa.replace('QUEVENDI-VENTA-', '')
@@ -1178,7 +1083,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.setDash()
     y -= 5 * mm
 
-    # Sistema de Ventas: QueVendi
     c.setFont("Helvetica", 5)
     c.setFillColor(COLOR_GRIS_TEXTO)
     c.drawCentredString(center_x, y, "Sistema de Ventas:")
@@ -1192,7 +1096,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.drawCentredString(center_x, y, "Usado en todo el Perú")
     y -= 5 * mm
 
-    # Sistema de Facturación: Facturalo
     c.setFont("Helvetica", 5)
     c.setFillColor(COLOR_GRIS_TEXTO)
     c.drawCentredString(center_x, y, "Sistema de Facturación:")
@@ -1206,15 +1109,182 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.drawCentredString(center_x, y, "Preferido por Contadores y Empresas")
     y -= 5 * mm
 
-    # Slogan del nicho
     from src.services.pdf_templates import get_slogan
     slogan = get_slogan(nicho)
     c.setFont("Helvetica", 5)
     c.setFillColor(COLOR_GRIS_TEXTO)
     c.drawCentredString(center_x, y, slogan)
 
-    # === FIN ===
     c.save()
     pdf_bytes = buffer.getvalue()
     buffer.close()
     return pdf_bytes
+
+
+# =============================================
+# FUNCIÓN AUXILIAR: Dibujar icono por nicho
+# =============================================
+
+def _dibujar_icono_nicho(c, nicho, box_x, box_y, box_w, box_h):
+    """Dibuja un icono profesional según el nicho del negocio."""
+    
+    # Rectángulo contenedor con esquinas redondeadas
+    c.setStrokeColor(COLOR_GRIS_OSCURO)
+    c.setLineWidth(1)
+    c.roundRect(box_x, box_y, box_w, box_h, 2*mm, stroke=1, fill=0)
+    
+    # Centro del icono
+    cx = box_x + box_w / 2
+    cy = box_y + box_h / 2
+    
+    # Escala para el icono (80% del contenedor)
+    scale = min(box_w, box_h) * 0.4
+    
+    c.setStrokeColor(COLOR_GRIS_OSCURO)
+    c.setFillColor(COLOR_GRIS_OSCURO)
+    c.setLineWidth(0.6)
+    
+    if nicho == "bodega":
+        # BODEGA: Estante con 3 niveles y productos
+        # Estructura del estante
+        for i, offset in enumerate([-0.6, 0, 0.6]):
+            y_line = cy + offset * scale
+            c.line(cx - scale, y_line, cx + scale, y_line)
+        # Verticales
+        c.line(cx - scale, cy - 0.6*scale, cx - scale, cy + 0.8*scale)
+        c.line(cx + scale, cy - 0.6*scale, cx + scale, cy + 0.8*scale)
+        # Productos (pequeños rectángulos)
+        c.rect(cx - 0.7*scale, cy + 0.65*scale, 0.3*scale, 0.12*scale, stroke=0, fill=1)
+        c.rect(cx - 0.2*scale, cy + 0.65*scale, 0.4*scale, 0.12*scale, stroke=0, fill=1)
+        c.rect(cx + 0.4*scale, cy + 0.65*scale, 0.3*scale, 0.12*scale, stroke=0, fill=1)
+        c.rect(cx - 0.5*scale, cy + 0.05*scale, 0.35*scale, 0.12*scale, stroke=0, fill=1)
+        c.rect(cx + 0.2*scale, cy + 0.05*scale, 0.5*scale, 0.12*scale, stroke=0, fill=1)
+        
+    elif nicho == "minimarket":
+        # MINIMARKET: Carrito de compras
+        # Cuerpo del carrito
+        p = c.beginPath()
+        p.moveTo(cx - 0.8*scale, cy + 0.5*scale)
+        p.lineTo(cx - 0.5*scale, cy - 0.3*scale)
+        p.lineTo(cx + 0.7*scale, cy - 0.3*scale)
+        p.lineTo(cx + 0.9*scale, cy + 0.5*scale)
+        p.close()
+        c.drawPath(p, stroke=1, fill=0)
+        # Ruedas
+        c.circle(cx - 0.3*scale, cy - 0.55*scale, 0.12*scale, stroke=1, fill=1)
+        c.circle(cx + 0.5*scale, cy - 0.55*scale, 0.12*scale, stroke=1, fill=1)
+        # Manija
+        c.line(cx - 0.8*scale, cy + 0.5*scale, cx - 1.0*scale, cy + 0.8*scale)
+        # Productos dentro
+        c.rect(cx - 0.3*scale, cy - 0.1*scale, 0.25*scale, 0.35*scale, stroke=0, fill=1)
+        c.rect(cx + 0.1*scale, cy - 0.05*scale, 0.2*scale, 0.25*scale, stroke=0, fill=1)
+        
+    elif nicho == "farmacia":
+        # FARMACIA: Cruz médica
+        c.setLineWidth(0)
+        # Vertical
+        c.rect(cx - 0.2*scale, cy - 0.8*scale, 0.4*scale, 1.6*scale, stroke=0, fill=1)
+        # Horizontal
+        c.rect(cx - 0.8*scale, cy - 0.2*scale, 1.6*scale, 0.4*scale, stroke=0, fill=1)
+        
+    elif nicho == "ferreteria":
+        # FERRETERÍA: Llave inglesa
+        c.setLineWidth(0.8)
+        # Mango (diagonal)
+        c.line(cx - 0.7*scale, cy + 0.7*scale, cx + 0.3*scale, cy - 0.3*scale)
+        # Cabeza circular
+        c.circle(cx + 0.5*scale, cy - 0.5*scale, 0.35*scale, stroke=1, fill=0)
+        c.setFillColor(white)
+        c.circle(cx + 0.5*scale, cy - 0.5*scale, 0.15*scale, stroke=0, fill=1)
+        c.setFillColor(COLOR_GRIS_OSCURO)
+        # Extremo del mango
+        c.rect(cx - 0.85*scale, cy + 0.55*scale, 0.25*scale, 0.25*scale, stroke=1, fill=0)
+        
+    elif nicho == "restaurante":
+        # RESTAURANTE: Cloche/Bandeja con tapa
+        c.setLineWidth(0.8)
+        # Plato base (elipse)
+        c.ellipse(cx - 0.9*scale, cy - 0.5*scale, cx + 0.9*scale, cy - 0.2*scale)
+        # Tapa (arco)
+        p = c.beginPath()
+        p.moveTo(cx - 0.75*scale, cy - 0.25*scale)
+        p.curveTo(cx - 0.75*scale, cy + 0.6*scale, cx + 0.75*scale, cy + 0.6*scale, cx + 0.75*scale, cy - 0.25*scale)
+        c.drawPath(p, stroke=1, fill=0)
+        # Agarradera
+        c.circle(cx, cy + 0.55*scale, 0.1*scale, stroke=1, fill=1)
+        
+    elif nicho == "cafeteria":
+        # CAFETERÍA: Taza con vapor
+        c.setLineWidth(0.8)
+        # Cuerpo de la taza
+        p = c.beginPath()
+        p.moveTo(cx - 0.6*scale, cy + 0.3*scale)
+        p.lineTo(cx - 0.5*scale, cy - 0.5*scale)
+        p.lineTo(cx + 0.5*scale, cy - 0.5*scale)
+        p.lineTo(cx + 0.6*scale, cy + 0.3*scale)
+        p.close()
+        c.drawPath(p, stroke=1, fill=0)
+        # Asa
+        p = c.beginPath()
+        p.moveTo(cx + 0.6*scale, cy + 0.1*scale)
+        p.curveTo(cx + 1.0*scale, cy + 0.1*scale, cx + 1.0*scale, cy - 0.3*scale, cx + 0.6*scale, cy - 0.3*scale)
+        c.drawPath(p, stroke=1, fill=0)
+        # Vapor (3 líneas onduladas)
+        c.setLineWidth(0.5)
+        for x_offset in [-0.25, 0, 0.25]:
+            p = c.beginPath()
+            x = cx + x_offset*scale
+            p.moveTo(x, cy + 0.45*scale)
+            p.curveTo(x + 0.08*scale, cy + 0.55*scale, x - 0.08*scale, cy + 0.65*scale, x, cy + 0.75*scale)
+            c.drawPath(p, stroke=1, fill=0)
+        
+    elif nicho == "libreria":
+        # LIBRERÍA: Libro abierto
+        c.setLineWidth(0.8)
+        # Lomo central
+        c.line(cx, cy - 0.6*scale, cx, cy + 0.5*scale)
+        # Página izquierda
+        p = c.beginPath()
+        p.moveTo(cx, cy + 0.5*scale)
+        p.lineTo(cx - 0.8*scale, cy + 0.3*scale)
+        p.lineTo(cx - 0.8*scale, cy - 0.5*scale)
+        p.lineTo(cx, cy - 0.6*scale)
+        c.drawPath(p, stroke=1, fill=0)
+        # Página derecha
+        p = c.beginPath()
+        p.moveTo(cx, cy + 0.5*scale)
+        p.lineTo(cx + 0.8*scale, cy + 0.3*scale)
+        p.lineTo(cx + 0.8*scale, cy - 0.5*scale)
+        p.lineTo(cx, cy - 0.6*scale)
+        c.drawPath(p, stroke=1, fill=0)
+        # Líneas de texto
+        c.setLineWidth(0.3)
+        c.line(cx - 0.65*scale, cy + 0.05*scale, cx - 0.2*scale, cy + 0.1*scale)
+        c.line(cx - 0.6*scale, cy - 0.15*scale, cx - 0.25*scale, cy - 0.1*scale)
+        c.line(cx + 0.2*scale, cy + 0.1*scale, cx + 0.65*scale, cy + 0.05*scale)
+        c.line(cx + 0.25*scale, cy - 0.1*scale, cx + 0.6*scale, cy - 0.15*scale)
+        
+    else:
+        # DEFAULT: Tienda con toldo
+        c.setLineWidth(0.8)
+        # Estructura de la tienda
+        c.rect(cx - 0.7*scale, cy - 0.5*scale, 1.4*scale, 0.9*scale, stroke=1, fill=0)
+        # Toldo (ondulado)
+        p = c.beginPath()
+        p.moveTo(cx - 0.85*scale, cy + 0.4*scale)
+        p.lineTo(cx - 0.75*scale, cy + 0.7*scale)
+        p.lineTo(cx + 0.75*scale, cy + 0.7*scale)
+        p.lineTo(cx + 0.85*scale, cy + 0.4*scale)
+        c.drawPath(p, stroke=1, fill=0)
+        # Ondas del toldo
+        wave_y = cy + 0.4*scale
+        for i in range(4):
+            x1 = cx - 0.85*scale + i * 0.425*scale
+            x2 = x1 + 0.425*scale
+            p = c.beginPath()
+            p.moveTo(x1, wave_y)
+            p.curveTo(x1 + 0.1*scale, wave_y + 0.15*scale, x2 - 0.1*scale, wave_y + 0.15*scale, x2, wave_y)
+            c.drawPath(p, stroke=1, fill=0)
+        # Puerta
+        c.rect(cx - 0.2*scale, cy - 0.5*scale, 0.4*scale, 0.5*scale, stroke=1, fill=0)
+        c.circle(cx + 0.1*scale, cy - 0.25*scale, 0.05*scale, stroke=1, fill=1)
