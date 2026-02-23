@@ -609,10 +609,21 @@ def generar_pdf_bodega(comprobante, emisor, cliente, items, formato="A4",
 # - Footer con DOS sistemas: QueVendi + Facturalo
 # =============================================
 
+# =============================================
+# TICKET BODEGA v3 MEJORADO (80mm)
+# Reemplazar en: C:\facturalo\src\services\pdf_templates\bodega.py
+# 
+# CAMBIOS v3:
+# - Logo alineado a la IZQUIERDA (no centrado)
+# - Iconos profesionales por nicho si no hay logo
+# - Razón social al lado del logo
+# - Datos del emisor alineados correctamente
+# =============================================
+
 def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
                            codigo_matricula=None, estado_colegiado=None,
                            habil_hasta=None, es_ticket=False):
-    """Genera PDF en formato ticket (80mm) con diseño mejorado v2 para bodegas."""
+    """Genera PDF en formato ticket (80mm) con diseño mejorado v3 para bodegas."""
     
     ticket_w = 80 * mm
     base_h = 300 * mm
@@ -622,8 +633,8 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
 
     c = canvas.Canvas(buffer, pagesize=(ticket_w, total_h))
 
-    ml = 3 * mm
-    mr = ticket_w - 3 * mm
+    ml = 3 * mm  # Margen izquierdo
+    mr = ticket_w - 3 * mm  # Margen derecho
     center_x = ticket_w / 2
     y = total_h - 5 * mm
 
@@ -652,28 +663,18 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     telefono_emisor = getattr(emisor, 'telefono', '') or ''
     email_emisor = getattr(emisor, 'email', '') or ''
 
-    # Nombres de nichos para mostrar
-    NICHOS_DISPLAY = {
-        "bodega": "BODEGA",
-        "farmacia": "FARMACIA", 
-        "ferreteria": "FERRETERÍA",
-        "restaurante": "RESTAURANTE",
-        "libreria": "LIBRERÍA",
-        "minimarket": "MINIMARKET",
-        "tienda": "TIENDA",
-        "comercio": "COMERCIO",
-        "default": "COMERCIO"
-    }
-    nicho_display = NICHOS_DISPLAY.get(nicho, nicho.upper())
-
     # =============================================
-    # SECCIÓN 1: LOGO O NICHO (espacio reservado)
+    # SECCIÓN 1: LOGO (izquierda) + DATOS EMISOR (derecha)
     # =============================================
     
-    logo_box_w = 22 * mm
-    logo_box_h = 22 * mm
-    logo_box_x = center_x - logo_box_w / 2
+    logo_box_w = 18 * mm
+    logo_box_h = 18 * mm
+    logo_box_x = ml
     logo_box_y = y - logo_box_h
+    
+    # Área de texto al lado del logo
+    text_start_x = logo_box_x + logo_box_w + 3 * mm
+    text_y = y
     
     logo_loaded = False
     
@@ -681,8 +682,8 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     if hasattr(emisor, 'logo') and emisor.logo:
         try:
             logo_buffer = io.BytesIO(emisor.logo)
-            c.drawImage(ImageReader(logo_buffer), logo_box_x + 1*mm, logo_box_y + 1*mm,
-                        logo_box_w - 2*mm, logo_box_h - 2*mm, 
+            c.drawImage(ImageReader(logo_buffer), logo_box_x, logo_box_y,
+                        logo_box_w, logo_box_h, 
                         preserveAspectRatio=True, mask='auto')
             logo_loaded = True
         except Exception:
@@ -694,82 +695,157 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
             import urllib.request
             logo_data = urllib.request.urlopen(emisor.logo_url, timeout=5).read()
             logo_buffer = io.BytesIO(logo_data)
-            c.drawImage(ImageReader(logo_buffer), logo_box_x + 1*mm, logo_box_y + 1*mm,
-                        logo_box_w - 2*mm, logo_box_h - 2*mm,
+            c.drawImage(ImageReader(logo_buffer), logo_box_x, logo_box_y,
+                        logo_box_w, logo_box_h,
                         preserveAspectRatio=True, mask='auto')
             logo_loaded = True
         except Exception:
             pass
     
-    # Si no hay logo, mostrar el nicho en rectángulo
+    # Si no hay logo, dibujar icono profesional del nicho
     if not logo_loaded:
         # Rectángulo con esquinas redondeadas
-        c.setStrokeColor(COLOR_GRIS_TEXTO)
-        c.setLineWidth(0.5)
-        c.roundRect(logo_box_x, logo_box_y, logo_box_w, logo_box_h, 3*mm, stroke=1, fill=0)
+        c.setStrokeColor(COLOR_GRIS_OSCURO)
+        c.setLineWidth(1)
+        c.roundRect(logo_box_x, logo_box_y, logo_box_w, logo_box_h, 2*mm, stroke=1, fill=0)
         
-        # Texto del nicho centrado
-        c.setFont("Helvetica-Bold", 7)
-        c.setFillColor(COLOR_GRIS_TEXTO)
-        c.drawCentredString(center_x, logo_box_y + logo_box_h/2 + 1*mm, nicho_display)
+        # Dibujar icono según nicho (formas geométricas profesionales)
+        icon_center_x = logo_box_x + logo_box_w / 2
+        icon_center_y = logo_box_y + logo_box_h / 2
         
-        # Icono o decoración pequeña (opcional)
-        c.setFont("Helvetica", 5)
-        c.drawCentredString(center_x, logo_box_y + logo_box_h/2 - 4*mm, "~ ~ ~")
-    
-    y = logo_box_y - 3 * mm
+        c.setFillColor(COLOR_GRIS_OSCURO)
+        c.setStrokeColor(COLOR_GRIS_OSCURO)
+        c.setLineWidth(0.8)
+        
+        if nicho == "bodega":
+            # Icono: Estante/Anaquel (rectángulos apilados)
+            c.rect(icon_center_x - 5*mm, icon_center_y + 2*mm, 10*mm, 2*mm, stroke=1, fill=0)
+            c.rect(icon_center_x - 5*mm, icon_center_y - 1*mm, 10*mm, 2*mm, stroke=1, fill=0)
+            c.rect(icon_center_x - 5*mm, icon_center_y - 4*mm, 10*mm, 2*mm, stroke=1, fill=0)
+            # Pequeños productos en estantes
+            c.setFillColor(COLOR_GRIS_TEXTO)
+            c.rect(icon_center_x - 4*mm, icon_center_y + 2.3*mm, 2*mm, 1.5*mm, stroke=0, fill=1)
+            c.rect(icon_center_x + 1*mm, icon_center_y + 2.3*mm, 2*mm, 1.5*mm, stroke=0, fill=1)
+            c.rect(icon_center_x - 2*mm, icon_center_y - 0.7*mm, 3*mm, 1.5*mm, stroke=0, fill=1)
+            
+        elif nicho == "farmacia":
+            # Icono: Cruz médica
+            c.setLineWidth(2)
+            c.line(icon_center_x, icon_center_y - 5*mm, icon_center_x, icon_center_y + 5*mm)
+            c.line(icon_center_x - 5*mm, icon_center_y, icon_center_x + 5*mm, icon_center_y)
+            
+        elif nicho == "ferreteria":
+            # Icono: Llave inglesa (forma simplificada)
+            c.setLineWidth(1.5)
+            # Mango
+            c.line(icon_center_x - 4*mm, icon_center_y - 4*mm, icon_center_x + 2*mm, icon_center_y + 2*mm)
+            # Cabeza circular
+            c.circle(icon_center_x + 3*mm, icon_center_y + 3*mm, 2.5*mm, stroke=1, fill=0)
+            
+        elif nicho == "restaurante":
+            # Icono: Plato con cubiertos
+            c.circle(icon_center_x, icon_center_y, 5*mm, stroke=1, fill=0)
+            c.setLineWidth(1)
+            # Tenedor (izquierda)
+            c.line(icon_center_x - 7*mm, icon_center_y - 4*mm, icon_center_x - 7*mm, icon_center_y + 4*mm)
+            # Cuchillo (derecha)
+            c.line(icon_center_x + 7*mm, icon_center_y - 4*mm, icon_center_x + 7*mm, icon_center_y + 4*mm)
+            
+        elif nicho == "libreria":
+            # Icono: Libro abierto
+            c.setLineWidth(1)
+            # Lomo del libro
+            c.line(icon_center_x, icon_center_y - 4*mm, icon_center_x, icon_center_y + 4*mm)
+            # Páginas izquierda
+            c.line(icon_center_x, icon_center_y + 4*mm, icon_center_x - 5*mm, icon_center_y + 2*mm)
+            c.line(icon_center_x - 5*mm, icon_center_y + 2*mm, icon_center_x - 5*mm, icon_center_y - 4*mm)
+            c.line(icon_center_x - 5*mm, icon_center_y - 4*mm, icon_center_x, icon_center_y - 4*mm)
+            # Páginas derecha
+            c.line(icon_center_x, icon_center_y + 4*mm, icon_center_x + 5*mm, icon_center_y + 2*mm)
+            c.line(icon_center_x + 5*mm, icon_center_y + 2*mm, icon_center_x + 5*mm, icon_center_y - 4*mm)
+            c.line(icon_center_x + 5*mm, icon_center_y - 4*mm, icon_center_x, icon_center_y - 4*mm)
+            
+        elif nicho == "minimarket":
+            # Icono: Carrito de compras simplificado
+            c.setLineWidth(1)
+            # Cuerpo del carrito
+            c.line(icon_center_x - 5*mm, icon_center_y + 2*mm, icon_center_x - 3*mm, icon_center_y - 3*mm)
+            c.line(icon_center_x - 3*mm, icon_center_y - 3*mm, icon_center_x + 4*mm, icon_center_y - 3*mm)
+            c.line(icon_center_x + 4*mm, icon_center_y - 3*mm, icon_center_x + 5*mm, icon_center_y + 2*mm)
+            c.line(icon_center_x - 5*mm, icon_center_y + 2*mm, icon_center_x + 5*mm, icon_center_y + 2*mm)
+            # Ruedas
+            c.circle(icon_center_x - 2*mm, icon_center_y - 5*mm, 1*mm, stroke=1, fill=1)
+            c.circle(icon_center_x + 3*mm, icon_center_y - 5*mm, 1*mm, stroke=1, fill=1)
+            
+        else:
+            # Icono genérico: Tienda/Comercio (casa con puerta)
+            c.setLineWidth(1)
+            # Techo
+            c.line(icon_center_x - 6*mm, icon_center_y, icon_center_x, icon_center_y + 5*mm)
+            c.line(icon_center_x, icon_center_y + 5*mm, icon_center_x + 6*mm, icon_center_y)
+            # Paredes
+            c.line(icon_center_x - 5*mm, icon_center_y, icon_center_x - 5*mm, icon_center_y - 5*mm)
+            c.line(icon_center_x + 5*mm, icon_center_y, icon_center_x + 5*mm, icon_center_y - 5*mm)
+            c.line(icon_center_x - 5*mm, icon_center_y - 5*mm, icon_center_x + 5*mm, icon_center_y - 5*mm)
+            # Puerta
+            c.rect(icon_center_x - 1.5*mm, icon_center_y - 5*mm, 3*mm, 4*mm, stroke=1, fill=0)
 
     # =============================================
-    # SECCIÓN 2: RAZÓN SOCIAL DESTACADA
+    # DATOS DEL EMISOR (al lado del logo)
     # =============================================
     
     nombre_mostrar = emisor.nombre_comercial or emisor.razon_social or ""
     
-    # Razón social: DESTACADA (grande, negrita, color)
-    c.setFont("Helvetica-Bold", 11)
+    # Razón social: DESTACADA
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(black)
     
-    if len(nombre_mostrar) > 25:
-        c.setFont("Helvetica-Bold", 9)
-    if len(nombre_mostrar) > 35:
+    # Ajustar fuente si es muy largo
+    if len(nombre_mostrar) > 22:
         c.setFont("Helvetica-Bold", 7)
     
-    c.drawCentredString(center_x, y, nombre_mostrar[:45])
-    y -= 5 * mm
-
-    # RUC
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(COLOR_GRIS_OSCURO)
-    c.drawCentredString(center_x, y, f"RUC: {emisor.ruc}")
-    y -= 4 * mm
-
-    # Dirección (más pequeña, gris)
+    c.drawString(text_start_x, text_y - 4*mm, nombre_mostrar[:28])
+    
+    # Dirección (segunda línea, más pequeña)
     c.setFont("Helvetica", 6)
     c.setFillColor(COLOR_GRIS_TEXTO)
-    if hasattr(emisor, 'direccion') and emisor.direccion:
-        c.drawCentredString(center_x, y, emisor.direccion[:50])
-        y -= 3 * mm
-
-    # Teléfono | Email
-    contacto_parts = []
+    direccion = getattr(emisor, 'direccion', '') or ''
+    if direccion:
+        c.drawString(text_start_x, text_y - 8*mm, direccion[:32])
+    
+    # Teléfono | Email (tercera línea)
+    contacto_line = ""
     if telefono_emisor:
-        contacto_parts.append(f"Tel: {telefono_emisor}")
+        contacto_line = f"Teléfono: {telefono_emisor}"
     if email_emisor:
-        contacto_parts.append(email_emisor)
-    if contacto_parts:
-        c.setFont("Helvetica", 5.5)
-        c.drawCentredString(center_x, y, "  |  ".join(contacto_parts))
-        y -= 3 * mm
-
-    # Establecimiento anexo
+        if contacto_line:
+            contacto_line += f"  {email_emisor}"
+        else:
+            contacto_line = email_emisor
+    
+    if contacto_line:
+        c.setFont("Helvetica", 5)
+        c.drawString(text_start_x, text_y - 11.5*mm, contacto_line[:38])
+    
+    # Sucursales (cuarta línea, si existe)
     establecimiento = getattr(emisor, 'establecimiento_anexo', '') or ''
     if establecimiento:
-        c.setFont("Helvetica", 5.5)
-        c.drawCentredString(center_x, y, f"Sucursal: {establecimiento[:40]}")
-        y -= 3 * mm
+        c.setFont("Helvetica", 5)
+        c.drawString(text_start_x, text_y - 14.5*mm, f"Sucursales: {establecimiento[:30]}")
+
+    # Moverse debajo del header
+    y = logo_box_y - 3 * mm
+
+    # =============================================
+    # SECCIÓN 2: RUC (centrado, destacado)
+    # =============================================
+    
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColor(black)
+    c.drawCentredString(center_x, y, f"RUC: {emisor.ruc}")
+    y -= 5 * mm
 
     # === SEPARADOR ===
-    y -= 3 * mm
     c.setStrokeColor(COLOR_LINEA)
     c.setLineWidth(0.5)
     c.setDash(1, 2)
@@ -778,16 +854,14 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     y -= 5 * mm
 
     # =============================================
-    # SECCIÓN 3: TIPO DOCUMENTO (menos destacado)
+    # SECCIÓN 3: TIPO DOCUMENTO
     # =============================================
     
-    # Tipo de documento: más pequeño que razón social
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(COLOR_GRIS_OSCURO)
     c.drawCentredString(center_x, y, tipo_nombre)
     y -= 4 * mm
     
-    # Número de comprobante
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(black)
     c.drawCentredString(center_x, y, numero_formato)
@@ -817,7 +891,7 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     direccion_cliente = comprobante.cliente_direccion or (getattr(cliente, 'direccion', '') if cliente else "")
     tipo_doc_cliente = comprobante.cliente_tipo_documento or (cliente.tipo_documento if cliente else "0")
 
-    # Valores por defecto si está vacío
+    # Valores por defecto
     if not num_doc or num_doc in ["00000000", "0"]:
         num_doc = "-"
     if not nombre_cliente or nombre_cliente.upper() in ["CLIENTE VARIOS", "CLIENTES VARIOS", ""]:
@@ -825,7 +899,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     if not direccion_cliente:
         direccion_cliente = "-"
 
-    # Etiqueta del documento
     if tipo_doc_cliente == "6":
         label_doc = "RUC"
     elif tipo_doc_cliente == "1":
@@ -879,7 +952,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         desc = item.descripcion or ""
         unidad = getattr(item, 'unidad_medida', None) or getattr(item, 'unidad', None) or "NIU"
 
-        # Precio unitario
         precio_unitario = _safe_float(getattr(item, 'precio_unitario', None), 0)
         valor_unitario = _safe_float(getattr(item, 'valor_unitario', None), 0)
         subtotal_linea = _safe_float(item.subtotal, 0)
@@ -906,13 +978,11 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
 
         c.setFillColor(black)
 
-        # Descripción
         desc_limpia = desc.split('\n')[0] if '\n' in desc else desc
         c.setFont("Helvetica-Bold", 5.5)
         c.drawString(ml, y, desc_limpia[:28])
         y -= 3.5 * mm
 
-        # Cant | Unid | Precio | Total
         c.setFont("Helvetica", 5.5)
         c.drawString(ml + 38 * mm, y, cantidad)
         c.drawString(ml + 46 * mm, y, unidad[:6])
@@ -928,7 +998,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
 
     # =============================================
     # SECCIÓN 6: TOTALES INTELIGENTES
-    # Solo muestra lo que aplica, sin ceros
     # =============================================
     
     total = _safe_float(comprobante.monto_total, 0)
@@ -942,7 +1011,7 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.setFont("Helvetica", 6)
     c.setFillColor(black)
 
-    # Solo mostrar las líneas con valor > 0
+    # Solo mostrar líneas con valor > 0
     if op_gravada > 0:
         c.drawString(ml, y, "Op. Gravada:")
         c.drawRightString(mr, y, f"S/ {op_gravada:.2f}")
@@ -963,19 +1032,16 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         c.drawRightString(mr, y, f"S/ {op_gratuita:.2f}")
         y -= 3.5 * mm
 
-    # IGV solo si hay operaciones gravadas o si tiene valor
     if monto_igv > 0 or op_gravada > 0:
         c.drawString(ml, y, "IGV 18%:")
         c.drawRightString(mr, y, f"S/ {monto_igv:.2f}")
         y -= 3.5 * mm
 
-    # ICBPER solo si aplica (bolsas plásticas)
     if icbper > 0:
         c.drawString(ml, y, "ICBPER:")
         c.drawRightString(mr, y, f"S/ {icbper:.2f}")
         y -= 3.5 * mm
 
-    # Línea antes del TOTAL
     y -= 1 * mm
 
     # TOTAL destacado
@@ -989,7 +1055,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.setFillColor(COLOR_GRIS_TEXTO)
     importe_letras = numero_a_letras(total)
     
-    # Si es muy largo, dividir en 2 líneas
     if len(importe_letras) > 45:
         c.drawCentredString(center_x, y, f"[son: {importe_letras[:45]}")
         y -= 3 * mm
@@ -1006,7 +1071,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         box_h = 16 * mm
         box_y = y - box_h
         
-        # Recuadro con fondo suave
         c.setStrokeColor(COLOR_SECUNDARIO)
         c.setLineWidth(1.5)
         c.roundRect(ml + 2*mm, box_y, mr - ml - 4*mm, box_h, 3*mm, stroke=1, fill=0)
@@ -1017,8 +1081,7 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(COLOR_SECUNDARIO)
-        url_catalogo = f"HTTPS://QUEVENDI.PRO/{telefono_emisor}"
-        c.drawCentredString(center_x, y - 8 * mm, url_catalogo)
+        c.drawCentredString(center_x, y - 8 * mm, f"HTTPS://QUEVENDI.PRO/{telefono_emisor}")
         
         c.setFont("Helvetica", 5.5)
         c.setFillColor(COLOR_GRIS_TEXTO)
@@ -1049,7 +1112,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         c.setFillColor(COLOR_GRIS_TEXTO)
         c.drawCentredString(qr_x + qr_size/2, qr_y + qr_size/2, "QR")
 
-    # Texto al lado del QR
     text_x = qr_x + qr_size + 3 * mm
     text_y = y - 3 * mm
     
@@ -1061,7 +1123,6 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     text_y -= 4 * mm
     c.drawString(text_x, text_y, "Verifique en:")
     text_y -= 3 * mm
-    c.setFont("Helvetica", 5)
     c.setFillColor(COLOR_SECUNDARIO)
     c.drawString(text_x, text_y, "https://facturalo.pro/verificar")
     text_y -= 3 * mm
@@ -1088,7 +1149,7 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         y -= 3 * mm
 
     # =============================================
-    # SECCIÓN 9: LEYENDA AMAZONÍA (condicional)
+    # SECCIÓN 9: LEYENDA AMAZONÍA
     # =============================================
     
     if es_amazonia:
