@@ -186,8 +186,6 @@ nav{position:fixed;top:0;width:100%;z-index:100;background:rgba(250,251,252,0.92
   max-width:300px;width:100%;height:auto;
   mix-blend-mode:screen;
   filter:brightness(1.05) contrast(1.05);
-  /* Flip horizontally so he points LEFT toward text */
-  transform:scaleX(-1);
 }
 .gallery-person-label{
   font-size:13px;color:#94a3b8;margin-top:10px;text-align:center;
@@ -397,19 +395,42 @@ footer p{font-size:13px;color:var(--text-dim)}
 .hero-photo{animation:fadeUp .6s ease .3s both}
 
 /* ══════════════════════════════════════
-   RESPONSIVE
+   MOBILE: Hero avatar + Gallery carousel integration
    ══════════════════════════════════════ */
+
+/* Hero: mobile avatar (hidden on desktop) */
+.hero-avatar-mobile{
+  display:none;
+  align-items:center;gap:14px;margin-bottom:20px;
+}
+.hero-avatar-mobile img{
+  width:60px;height:60px;border-radius:50%;
+  object-fit:cover;object-position:center top;
+  border:2px solid rgba(110,231,183,0.3);
+}
+.hero-avatar-mobile .name{font-size:14px;font-weight:600;color:#e8eaf0}
+.hero-avatar-mobile .role{font-size:12px;color:#6ee7b7}
+
+/* Gallery: carousel intro card with photo (hidden on desktop) */
+.carousel-intro{display:none}
+
+/* ── RESPONSIVE ── */
 @media(max-width:900px){
   .hero-grid{grid-template-columns:1fr;text-align:center}
-  .hero-content{padding-bottom:0}
+  .hero-content{padding-bottom:40px}
   .hero p{margin-left:auto;margin-right:auto}
   .hero-btns{justify-content:center}
-  .hero-photo{order:-1;padding-top:20px}
-  .hero-photo img{max-width:260px;transform:scaleX(1)}/* Don't flip on mobile */
-  .pains-grid{grid-template-columns:1fr}
+
+  /* Hide full body photo, show avatar instead */
+  .hero-photo{display:none}
+  .hero-avatar-mobile{display:inline-flex;margin:0 auto 20px}
+
+  /* Gallery: hide standalone photo, show intro carousel card */
   .gallery-grid{grid-template-columns:1fr}
-  .gallery-person{text-align:center;order:2}
-  .gallery-person img{max-width:200px}
+  .gallery-person{display:none}
+  .carousel-intro{display:block}
+
+  .pains-grid{grid-template-columns:1fr}
   .benefits-grid{grid-template-columns:1fr}
   .aff-grid{grid-template-columns:1fr}
   .pricing-grid{grid-template-columns:1fr;max-width:400px}
@@ -421,7 +442,6 @@ footer p{font-size:13px;color:var(--text-dim)}
   .hero{padding:110px 0 0;min-height:auto}
   .hero-btns{flex-direction:column;align-items:stretch}
   .nav-right .desk{display:none}
-  .hero-photo img{max-width:220px}
 }
 </style>
 </head>
@@ -448,6 +468,16 @@ footer p{font-size:13px;color:var(--text-dim)}
     <div class="hero-grid">
       <div class="hero-content">
         <div class="hero-tag">💼 Para Contadores y Estudios Contables</div>
+
+        <!-- Mobile: circular avatar + name (hidden on desktop) -->
+        <div class="hero-avatar-mobile">
+          <img src="/static/img/duilio-avatar.jpg" alt="Duilio">
+          <div>
+            <div class="name">Duilio Neyra</div>
+            <div class="role">Creador de facturalo.pro</div>
+          </div>
+        </div>
+
         <h1>Tus clientes necesitan facturar.<br><em>Tú puedes ganar con eso.</em></h1>
         <p>Conecta a tus clientes con facturación electrónica y genera ingresos recurrentes cada mes — sin hacer el trabajo operativo tú mismo.</p>
         <div class="hero-btns">
@@ -526,6 +556,17 @@ footer p{font-size:13px;color:var(--text-dim)}
 
         <!-- Carousel of mock screenshots -->
         <div class="carousel">
+
+          <!-- Mobile only: Photo + swipe invitation as first card -->
+          <div class="carousel-card carousel-intro">
+            <div class="cc-preview" style="display:flex;align-items:flex-end;justify-content:center;background:linear-gradient(180deg,rgba(5,150,105,0.08),rgba(0,0,0,0.4));padding:0">
+              <img src="/static/img/duilio-pointing-left.jpg" alt="Duilio" style="width:100%;height:100%;object-fit:cover;object-position:center top;mix-blend-mode:screen;filter:brightness(1.1)">
+            </div>
+            <div class="cc-info" style="text-align:center">
+              <div class="cc-title" style="color:#6ee7b7">Desliza para ver la plataforma →</div>
+              <div class="cc-desc">Panel, alertas, comprobantes y más</div>
+            </div>
+          </div>
 
           <!-- Card 1: Panel del Contador -->
           <div class="carousel-card">
@@ -654,7 +695,7 @@ footer p{font-size:13px;color:var(--text-dim)}
       <div class="b-card">
         <div class="b-icon">🔔</div>
         <h3>Alertas que trabajan por ti</h3>
-        <p>Certificados por vencer, clientes sin facturar, comprobantes rechazados. Te enterás primero.</p>
+        <p>Certificados por vencer, clientes sin facturar, comprobantes rechazados. Te enteras primero.</p>
       </div>
       <div class="b-card">
         <div class="b-icon">💰</div>
@@ -842,5 +883,4 @@ footer p{font-size:13px;color:var(--text-dim)}
 </footer>
 
 </body>
-
 </html>
