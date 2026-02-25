@@ -1,0 +1,699 @@
+{% extends "base.html" %}
+
+{% block title %}Panel del Contador - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════
+   PANEL DEL CONTADOR - Executive Dashboard
+   Aesthetic: Refined professional, warm dark
+   ══════════════════════════════════════════════ */
+:root {
+    --c-bg: #0f1119;
+    --c-surface: #171923;
+    --c-surface-2: #1e2130;
+    --c-surface-hover: #252840;
+    --c-border: #2d3148;
+    --c-border-light: rgba(255,255,255,0.06);
+    --c-text: #e8eaf0;
+    --c-text-2: #9498b0;
+    --c-text-3: #5c6080;
+    --c-accent: #c9a84c;
+    --c-accent-light: rgba(201,168,76,0.12);
+    --c-blue: #4a9eff;
+    --c-blue-light: rgba(74,158,255,0.12);
+    --c-green: #34d399;
+    --c-green-light: rgba(52,211,153,0.12);
+    --c-red: #f87171;
+    --c-red-light: rgba(248,113,113,0.12);
+    --c-orange: #fb923c;
+    --c-orange-light: rgba(251,146,60,0.12);
+    --c-purple: #a78bfa;
+    --c-radius: 12px;
+    --c-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--c-bg);
+    color: var(--c-text);
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.c-header {
+    background: var(--c-surface);
+    border-bottom: 1px solid var(--c-border);
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.c-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.c-logo {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--c-accent);
+    letter-spacing: -0.5px;
+}
+
+.c-logo span {
+    color: var(--c-text-2);
+    font-weight: 400;
+}
+
+.c-header-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--c-text-2);
+    font-size: 0.85rem;
+}
+
+.c-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--c-accent), #d4a843);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0f1119;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.c-header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.c-btn-sm {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--c-border);
+    background: transparent;
+    color: var(--c-text-2);
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.c-btn-sm:hover {
+    background: var(--c-surface-2);
+    color: var(--c-text);
+    border-color: var(--c-accent);
+}
+
+/* ── LAYOUT ── */
+.c-main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.c-section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--c-text-3);
+    margin-bottom: 14px;
+    padding-left: 2px;
+}
+
+/* ── KPI CARDS ── */
+.c-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.c-kpi {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--c-radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.c-kpi:hover {
+    border-color: var(--c-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.c-kpi::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.c-kpi--gold::after { background: linear-gradient(90deg, var(--c-accent), transparent); }
+.c-kpi--blue::after { background: linear-gradient(90deg, var(--c-blue), transparent); }
+.c-kpi--green::after { background: linear-gradient(90deg, var(--c-green), transparent); }
+.c-kpi--purple::after { background: linear-gradient(90deg, var(--c-purple), transparent); }
+
+.c-kpi-label {
+    font-size: 0.78rem;
+    color: var(--c-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.c-kpi-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.c-kpi--gold .c-kpi-value { color: var(--c-accent); }
+.c-kpi--blue .c-kpi-value { color: var(--c-blue); }
+.c-kpi--green .c-kpi-value { color: var(--c-green); }
+.c-kpi--purple .c-kpi-value { color: var(--c-purple); }
+
+.c-kpi-sub {
+    font-size: 0.78rem;
+    color: var(--c-text-3);
+    margin-top: 4px;
+}
+
+/* ── GRID 2 COLS ── */
+.c-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+/* ── CARD ── */
+.c-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--c-radius);
+    overflow: hidden;
+}
+
+.c-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--c-border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.c-card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--c-text);
+}
+
+.c-badge {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.c-badge--gold { background: var(--c-accent-light); color: var(--c-accent); }
+.c-badge--green { background: var(--c-green-light); color: var(--c-green); }
+.c-badge--red { background: var(--c-red-light); color: var(--c-red); }
+.c-badge--blue { background: var(--c-blue-light); color: var(--c-blue); }
+.c-badge--orange { background: var(--c-orange-light); color: var(--c-orange); }
+
+/* ── CLIENTES TABLE ── */
+.c-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.c-table th {
+    padding: 10px 20px;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--c-text-3);
+    background: var(--c-surface-2);
+    border-bottom: 1px solid var(--c-border);
+}
+
+.c-table td {
+    padding: 12px 20px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--c-border-light);
+    color: var(--c-text-2);
+}
+
+.c-table tr:hover td {
+    background: var(--c-surface-hover);
+    color: var(--c-text);
+}
+
+.c-table .c-ruc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--c-text-3);
+}
+
+.c-table .c-nombre {
+    font-weight: 600;
+    color: var(--c-text);
+}
+
+.c-table .c-monto {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+}
+
+.c-cert-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.c-cert-dot--vigente { background: var(--c-green); box-shadow: 0 0 6px var(--c-green); }
+.c-cert-dot--por_vencer { background: var(--c-orange); box-shadow: 0 0 6px var(--c-orange); }
+.c-cert-dot--vencido { background: var(--c-red); box-shadow: 0 0 6px var(--c-red); }
+.c-cert-dot--sin_cert { background: var(--c-text-3); }
+
+/* ── ALERTAS ── */
+.c-alerts {
+    padding: 4px 0;
+}
+
+.c-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--c-border-light);
+    font-size: 0.82rem;
+    color: var(--c-text-2);
+    transition: background 0.15s;
+}
+
+.c-alert:last-child { border-bottom: none; }
+.c-alert:hover { background: var(--c-surface-hover); }
+
+.c-alert-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.c-alert--danger .c-alert-icon { background: var(--c-red-light); color: var(--c-red); }
+.c-alert--warning .c-alert-icon { background: var(--c-orange-light); color: var(--c-orange); }
+.c-alert--info .c-alert-icon { background: var(--c-blue-light); color: var(--c-blue); }
+
+/* ── ESTUDIO FINANCIERO ── */
+.c-finance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.c-finance-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--c-radius);
+    padding: 18px 20px;
+}
+
+.c-finance-label {
+    font-size: 0.75rem;
+    color: var(--c-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.c-finance-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.c-finance-value--green { color: var(--c-green); }
+.c-finance-value--red { color: var(--c-red); }
+.c-finance-value--gold { color: var(--c-accent); }
+.c-finance-value--blue { color: var(--c-blue); }
+
+/* ── LISTS ── */
+.c-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--c-border-light);
+    font-size: 0.85rem;
+}
+
+.c-list-item:last-child { border-bottom: none; }
+
+.c-list-item-name { color: var(--c-text-2); }
+
+.c-list-item-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    color: var(--c-text);
+}
+
+/* ── EMPTY STATE ── */
+.c-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--c-text-3);
+}
+
+.c-empty-icon { font-size: 2rem; margin-bottom: 8px; }
+
+/* ── BUTTON ── */
+.c-btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.c-btn--primary {
+    background: linear-gradient(135deg, var(--c-accent), #d4a843);
+    color: #0f1119;
+}
+
+.c-btn--primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(201,168,76,0.3);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+    .c-kpis { grid-template-columns: repeat(2, 1fr); }
+    .c-grid-2 { grid-template-columns: 1fr; }
+    .c-finance-grid { grid-template-columns: 1fr 1fr; }
+    .c-table-scroll { overflow-x: auto; }
+}
+
+@media (max-width: 600px) {
+    .c-kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .c-kpi { padding: 14px; }
+    .c-kpi-value { font-size: 1.5rem; }
+    .c-main { padding: 16px; }
+    .c-finance-grid { grid-template-columns: 1fr; }
+    .c-header { padding: 0 16px; }
+}
+
+/* ── ANIMATION ── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.c-kpi, .c-card, .c-finance-card {
+    animation: fadeUp 0.4s ease forwards;
+    opacity: 0;
+}
+
+.c-kpi:nth-child(1) { animation-delay: 0.05s; }
+.c-kpi:nth-child(2) { animation-delay: 0.1s; }
+.c-kpi:nth-child(3) { animation-delay: 0.15s; }
+.c-kpi:nth-child(4) { animation-delay: 0.2s; }
+.c-card { animation-delay: 0.25s; }
+.c-finance-card:nth-child(1) { animation-delay: 0.3s; }
+.c-finance-card:nth-child(2) { animation-delay: 0.35s; }
+.c-finance-card:nth-child(3) { animation-delay: 0.4s; }
+</style>
+{% endblock %}
+
+{% block body %}
+<!-- ═══ HEADER ═══ -->
+<header class="c-header">
+    <div class="c-header-left">
+        <div class="c-logo">facturalo<span>.pro</span></div>
+        <span style="color: var(--c-border); font-size: 1.2rem;">›</span>
+        <span style="color: var(--c-text-2); font-size: 0.85rem;">Panel Contadores</span>
+    </div>
+
+    <div class="c-header-user">
+        <div class="c-header-actions">
+            <button class="c-btn-sm" onclick="document.getElementById('modal-agregar').style.display='flex'">
+                + Agregar cliente
+            </button>
+        </div>
+        <div class="c-avatar">{{ contador.nombre_contacto[:2]|upper if contador.nombre_contacto else 'EC' }}</div>
+        <div>
+            <div style="font-weight: 600; color: var(--c-text); font-size: 0.85rem;">{{ contador.nombre_contacto or contador.razon_social }}</div>
+            <div style="font-size: 0.72rem;">{{ contador.ruc }}</div>
+        </div>
+        <a href="/contadores/logout" class="c-btn-sm" style="margin-left: 8px;">Salir</a>
+    </div>
+</header>
+
+<main class="c-main">
+
+    <!-- ═══ KPIs ═══ -->
+    <div class="c-section-title">Resumen del mes</div>
+    <div class="c-kpis">
+        <div class="c-kpi c-kpi--gold">
+            <div class="c-kpi-label">Ingreso mensual</div>
+            <div class="c-kpi-value">S/ {{ "{:,.2f}".format(ingreso_mensual) }}</div>
+            <div class="c-kpi-sub">{{ clientes_activos }} clientes activos</div>
+        </div>
+        <div class="c-kpi c-kpi--blue">
+            <div class="c-kpi-label">Total clientes</div>
+            <div class="c-kpi-value">{{ total_clientes }}</div>
+            <div class="c-kpi-sub">
+                {% if clientes_nuevos > 0 %}<span class="c-badge c-badge--green">+{{ clientes_nuevos }} nuevos</span>{% endif %}
+                {% if clientes_vencidos > 0 %}<span class="c-badge c-badge--red">{{ clientes_vencidos }} vencidos</span>{% endif %}
+            </div>
+        </div>
+        <div class="c-kpi c-kpi--green">
+            <div class="c-kpi-label">Utilidad estimada</div>
+            <div class="c-kpi-value">S/ {{ "{:,.2f}".format(utilidad_estimada) }}</div>
+            <div class="c-kpi-sub">Después de gastos e impuestos</div>
+        </div>
+        <div class="c-kpi c-kpi--purple">
+            <div class="c-kpi-label">Alertas activas</div>
+            <div class="c-kpi-value">{{ alertas|length }}</div>
+            <div class="c-kpi-sub">Requieren atención</div>
+        </div>
+    </div>
+
+    <!-- ═══ CLIENTES + ALERTAS ═══ -->
+    <div class="c-grid-2">
+        <!-- Tabla de clientes -->
+        <div class="c-card">
+            <div class="c-card-header">
+                <div class="c-card-title">Mis Clientes</div>
+                <span class="c-badge c-badge--gold">{{ total_clientes }} total</span>
+            </div>
+            <div class="c-table-scroll">
+            {% if clientes %}
+                <table class="c-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Régimen</th>
+                            <th>Comprobantes</th>
+                            <th>Ventas mes</th>
+                            <th>Cert.</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for c in clientes %}
+                        <tr>
+                            <td>
+                                <div class="c-nombre">{{ c.razon_social[:30] }}</div>
+                                <div class="c-ruc">{{ c.ruc }}</div>
+                            </td>
+                            <td>{{ c.regimen[:15] if c.regimen else '—' }}</td>
+                            <td class="c-monto">{{ c.comprobantes_mes }}</td>
+                            <td class="c-monto">S/ {{ "{:,.0f}".format(c.ventas_mes) }}</td>
+                            <td><span class="c-cert-dot c-cert-dot--{{ c.cert_estado }}"></span></td>
+                            <td>
+                                {% if c.estado == 'activo' %}<span class="c-badge c-badge--green">Activo</span>
+                                {% elif c.estado == 'nuevo' %}<span class="c-badge c-badge--blue">Nuevo</span>
+                                {% elif c.estado == 'vencido' %}<span class="c-badge c-badge--red">Vencido</span>
+                                {% else %}<span class="c-badge">{{ c.estado }}</span>{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="c-empty">
+                    <div class="c-empty-icon">📋</div>
+                    <div>No tienes clientes vinculados aún</div>
+                    <div style="margin-top: 12px;">
+                        <button class="c-btn c-btn--primary" onclick="document.getElementById('modal-agregar').style.display='flex'">
+                            + Agregar primer cliente
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div class="c-card">
+            <div class="c-card-header">
+                <div class="c-card-title">Alertas</div>
+                <span class="c-badge c-badge--orange">{{ alertas|length }}</span>
+            </div>
+            <div class="c-alerts">
+            {% if alertas %}
+                {% for a in alertas %}
+                <div class="c-alert c-alert--{{ a.tipo }}">
+                    <div class="c-alert-icon">⚠</div>
+                    <div>{{ a.msg }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="c-empty" style="padding: 30px;">
+                    <div style="font-size: 1.5rem;">✅</div>
+                    <div>Todo en orden</div>
+                </div>
+            {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ MI ESTUDIO — FINANCIERO ═══ -->
+    <div class="c-section-title">Mi Estudio Contable</div>
+    <div class="c-finance-grid">
+        <div class="c-finance-card">
+            <div class="c-finance-label">Planilla mensual</div>
+            <div class="c-finance-value c-finance-value--red">S/ {{ "{:,.2f}".format(total_planilla) }}</div>
+            <div style="color: var(--c-text-3); font-size: 0.78rem; margin-top: 4px;">{{ trabajadores|length }} trabajadores</div>
+        </div>
+        <div class="c-finance-card">
+            <div class="c-finance-label">Gastos fijos</div>
+            <div class="c-finance-value c-finance-value--gold">S/ {{ "{:,.2f}".format(total_gastos) }}</div>
+            <div style="color: var(--c-text-3); font-size: 0.78rem; margin-top: 4px;">{{ gastos|length }} conceptos</div>
+        </div>
+        <div class="c-finance-card">
+            <div class="c-finance-label">Impuesto aprox. (RER 1.5%)</div>
+            <div class="c-finance-value c-finance-value--blue">S/ {{ "{:,.2f}".format(impuesto_aprox) }}</div>
+            <div style="color: var(--c-text-3); font-size: 0.78rem; margin-top: 4px;">Estimado mensual</div>
+        </div>
+    </div>
+
+    <!-- Detalle trabajadores y gastos -->
+    <div class="c-grid-2">
+        <div class="c-card">
+            <div class="c-card-header">
+                <div class="c-card-title">Planilla</div>
+                <span class="c-badge c-badge--gold">S/ {{ "{:,.0f}".format(total_planilla) }}</span>
+            </div>
+            {% for t in trabajadores %}
+            <div class="c-list-item">
+                <div>
+                    <div class="c-list-item-name" style="color: var(--c-text);">{{ t.nombre }}</div>
+                    <div style="font-size: 0.75rem; color: var(--c-text-3);">{{ t.cargo or 'Sin cargo' }}</div>
+                </div>
+                <div class="c-list-item-value">S/ {{ "{:,.0f}".format(t.sueldo_mensual + t.essalud) }}</div>
+            </div>
+            {% endfor %}
+            {% if not trabajadores %}
+            <div class="c-empty" style="padding: 24px;"><div style="color: var(--c-text-3);">Sin trabajadores registrados</div></div>
+            {% endif %}
+        </div>
+
+        <div class="c-card">
+            <div class="c-card-header">
+                <div class="c-card-title">Gastos Fijos</div>
+                <span class="c-badge c-badge--gold">S/ {{ "{:,.0f}".format(total_gastos) }}</span>
+            </div>
+            {% for g in gastos %}
+            <div class="c-list-item">
+                <div class="c-list-item-name">{{ g.concepto }}</div>
+                <div class="c-list-item-value">S/ {{ "{:,.0f}".format(g.monto_mensual) }}</div>
+            </div>
+            {% endfor %}
+            {% if not gastos %}
+            <div class="c-empty" style="padding: 24px;"><div style="color: var(--c-text-3);">Sin gastos registrados</div></div>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+<!-- ═══ MODAL: Agregar Cliente ═══ -->
+<div id="modal-agregar" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:var(--c-surface); border:1px solid var(--c-border); border-radius:16px; padding:28px; max-width:420px; width:100%;">
+        <h3 style="margin-bottom:20px; font-size:1.05rem;">Vincular Cliente por RUC</h3>
+        <form method="POST" action="/contadores/api/clientes/agregar">
+            <div style="margin-bottom:14px;">
+                <label style="display:block; font-size:0.8rem; color:var(--c-text-3); margin-bottom:4px;">RUC del cliente *</label>
+                <input type="text" name="ruc" maxlength="11" required placeholder="20XXXXXXXXX"
+                    style="width:100%; padding:10px 14px; background:var(--c-surface-2); border:1px solid var(--c-border); border-radius:8px; color:var(--c-text); font-family:'JetBrains Mono',monospace; font-size:1.05rem; letter-spacing:1px;">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
+                <div>
+                    <label style="display:block; font-size:0.8rem; color:var(--c-text-3); margin-bottom:4px;">Honorarios S/.</label>
+                    <input type="number" name="ingreso_mensual" step="0.01" value="80" min="0"
+                        style="width:100%; padding:10px; background:var(--c-surface-2); border:1px solid var(--c-border); border-radius:8px; color:var(--c-text); font-family:inherit;">
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.8rem; color:var(--c-text-3); margin-bottom:4px;">Régimen</label>
+                    <select name="regimen" style="width:100%; padding:10px; background:var(--c-surface-2); border:1px solid var(--c-border); border-radius:8px; color:var(--c-text); font-family:inherit;">
+                        <option value="Régimen MYPE Tributario">MYPE Tributario</option>
+                        <option value="RUS">RUS</option>
+                        <option value="RER">RER</option>
+                        <option value="Régimen General">Régimen General</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button type="button" class="c-btn-sm" style="flex:1; justify-content:center;" onclick="this.closest('[id]').style.display='none'">Cancelar</button>
+                <button type="submit" class="c-btn c-btn--primary" style="flex:2; justify-content:center;">Vincular cliente</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
