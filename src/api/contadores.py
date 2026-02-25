@@ -182,7 +182,13 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             cert_vence = None
             if cert and cert.fecha_vencimiento:
                 cert_vence = cert.fecha_vencimiento
-                dias_para_vencer = (cert.fecha_vencimiento.replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)).days if cert.fecha_vencimiento.tzinfo is None else (cert.fecha_vencimiento - datetime.now(timezone.utc)).days
+                from datetime import date
+                if isinstance(cert.fecha_vencimiento, date) and not isinstance(cert.fecha_vencimiento, datetime):
+                    dias_para_vencer = (cert.fecha_vencimiento - date.today()).days
+                else:
+                    ahora = datetime.now(timezone.utc)
+                    fv = cert.fecha_vencimiento if cert.fecha_vencimiento.tzinfo else cert.fecha_vencimiento.replace(tzinfo=timezone.utc)
+                    dias_para_vencer = (fv - ahora).days
                 if dias_para_vencer < 0:
                     cert_estado = 'vencido'
                 elif dias_para_vencer <= 30:
