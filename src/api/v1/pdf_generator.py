@@ -636,6 +636,21 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     y -= letras_h
 
     # =============================================
+    # OBSERVACIONES (método de pago, crédito, notas)
+    # =============================================
+    obs_text = getattr(comprobante, 'observaciones', None) or ""
+    # Excluir observaciones que son código de matrícula (CCPL)
+    if obs_text and not obs_text.startswith("MAT-"):
+        obs_h = 7 * mm
+        y -= 2 * mm
+
+        c.setFont("Helvetica-Bold", 7)
+        c.setFillColor(COLOR_GRIS_TEXTO)
+        c.drawString(ml + 4 * mm, y - 4.5 * mm, f"Obs: {obs_text[:90]}")
+
+        y -= obs_h
+
+    # =============================================
     # FOOTER: Representación + Estado + Hash + QR
     # [PUNTO 2] Hash debajo de ACEPTADO
     # [PUNTO 3] Pie debajo del rectángulo
@@ -914,6 +929,26 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
     c.drawString(ml, y, "TOTAL:")
     c.drawRightString(mr, y, f"S/ {total:.2f}")
     y -= 5 * mm
+
+    # --- Observaciones ---
+    obs_text = getattr(comprobante, 'observaciones', None) or ""
+    if obs_text and not obs_text.startswith("MAT-"):
+        c.setStrokeColor(COLOR_LINEA)
+        c.setDash(1, 2)
+        c.line(ml, y, mr, y)
+        c.setDash()
+        y -= 3.5 * mm
+
+        c.setFont("Helvetica", 5.5)
+        c.setFillColor(COLOR_GRIS)
+        # Si es largo, partir en 2 líneas
+        if len(obs_text) > 42:
+            c.drawString(ml, y, obs_text[:42])
+            y -= 3 * mm
+            c.drawString(ml, y, obs_text[42:84])
+        else:
+            c.drawString(ml, y, obs_text)
+        y -= 3.5 * mm
 
     if estado_colegiado and codigo_matricula:
         if estado_colegiado.upper() == "HÁBIL":

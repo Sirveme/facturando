@@ -261,7 +261,9 @@ async def emitir_comprobante(
             cliente_razon_social=data.cliente.razon_social,
             cliente_direccion=data.cliente.direccion or "",
             observaciones=data.codigo_matricula or data.observaciones,
-            referencia_externa=data.referencia_externa
+            referencia_externa=data.referencia_externa,
+            #TODO: Guardar cuotas cuando se implemente tabla de cuotas
+            #Por ahora solo se guarda forma_pago="Credito" que ya funciona
         )
         
         # Referencia para NC/ND
