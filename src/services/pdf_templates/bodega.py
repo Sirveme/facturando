@@ -477,6 +477,18 @@ def generar_pdf_bodega(comprobante, emisor, cliente, items, formato="A4",
     y -= letras_h
 
     # =============================================
+    # OBSERVACIONES (forma de pago, crédito, notas)
+    # Aplica a todos los nichos (bodega, farmacia, etc.)
+    # =============================================
+    obs_text = getattr(comprobante, 'observaciones', None) or ""
+    if obs_text and not obs_text.startswith("MAT-"):
+        y -= 2 * mm
+        c.setFont("Helvetica-Bold", 7)
+        c.setFillColor(COLOR_GRIS_TEXTO)
+        c.drawString(ml + 4 * mm, y - 4.5 * mm, f"Obs: {obs_text[:90]}")
+        y -= 7 * mm
+
+    # =============================================
     # FOOTER: Representación + Estado + Hash + QR
     # =============================================
     y -= 5 * mm
@@ -891,8 +903,7 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
 
         desc_limpia = desc.split('\n')[0] if '\n' in desc else desc
         c.setFont("Helvetica-Bold", 5.5)
-        c.drawString(ml, y, desc_limpia[:28])
-        y -= 3.5 * mm
+        c.drawString(ml, y, desc_limpia[:22])
 
         c.setFont("Helvetica", 5.5)
         c.drawString(ml + 38 * mm, y, cantidad)
@@ -954,12 +965,30 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     y -= 1 * mm
 
     c.setFont("Helvetica-Bold", 9)
+    c.setFont("Helvetica-Bold", 7)
     c.drawString(ml, y, "TOTAL:")
     c.drawRightString(mr, y, f"S/ {total:.2f}")
-    y -= 5 * mm
+    y -= 4 * mm
 
-    c.setFont("Helvetica", 5)
-    c.setFillColor(COLOR_GRIS_TEXTO)
+    # --- Observaciones en Ticket ---
+    obs_text = getattr(comprobante, 'observaciones', None) or ""
+    if obs_text and not obs_text.startswith("MAT-"):
+        c.setStrokeColor(COLOR_LINEA)
+        c.setDash(1, 2)
+        c.line(ml, y, mr, y)
+        c.setDash()
+        y -= 3 * mm
+        c.setFont("Helvetica", 5.5)
+        c.setFillColor(COLOR_GRIS_TEXTO)
+        if len(obs_text) > 45:
+            c.drawString(ml, y, obs_text[:45])
+            y -= 2.5 * mm
+            c.drawString(ml, y, obs_text[45:90])
+        else:
+            c.drawString(ml, y, obs_text)
+        y -= 3 * mm
+        c.setFillColor(black)
+
     importe_letras = numero_a_letras(total)
     
     if len(importe_letras) > 45:
