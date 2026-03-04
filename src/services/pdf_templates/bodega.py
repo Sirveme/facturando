@@ -646,9 +646,9 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     """Genera PDF en formato ticket (80mm) con diseño final v4 para bodegas."""
     
     ticket_w = 80 * mm
-    base_h = 300 * mm
-    extra_per_item = 12 * mm
     n_items = len(items) if items else 1
+    base_h = 210 * mm       # Contenido fijo: header+RUC+cliente+totales+QR+footer
+    extra_per_item = 5 * mm  # Cada item ocupa ~4mm + padding
     total_h = base_h + (n_items * extra_per_item)
 
     c = canvas.Canvas(buffer, pagesize=(ticket_w, total_h))
@@ -858,8 +858,8 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
     c.setFont("Helvetica-Bold", 5.5)
     c.setFillColor(black)
     c.drawString(ml, y, "Producto")
-    c.drawString(ml + 38 * mm, y, "Cant")
-    c.drawString(ml + 46 * mm, y, "Unid")
+    c.drawString(ml + 43 * mm, y, "Cant")
+    c.drawString(ml + 50 * mm, y, "Unid")
     c.drawRightString(mr - 12 * mm, y, "Precio")
     c.drawRightString(mr, y, "Total")
     y -= 2.5 * mm
@@ -902,12 +902,13 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         c.setFillColor(black)
 
         desc_limpia = desc.split('\n')[0] if '\n' in desc else desc
-        c.setFont("Helvetica-Bold", 5.5)
-        c.drawString(ml, y, desc_limpia[:22])
+        # Descripción: usar font 5pt para caber más texto (antes 5.5)
+        c.setFont("Helvetica-Bold", 5)
+        c.drawString(ml, y, desc_limpia[:30])
 
         c.setFont("Helvetica", 5.5)
-        c.drawString(ml + 38 * mm, y, cantidad)
-        c.drawString(ml + 46 * mm, y, unidad[:6])
+        c.drawString(ml + 43 * mm, y, cantidad)
+        c.drawString(ml + 50 * mm, y, unidad[:5])
         c.drawRightString(mr - 12 * mm, y, f"{precio_display:.2f}")
         c.drawRightString(mr, y, f"{total_item:.2f}")
         y -= 4 * mm
