@@ -245,7 +245,7 @@ async def procesar_registro(
         plan="trial",
         trial_inicio=datetime.now(timezone.utc),
         trial_fin=datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS),
-        docs_mes_limite=50,  # 50 docs en trial
+        docs_mes_limite=9999,  # 50 docs en trial
         docs_mes_usados=0,
         modo_test=True,  # Empieza en modo prueba
         # Metadata
