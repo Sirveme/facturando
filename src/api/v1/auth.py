@@ -62,12 +62,12 @@ async def verificar_api_key(
         db.commit()
     
     # Verificar límite de documentos
-    if emisor.docs_mes_usados >= emisor.docs_mes_limite:
-        raise APIAuthError(
-            "LIMIT_EXCEEDED",
-            f"Límite mensual alcanzado ({emisor.docs_mes_limite} docs). Contacte soporte.",
-            429
-        )
+    #if emisor.docs_mes_usados >= emisor.docs_mes_limite:
+    #    raise APIAuthError(
+    #        "LIMIT_EXCEEDED",
+    #        f"Límite mensual alcanzado ({emisor.docs_mes_limite} docs). Contacte soporte.",
+    #        429
+    #    )
     
     # Guardar emisor en request para logging
     request.state.emisor = emisor
