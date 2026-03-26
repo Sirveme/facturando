@@ -1,10 +1,10 @@
 """
 Cliente SOAP para envío de comprobantes a SUNAT Beta/Producción.
 
-Mejoras:
-- Caché de cliente SOAP (evita re-descargar WSDL en cada envío)
-- Transport con Session para manejar auth en descarga de WSDL/schemas
-- Retry automático para errores transitorios de SUNAT Beta
+- Beta: zeep (WSDL compatible)
+- Producción: SOAP raw con requests (WSDL de producción incompatible con zeep)
+- Caché de cliente SOAP para Beta
+- Retry automático para errores transitorios
 """
 
 from io import BytesIO
@@ -22,13 +22,13 @@ SUNAT_BETA_URL = "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService"
 SUNAT_PROD_WSDL = "https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl"
 SUNAT_PROD_URL = "https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService"
 
-# Caché global del cliente SOAP
+# Caché global del cliente SOAP (solo para Beta)
 _cached_client = None
 _cached_wsdl_url = None
 
 
 def _get_or_create_client(wsdl_url: str, wsse, force_new: bool = False):
-    """Obtiene cliente SOAP cacheado o crea uno nuevo."""
+    """Obtiene cliente SOAP cacheado o crea uno nuevo (solo Beta)."""
     global _cached_client, _cached_wsdl_url
 
     if _cached_client is not None and _cached_wsdl_url == wsdl_url and not force_new:
@@ -39,7 +39,7 @@ def _get_or_create_client(wsdl_url: str, wsse, force_new: bool = False):
     logger.info("Creando nuevo cliente SOAP para %s", wsdl_url)
 
     try:
-        from zeep import Client, Settings
+        from zeep import Client
         from zeep.transports import Transport
         import requests
     except ImportError as e:
@@ -64,18 +64,7 @@ def _get_or_create_client(wsdl_url: str, wsse, force_new: bool = False):
     session.mount("http://", adapter)
 
     transport = Transport(session=session, timeout=60, operation_timeout=60)
-    settings = Settings(strict=False, xml_huge_tree=True)
-
-    client = Client(wsdl=wsdl_url, transport=transport, wsse=wsse, settings=settings)
-
-    # Para producción, forzar el binding correcto si zeep no lo detecta
-    try:
-        client.service.sendBill
-    except Exception:
-        logger.warning("Binding automático falló, intentando con service_name explícito")
-        service = client.bind('billService', 'BillServicePort')
-        # Reemplazar el service del client
-        client._default_service = service
+    client = Client(wsdl=wsdl_url, transport=transport, wsse=wsse)
 
     _cached_client = client
     _cached_wsdl_url = wsdl_url
@@ -84,18 +73,91 @@ def _get_or_create_client(wsdl_url: str, wsse, force_new: bool = False):
     return client
 
 
-def _extract_meta_from_xml(xml_bytes: bytes) -> dict:
-    """Extrae serie, numero y tipo_comprobante del XML UBL.
+def _send_raw_soap(endpoint_url: str, username: str, password: str,
+                   zip_name: str, content_b64: str) -> bytes:
+    """Envío SOAP raw sin zeep — para producción donde el WSDL es incompatible."""
+    import requests
 
-    Returns:
-        {'serie': str, 'numero': str, 'tipo': str}
-    """
+    soap_envelope = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:ser="http://service.sunat.gob.pe"
+                  xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+  <soapenv:Header>
+    <wsse:Security>
+      <wsse:UsernameToken>
+        <wsse:Username>{username}</wsse:Username>
+        <wsse:Password>{password}</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </soapenv:Header>
+  <soapenv:Body>
+    <ser:sendBill>
+      <fileName>{zip_name}</fileName>
+      <contentFile>{content_b64}</contentFile>
+    </ser:sendBill>
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+    headers = {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': 'urn:sendBill',
+    }
+
+    logger.info("[RAW_SOAP] Enviando a %s", endpoint_url)
+    print(f"[RAW_SOAP] Enviando a {endpoint_url}")
+
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=2,
+        status_forcelist=[502, 503, 504],
+        allowed_methods=["POST"],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+
+    response = session.post(endpoint_url, data=soap_envelope.encode('utf-8'),
+                            headers=headers, timeout=60)
+
+    logger.info("[RAW_SOAP] Status: %d, Body len: %d", response.status_code, len(response.content))
+    print(f"[RAW_SOAP] Status: {response.status_code}, Body: {len(response.content)} bytes")
+
+    if response.status_code != 200:
+        # Intentar extraer mensaje de error del SOAP fault
+        try:
+            fault_doc = etree.fromstring(response.content)
+            faults = fault_doc.xpath("//*[local-name()='faultstring']")
+            if faults and faults[0].text:
+                raise Exception(f"SUNAT SOAP Fault: {faults[0].text}")
+        except etree.XMLSyntaxError:
+            pass
+        raise Exception(f"SUNAT HTTP {response.status_code}: {response.text[:500]}")
+
+    # Parsear respuesta SOAP para extraer applicationResponse
+    resp_doc = etree.fromstring(response.content)
+
+    app_resp_els = resp_doc.xpath("//*[local-name()='applicationResponse']")
+    if app_resp_els and app_resp_els[0].text:
+        app_resp_b64 = app_resp_els[0].text.strip()
+        logger.info("[RAW_SOAP] applicationResponse encontrado, len=%d", len(app_resp_b64))
+        return base64.b64decode(app_resp_b64)
+
+    body_els = resp_doc.xpath("//*[local-name()='Body']")
+    if body_els:
+        return etree.tostring(body_els[0], encoding='utf-8')
+
+    raise Exception("No se encontró applicationResponse en la respuesta SOAP")
+
+
+def _extract_meta_from_xml(xml_bytes: bytes) -> dict:
+    """Extrae serie, numero y tipo_comprobante del XML UBL."""
     parser = etree.XMLParser(recover=True)
     doc = etree.fromstring(xml_bytes, parser=parser)
 
-    # Extraer serie-numero del elemento ID
     serie, numero = "", ""
-    # Usar xpath() en lugar de find() porque local-name() es XPath, no ElementPath
     ids = doc.xpath("//*[local-name()='ID']")
     if ids and ids[0].text:
         text = ids[0].text.strip()
@@ -105,33 +167,29 @@ def _extract_meta_from_xml(xml_bytes: bytes) -> dict:
         else:
             serie = text
 
-    # Extraer tipo de comprobante
     tipo = "01"
     for tag in ["InvoiceTypeCode", "CreditNoteTypeCode", "DebitNoteTypeCode"]:
-        # IMPORTANTE: usar xpath(), NO find() - lxml find() no soporta local-name()
         els = doc.xpath("//*[local-name()='%s']" % tag)
         el = els[0] if els else None
         if el is not None and el.text:
             tipo = el.text.strip()
             break
 
-    # Inferir tipo por serie si no se encontró tag específico
     if tipo == "01" and serie:
         prefix2 = serie[:2].upper()
         prefix1 = serie[0].upper()
         if prefix2 == "FC" or prefix2 == "BC":
-            tipo = "07"  # Nota de Crédito
+            tipo = "07"
         elif prefix2 == "FD" or prefix2 == "BD":
-            tipo = "08"  # Nota de Débito
+            tipo = "08"
         elif prefix1 == "B":
-            tipo = "03"  # Boleta
+            tipo = "03"
 
     return {"serie": serie, "numero": numero, "tipo": tipo}
 
 
 def _parse_cdr(cdr_bytes: bytes) -> dict:
     """Parsea CDR de SUNAT extrayendo código y descripción."""
-    # Log diagnóstico: ver qué recibimos
     try:
         preview = cdr_bytes[:500].decode('utf-8', errors='replace')
     except Exception:
@@ -146,7 +204,6 @@ def _parse_cdr(cdr_bytes: bytes) -> dict:
         print(f"[CDR_PARSE] ❌ No es XML válido: {e}")
         return {"codigo": None, "descripcion": None, "cdr_xml": cdr_bytes}
 
-    # Log todos los tags del CDR para diagnóstico
     all_tags = [el.tag.split('}')[-1] if '}' in el.tag else el.tag for el in doc.iter()]
     logger.info("[CDR_PARSE] Tags en CDR: %s", all_tags[:30])
     print(f"[CDR_PARSE] Tags: {all_tags[:30]}")
@@ -159,12 +216,8 @@ def _parse_cdr(cdr_bytes: bytes) -> dict:
                 return els[0].text.strip()
         return None
 
-    codigo = find_text(
-        ["ResponseCode", "responseCode", "Code", "codigo", "Codigo"]
-    )
-    descripcion = find_text(
-        ["Description", "description", "Descripcion", "descripcion", "Mensaje", "Message"]
-    )
+    codigo = find_text(["ResponseCode", "responseCode", "Code", "codigo", "Codigo"])
+    descripcion = find_text(["Description", "description", "Descripcion", "descripcion", "Mensaje", "Message"])
 
     logger.info("[CDR_PARSE] Resultado: codigo=%s, descripcion=%s", codigo, descripcion)
     print(f"[CDR_PARSE] Resultado: codigo={codigo}, descripcion={descripcion}")
@@ -179,8 +232,6 @@ def enviar_comprobante(
     use_production: bool = False,
 ) -> dict:
     """Envía comprobante firmado a SUNAT Beta/Producción y retorna CDR parseado."""
-    from zeep.wsse.username import UsernameToken
-    from zeep.plugins import HistoryPlugin
 
     # Extraer metadata del XML
     meta = _extract_meta_from_xml(xml_firmado)
@@ -201,18 +252,53 @@ def enviar_comprobante(
     zipped = buf.getvalue()
     content_b64 = base64.b64encode(zipped).decode("ascii")
 
-    # Preparar WS-Security
-    wsse = None
-    if sol_usuario and sol_password:
-        username = f"{emisor_ruc}{sol_usuario}"
-        wsse = UsernameToken(username, sol_password, use_digest=False)
-        logger.info("WSSE UsernameToken prepared: Username: %s", username)
-        print(f"WSSE UsernameToken prepared - Username: {username}")
+    # Username SUNAT
+    username = f"{emisor_ruc}{sol_usuario}" if sol_usuario else emisor_ruc
+    logger.info("WSSE UsernameToken prepared: Username: %s", username)
+    print(f"WSSE UsernameToken prepared - Username: {username}")
 
-    # Seleccionar endpoint
-    wsdl_url = SUNAT_PROD_WSDL if use_production else SUNAT_BETA_WSDL
+    # =============================================
+    # PRODUCCIÓN: Envío SOAP raw (WSDL incompatible con zeep)
+    # =============================================
+    if use_production:
+        logger.info("[PROD] Usando envío SOAP raw a %s", SUNAT_PROD_URL)
+        print(f"[PROD] Enviando SOAP raw a {SUNAT_PROD_URL}")
 
-    # Intentar con cliente cacheado, si falla crear uno nuevo
+        last_error = None
+        for attempt in range(3):
+            try:
+                resp_bytes = _send_raw_soap(
+                    SUNAT_PROD_URL, username, sol_password,
+                    zip_name, content_b64
+                )
+                cdr_bytes = _try_unzip(resp_bytes)
+                parsed = _parse_cdr(cdr_bytes)
+                logger.info("CDR: codigo=%s, descripcion=%s", parsed["codigo"], parsed["descripcion"])
+                return parsed
+
+            except Exception as e:
+                last_error = e
+                logger.warning("[PROD] Intento %d/3 falló: %s", attempt + 1, str(e))
+                if attempt < 2:
+                    wait = 3 * (attempt + 1)
+                    logger.info("Esperando %ds antes de reintentar...", wait)
+                    time.sleep(wait)
+
+        return {
+            "codigo": None,
+            "descripcion": str(last_error),
+            "cdr_xml": str(last_error).encode("utf-8"),
+        }
+
+    # =============================================
+    # BETA: Envío con zeep (WSDL compatible)
+    # =============================================
+    from zeep.wsse.username import UsernameToken
+    from zeep.plugins import HistoryPlugin
+
+    wsse = UsernameToken(username, sol_password, use_digest=False) if sol_password else None
+    wsdl_url = SUNAT_BETA_WSDL
+
     last_error = None
     for attempt in range(3):
         try:
@@ -229,36 +315,25 @@ def enviar_comprobante(
 
             _log_soap_history(history)
 
-            # Log tipo de respuesta
             logger.info("[SOAP] Tipo de respuesta: %s", type(resp))
             print(f"[SOAP] Respuesta tipo: {type(resp)}, valor: {str(resp)[:200]}")
 
-            # Extraer applicationResponse
             app_resp = None
             if hasattr(resp, "applicationResponse"):
                 app_resp = resp.applicationResponse
-                logger.info("[SOAP] applicationResponse encontrado (hasattr)")
             elif isinstance(resp, dict) and "applicationResponse" in resp:
                 app_resp = resp["applicationResponse"]
-                logger.info("[SOAP] applicationResponse encontrado (dict)")
             elif isinstance(resp, bytes):
-                # Respuesta directa en bytes (algunos endpoints)
                 app_resp = base64.b64encode(resp).decode('ascii')
                 logger.info("[SOAP] Respuesta directa en bytes")
-            else:
-                logger.warning("[SOAP] No se encontró applicationResponse. resp=%s", str(resp)[:300])
-                print(f"[SOAP] ⚠️ Sin applicationResponse. resp={str(resp)[:300]}")
 
             if app_resp is not None:
                 logger.info("[SOAP] applicationResponse len=%d", len(str(app_resp)))
                 resp_bytes = base64.b64decode(app_resp)
-                print(f"[SOAP] Decoded response: {len(resp_bytes)} bytes")
             else:
                 resp_bytes = _extract_from_history(history)
-                print(f"[SOAP] Fallback a history: {len(resp_bytes)} bytes")
 
             cdr_bytes = _try_unzip(resp_bytes)
-
             parsed = _parse_cdr(cdr_bytes)
             logger.info("CDR: codigo=%s, descripcion=%s", parsed["codigo"], parsed["descripcion"])
             return parsed
@@ -268,20 +343,14 @@ def enviar_comprobante(
             err_text = str(e)
             logger.warning("Intento %d/3 falló: %s", attempt + 1, err_text)
 
-            # Si es 401 o error de conexión, invalidar caché y reintentar
             if "401" in err_text or "Unauthorized" in err_text or "ConnectionError" in err_text:
                 global _cached_client
                 _cached_client = None
-                logger.info("Caché de cliente SOAP invalidado")
-
                 if attempt < 2:
                     wait = 3 * (attempt + 1)
-                    logger.info("Esperando %ds antes de reintentar...", wait)
-                    print(f"⏳ Reintentando en {wait}s (intento {attempt + 2}/3)...")
                     time.sleep(wait)
                     continue
 
-            # Error no recuperable - retornar
             return {
                 "codigo": None,
                 "descripcion": err_text,
@@ -298,15 +367,11 @@ def enviar_comprobante(
 def _log_soap_history(history):
     try:
         if history.last_sent:
-            logger.debug(
-                "SOAP Request: %s",
-                etree.tostring(history.last_sent["envelope"], pretty_print=True).decode(),
-            )
+            logger.debug("SOAP Request: %s",
+                etree.tostring(history.last_sent["envelope"], pretty_print=True).decode())
         if history.last_received:
-            logger.debug(
-                "SOAP Response: %s",
-                etree.tostring(history.last_received["envelope"], pretty_print=True).decode(),
-            )
+            logger.debug("SOAP Response: %s",
+                etree.tostring(history.last_received["envelope"], pretty_print=True).decode())
     except Exception:
         pass
 
