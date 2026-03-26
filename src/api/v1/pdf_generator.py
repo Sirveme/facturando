@@ -260,21 +260,26 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.setFont("Helvetica-Bold", 9)
     c.drawCentredString(box_x + box_w / 2, band_y + 2 * mm, numero_formato)
 
-    # --- Logo ---
-    logo_w = 22 * mm
-    logo_h = 22 * mm
+    # --- Logo (centrado arriba, Opción 3) ---
+    logo_w = 35 * mm
+    logo_h = 15 * mm
     text_start_x = ml
     logo_loaded = False
-    logo_y = header_top - logo_h - 1 * mm
+    
+    # Área izquierda disponible (entre margen y recuadro documento)
+    left_area_w = box_x - ml - 4 * mm
+    logo_x = ml + (left_area_w - logo_w) / 2  # Centrar logo en área izquierda
+
+    logo_y = header_top - logo_h
 
     if hasattr(emisor, 'logo') and emisor.logo:
         try:
             logo_buffer = io.BytesIO(emisor.logo)
-            c.drawImage(ImageReader(logo_buffer), ml, logo_y, logo_w, logo_h,
+            c.drawImage(ImageReader(logo_buffer), logo_x, logo_y, logo_w, logo_h,
                         preserveAspectRatio=True, mask='auto')
             logo_loaded = True
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"⚠️ Error cargando logo (blob): {e}")
 
     if not logo_loaded and hasattr(emisor, 'logo_url') and emisor.logo_url:
         try:
@@ -286,34 +291,34 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
                 import urllib.request
                 logo_data = urllib.request.urlopen(url, timeout=5).read()
             logo_buffer = io.BytesIO(logo_data)
-            c.drawImage(ImageReader(logo_buffer), ml, logo_y, logo_w, logo_h,
+            c.drawImage(ImageReader(logo_buffer), logo_x, logo_y, logo_w, logo_h,
                         preserveAspectRatio=True, mask='auto')
             logo_loaded = True
         except Exception as e:
             print(f"⚠️ Error cargando logo: {e}")
 
+    # --- Datos emisor (debajo del logo) ---
     if logo_loaded:
-        text_start_x = ml + logo_w + 4 * mm
-
-    # --- Datos emisor ---
-    ey = header_top - 4 * mm
+        ey = logo_y - 3 * mm
+    else:
+        ey = header_top - 4 * mm
 
     c.setFont("Helvetica-Bold", 12)
     c.setFillColor(black)
     razon = emisor.razon_social or ""
     if len(razon) > 35:
         c.setFont("Helvetica-Bold", 10)
-    c.drawString(text_start_x, ey, razon)
+    c.drawString(ml, ey, razon)
     ey -= 5 * mm
 
     c.setFont("Helvetica", 7.5)
     c.setFillColor(COLOR_GRIS_TEXTO)
 
     if hasattr(emisor, 'direccion') and emisor.direccion:
-        c.drawString(text_start_x, ey, emisor.direccion)
+        c.drawString(ml, ey, emisor.direccion)
         ey -= 3.5 * mm
 
-    # [PUNTO 5] Distrito - Provincia - Departamento del emisor
+    # Distrito - Provincia - Departamento del emisor
     ubicacion_parts = []
     if hasattr(emisor, 'distrito') and emisor.distrito:
         ubicacion_parts.append(emisor.distrito)
@@ -322,20 +327,20 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     if hasattr(emisor, 'departamento') and emisor.departamento:
         ubicacion_parts.append(emisor.departamento)
     if ubicacion_parts:
-        c.drawString(text_start_x, ey, " - ".join(ubicacion_parts))
+        c.drawString(ml, ey, " - ".join(ubicacion_parts))
         ey -= 3.5 * mm
 
     if hasattr(emisor, 'telefono') and emisor.telefono:
-        c.drawString(text_start_x, ey, f"Tel: {emisor.telefono}")
+        c.drawString(ml, ey, f"Tel: {emisor.telefono}")
         ey -= 3.5 * mm
 
     if hasattr(emisor, 'email') and emisor.email:
-        c.drawString(text_start_x, ey, emisor.email)
+        c.drawString(ml, ey, emisor.email)
         ey -= 3.5 * mm
 
     if hasattr(emisor, 'web') and emisor.web:
         c.setFillColor(COLOR_SECUNDARIO)
-        c.drawString(text_start_x, ey, emisor.web)
+        c.drawString(ml, ey, emisor.web)
         c.setFillColor(COLOR_GRIS_TEXTO)
 
     # =============================================
@@ -759,6 +764,16 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.setFont("Helvetica", 5.5)
     c.setFillColor(COLOR_GRIS_TEXTO)
     c.drawCentredString(w / 2, pie_y - 4 * mm, _footer_slogan)
+
+    # URL del emisor
+    url_emisor = "https://perusistemas.pro"
+    c.setFont("Helvetica", 5.5)
+    c.setFillColor(COLOR_SECUNDARIO)
+    url_y = pie_y - 8 * mm
+    c.drawCentredString(w / 2, url_y, url_emisor)
+    # Link clickable
+    url_width = c.stringWidth(url_emisor, "Helvetica", 5.5)
+    c.linkURL(url_emisor, (w/2 - url_width/2, url_y - 1, w/2 + url_width/2, url_y + 5), relative=0)
 
     c.save()
     pdf_bytes = buffer.getvalue()
