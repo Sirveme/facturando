@@ -278,14 +278,19 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
 
     if not logo_loaded and hasattr(emisor, 'logo_url') and emisor.logo_url:
         try:
-            import urllib.request
-            logo_data = urllib.request.urlopen(emisor.logo_url, timeout=5).read()
+            url = emisor.logo_url
+            if url.startswith('/'):
+                with open(url, 'rb') as f:
+                    logo_data = f.read()
+            else:
+                import urllib.request
+                logo_data = urllib.request.urlopen(url, timeout=5).read()
             logo_buffer = io.BytesIO(logo_data)
             c.drawImage(ImageReader(logo_buffer), ml, logo_y, logo_w, logo_h,
                         preserveAspectRatio=True, mask='auto')
             logo_loaded = True
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"⚠️ Error cargando logo: {e}")
 
     if logo_loaded:
         text_start_x = ml + logo_w + 4 * mm
