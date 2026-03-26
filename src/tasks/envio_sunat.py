@@ -200,10 +200,14 @@ def enviar_comprobante_task(self, comprobante_id: str):
             username_log = f"{emisor.ruc}{emisor.sol_usuario}" if emisor.sol_usuario else None
             print(f"📡 Enviando a SUNAT - Username: {username_log}")
 
+            _prod_flag = getattr(emisor, 'produccion', False)
+            print(f"🔧 PRODUCCION FLAG: {_prod_flag} (tipo: {type(_prod_flag)})")
+
             cdr = enviar_comprobante(
                 signed_xml, emisor.ruc,
                 sol_usuario=emisor.sol_usuario,
-                sol_password=sol_password_plain
+                sol_password=sol_password_plain,
+                use_production=getattr(emisor, 'produccion', False)
             )
 
             print(f"📨 CDR recibido: codigo={cdr.get('codigo')}, desc={cdr.get('descripcion')}")
