@@ -268,7 +268,7 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     
     # Área izquierda disponible (entre margen y recuadro documento)
     left_area_w = box_x - ml - 4 * mm
-    logo_x = ml + (left_area_w - logo_w) / 2  # Centrar logo en área izquierda
+    logo_x = ml  # Alineado a la izquierda con el texto
 
     logo_y = header_top - logo_h
 
