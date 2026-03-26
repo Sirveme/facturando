@@ -765,15 +765,15 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     c.setFillColor(COLOR_GRIS_TEXTO)
     c.drawCentredString(w / 2, pie_y - 4 * mm, _footer_slogan)
 
-    # URL del emisor
-    url_emisor = "https://perusistemas.pro"
-    c.setFont("Helvetica", 5.5)
-    c.setFillColor(COLOR_SECUNDARIO)
-    url_y = pie_y - 8 * mm
-    c.drawCentredString(w / 2, url_y, url_emisor)
-    # Link clickable
-    url_width = c.stringWidth(url_emisor, "Helvetica", 5.5)
-    c.linkURL(url_emisor, (w/2 - url_width/2, url_y - 1, w/2 + url_width/2, url_y + 5), relative=0)
+   # URL del emisor (si tiene web configurada)
+    url_emisor = getattr(emisor, 'web', None) or ''
+    if url_emisor:
+        c.setFont("Helvetica", 5.5)
+        c.setFillColor(COLOR_SECUNDARIO)
+        url_y = pie_y - 8 * mm
+        c.drawCentredString(w / 2, url_y, url_emisor)
+        url_width = c.stringWidth(url_emisor, "Helvetica", 5.5)
+        c.linkURL(url_emisor, (w/2 - url_width/2, url_y - 1, w/2 + url_width/2, url_y + 5), relative=0)
 
     c.save()
     pdf_bytes = buffer.getvalue()
