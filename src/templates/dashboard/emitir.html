@@ -443,11 +443,11 @@ document.getElementById('tipo_documento').addEventListener('change', (e) => {
     
     const serieSelect = document.getElementById('serie');
     const series = {
-        '01': ['F001', 'F002'],
-        '03': ['B001', 'B002'],
+        '01': ['F001', 'F002', 'F050'],
+        '03': ['B001', 'B002', 'B050'],
         '12': ['T001', 'T002'],
-        '07': ['FC01', 'BC01'],
-        '08': ['FD01', 'BD01']
+        '07': ['FC01', 'BC01', 'FC50'],
+        '08': ['FD01', 'BD01', 'FD50']
     };
     
     const opciones = series[tipo] || ['F001'];
