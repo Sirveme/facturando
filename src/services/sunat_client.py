@@ -195,8 +195,8 @@ def enviar_comprobante(
     if sol_usuario and sol_password:
         username = f"{emisor_ruc}{sol_usuario}"
         wsse = UsernameToken(username, sol_password, use_digest=False)
-        logger.info("WSSE UsernameToken prepared: Username: %s Password: %s", username, sol_password)
-        print(f"WSSE UsernameToken prepared - Username: {username} Password: {sol_password}")
+        logger.info("WSSE UsernameToken prepared: Username: %s", username)
+        print(f"WSSE UsernameToken prepared - Username: {username}")
 
     # Seleccionar endpoint
     wsdl_url = SUNAT_PROD_WSDL if use_production else SUNAT_BETA_WSDL
