@@ -9,7 +9,7 @@ Ejemplo config_json del emisor:
 """
 
 SLOGANS = {
-    "perusustemas": "Peru Sistemas Pro - Soluciones digitales",
+    "perusistemas": "Peru Sistemas Pro - Soluciones digitales",
     "bodega": "El favorito de los bodegueros",
     "farmacia": "Exclusivo para farmacias",
     "ferreteria": "El preferido de las ferreterías",
