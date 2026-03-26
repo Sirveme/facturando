@@ -39,7 +39,7 @@ def _get_or_create_client(wsdl_url: str, wsse, force_new: bool = False):
     logger.info("Creando nuevo cliente SOAP para %s", wsdl_url)
 
     try:
-        from zeep import Client
+        from zeep import Client, Settings
         from zeep.transports import Transport
         import requests
     except ImportError as e:
@@ -64,7 +64,18 @@ def _get_or_create_client(wsdl_url: str, wsse, force_new: bool = False):
     session.mount("http://", adapter)
 
     transport = Transport(session=session, timeout=60, operation_timeout=60)
-    client = Client(wsdl=wsdl_url, transport=transport, wsse=wsse)
+    settings = Settings(strict=False, xml_huge_tree=True)
+
+    client = Client(wsdl=wsdl_url, transport=transport, wsse=wsse, settings=settings)
+
+    # Para producción, forzar el binding correcto si zeep no lo detecta
+    try:
+        client.service.sendBill
+    except Exception:
+        logger.warning("Binding automático falló, intentando con service_name explícito")
+        service = client.bind('billService', 'BillServicePort')
+        # Reemplazar el service del client
+        client._default_service = service
 
     _cached_client = client
     _cached_wsdl_url = wsdl_url
