@@ -610,7 +610,7 @@ def _build_invoice_line(idx, item, moneda='PEN', line_tag='InvoiceLine',
 
     exemption = _cbc('TaxExemptionReasonCode', tipo_igv)
     exemption.set('listAgencyName', 'PE:SUNAT')
-    exemption.set('listName', 'Tipo de Afectación del IGV')
+    exemption.set('listName', 'Tipo de Afectacion del IGV')
     exemption.set('listURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo07')
     item_tc.append(exemption)
 
@@ -643,11 +643,11 @@ def _build_invoice_line(idx, item, moneda='PEN', line_tag='InvoiceLine',
 
 def _motivo_nc_descripcion(codigo):
     motivos = {
-        '01': 'Anulación de la operación', '02': 'Anulación por error en el RUC',
-        '03': 'Corrección por error en la descripción', '04': 'Descuento global',
-        '05': 'Descuento por ítem', '06': 'Devolución total',
-        '07': 'Devolución por ítem', '08': 'Bonificación',
-        '09': 'Disminución en el valor', '10': 'Otros conceptos',
+        '01': 'Anulacion de la operacion', '02': 'Anulacion por error en el RUC',
+        '03': 'Correccion por error en la descripcion', '04': 'Descuento global',
+        '05': 'Descuento por item', '06': 'Devolucion total',
+        '07': 'Devolucion por item', '08': 'Bonificacion',
+        '09': 'Disminucion en el valor', '10': 'Otros conceptos',
     }
     return motivos.get(codigo, 'Otros conceptos')
 
