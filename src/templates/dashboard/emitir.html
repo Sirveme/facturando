@@ -443,15 +443,18 @@ document.getElementById('tipo_documento').addEventListener('change', (e) => {
     
     const serieSelect = document.getElementById('serie');
     const series = {
-        '01': ['F001', 'F002', 'F050'],
-        '03': ['B001', 'B002', 'B050'],
+        '01': ['F001', 'F002', 'F050', 'F060', 'F070', 'F400', 'F800'],
+        '03': ['B001', 'B002', 'B050', 'B060', 'B070', 'B400', 'B800'],
         '12': ['T001', 'T002'],
-        '07': ['FC01', 'BC01', 'FC50'],
-        '08': ['FD01', 'BD01', 'FD50']
+        '07': ['FC01', 'BC01', 'FC50', 'FC60', 'FC70', 'FC40', 'FC80'],
+        '08': ['FD01', 'BD01', 'FD50', 'FD60', 'FD70', 'FD40', 'FD80']
     };
     
     const opciones = series[tipo] || ['F001'];
     serieSelect.innerHTML = opciones.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    // Disparar el evento al cargar para que muestre las series correctas
+    document.getElementById('tipo_documento').dispatchEvent(new Event('change'));
 });
 
 // Buscar cliente (placeholder - puedes conectar a API de SUNAT)
