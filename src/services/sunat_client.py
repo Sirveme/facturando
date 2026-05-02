@@ -22,6 +22,10 @@ SUNAT_BETA_URL = "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService"
 SUNAT_PROD_WSDL = "https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl"
 SUNAT_PROD_URL = "https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService"
 
+# URLs SUNAT — Resumen Diario / Comunicación de Baja (otros CPE)
+SUNAT_PROD_SUMMARY_URL = "https://e-factura.sunat.gob.pe/ol-ti-itemision-otroscpe-gem/billService"
+SUNAT_BETA_SUMMARY_URL = "https://e-beta.sunat.gob.pe/ol-ti-itemision-otroscpe-gem-beta/billService"
+
 # Caché global del cliente SOAP (solo para Beta)
 _cached_client = None
 _cached_wsdl_url = None
@@ -397,3 +401,250 @@ def _try_unzip(data: bytes) -> bytes:
             return zf.read(zf.namelist()[0])
     except Exception:
         return data
+
+
+# =====================================================================
+# RESUMEN DIARIO (sendSummary / getStatus) — SOAP raw, beta y producción
+# =====================================================================
+
+def _send_raw_summary(endpoint_url: str, username: str, password: str,
+                      zip_name: str, content_b64: str) -> str:
+    """Envía sendSummary y retorna el ticket que devuelve SUNAT."""
+    import requests
+
+    soap_envelope = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:ser="http://service.sunat.gob.pe"
+                  xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+  <soapenv:Header>
+    <wsse:Security>
+      <wsse:UsernameToken>
+        <wsse:Username>{username}</wsse:Username>
+        <wsse:Password>{password}</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </soapenv:Header>
+  <soapenv:Body>
+    <ser:sendSummary>
+      <fileName>{zip_name}</fileName>
+      <contentFile>{content_b64}</contentFile>
+    </ser:sendSummary>
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+    headers = {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': 'urn:sendSummary',
+    }
+
+    logger.info("[RAW_SUMMARY] Enviando a %s", endpoint_url)
+    print(f"[RAW_SUMMARY] Enviando a {endpoint_url}")
+
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=2,
+        status_forcelist=[502, 503, 504],
+        allowed_methods=["POST"],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+
+    response = session.post(endpoint_url, data=soap_envelope.encode('utf-8'),
+                            headers=headers, timeout=60)
+
+    logger.info("[RAW_SUMMARY] Status: %d, Body len: %d", response.status_code, len(response.content))
+    print(f"[RAW_SUMMARY] Status: {response.status_code}, Body: {len(response.content)} bytes")
+
+    if response.status_code != 200:
+        try:
+            fault_doc = etree.fromstring(response.content)
+            faults = fault_doc.xpath("//*[local-name()='faultstring']")
+            if faults and faults[0].text:
+                raise Exception(f"SUNAT SOAP Fault: {faults[0].text}")
+        except etree.XMLSyntaxError:
+            pass
+        raise Exception(f"SUNAT HTTP {response.status_code}: {response.text[:500]}")
+
+    resp_doc = etree.fromstring(response.content)
+    ticket_els = resp_doc.xpath("//*[local-name()='ticket']")
+    if ticket_els and ticket_els[0].text:
+        ticket = ticket_els[0].text.strip()
+        logger.info("[RAW_SUMMARY] ticket=%s", ticket)
+        return ticket
+
+    raise Exception("No se encontró <ticket> en la respuesta de sendSummary")
+
+
+def _send_raw_get_status(endpoint_url: str, username: str, password: str,
+                         ticket: str) -> bytes:
+    """Llama a getStatus(ticket). Si SUNAT ya tiene CDR, retorna los bytes del CDR XML.
+    Si el ticket aún está en proceso, lanza Exception con el statusCode."""
+    import requests
+
+    soap_envelope = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:ser="http://service.sunat.gob.pe"
+                  xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+  <soapenv:Header>
+    <wsse:Security>
+      <wsse:UsernameToken>
+        <wsse:Username>{username}</wsse:Username>
+        <wsse:Password>{password}</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </soapenv:Header>
+  <soapenv:Body>
+    <ser:getStatus>
+      <ticket>{ticket}</ticket>
+    </ser:getStatus>
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+    headers = {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': 'urn:getStatus',
+    }
+
+    logger.info("[RAW_GETSTATUS] ticket=%s endpoint=%s", ticket, endpoint_url)
+    print(f"[RAW_GETSTATUS] ticket={ticket}")
+
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=2,
+        status_forcelist=[502, 503, 504],
+        allowed_methods=["POST"],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+
+    response = session.post(endpoint_url, data=soap_envelope.encode('utf-8'),
+                            headers=headers, timeout=60)
+
+    logger.info("[RAW_GETSTATUS] Status: %d, Body len: %d", response.status_code, len(response.content))
+
+    if response.status_code != 200:
+        try:
+            fault_doc = etree.fromstring(response.content)
+            faults = fault_doc.xpath("//*[local-name()='faultstring']")
+            if faults and faults[0].text:
+                raise Exception(f"SUNAT SOAP Fault: {faults[0].text}")
+        except etree.XMLSyntaxError:
+            pass
+        raise Exception(f"SUNAT HTTP {response.status_code}: {response.text[:500]}")
+
+    resp_doc = etree.fromstring(response.content)
+
+    # statusCode: 0 = procesado y aceptado (CDR adjunto)
+    #             98 = en proceso (reintentar)
+    #             99 = procesado con errores (CDR adjunto con rechazo)
+    status_els = resp_doc.xpath("//*[local-name()='statusCode']")
+    status_code = status_els[0].text.strip() if status_els and status_els[0].text else None
+    logger.info("[RAW_GETSTATUS] statusCode=%s", status_code)
+
+    if status_code == '98':
+        raise Exception(f"TICKET_PENDING: ticket {ticket} aun en proceso (statusCode=98)")
+
+    content_els = resp_doc.xpath("//*[local-name()='content']")
+    if content_els and content_els[0].text:
+        content_b64 = content_els[0].text.strip()
+        return base64.b64decode(content_b64)
+
+    raise Exception(f"getStatus sin <content>; statusCode={status_code}")
+
+
+def enviar_resumen_diario(
+    xml_firmado: bytes,
+    emisor_ruc: str,
+    fecha: str,
+    correlativo: int,
+    sol_usuario: str,
+    sol_password: str,
+    use_production: bool = False,
+) -> dict:
+    """Envía Resumen Diario de Boletas (RC) a SUNAT.
+
+    Args:
+        xml_firmado: XML SummaryDocuments-1.1 firmado.
+        emisor_ruc: RUC del emisor.
+        fecha: 'YYYY-MM-DD' — fecha de las boletas (ReferenceDate).
+        correlativo: 1, 2, 3... del día.
+        sol_usuario, sol_password: credenciales SOL.
+        use_production: True para producción, False para beta.
+
+    Returns:
+        { ticket, zip_name }
+    """
+    fecha_compact = fecha.replace('-', '')
+    base_name = f"{emisor_ruc}-RC-{fecha_compact}-{correlativo}"
+    xml_name = f"{base_name}.xml"
+    zip_name = f"{base_name}.zip"
+
+    logger.info("Preparando envío Resumen Diario: %s", zip_name)
+
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(xml_name, xml_firmado)
+    zipped = buf.getvalue()
+    content_b64 = base64.b64encode(zipped).decode("ascii")
+
+    username = f"{emisor_ruc}{sol_usuario}" if sol_usuario else emisor_ruc
+    endpoint_url = SUNAT_PROD_SUMMARY_URL if use_production else SUNAT_BETA_SUMMARY_URL
+
+    logger.info("[SUMMARY] Endpoint: %s, username=%s", endpoint_url, username)
+    print(f"[SUMMARY] Enviando {zip_name} a {endpoint_url}")
+
+    last_error = None
+    for attempt in range(3):
+        try:
+            ticket = _send_raw_summary(
+                endpoint_url, username, sol_password,
+                zip_name, content_b64,
+            )
+            return {"ticket": ticket, "zip_name": zip_name}
+        except Exception as e:
+            last_error = e
+            logger.warning("[SUMMARY] Intento %d/3 falló: %s", attempt + 1, str(e))
+            if attempt < 2:
+                wait = 3 * (attempt + 1)
+                time.sleep(wait)
+
+    raise Exception(f"sendSummary falló tras 3 intentos: {last_error}")
+
+
+def consultar_ticket_resumen(
+    ticket: str,
+    emisor_ruc: str,
+    sol_usuario: str,
+    sol_password: str,
+    use_production: bool = False,
+) -> dict:
+    """Consulta el estado de un ticket de Resumen Diario.
+
+    Returns:
+        Dict con estructura igual a la de sendBill:
+            { codigo, descripcion, cdr_xml }
+        Si el ticket aún está en proceso, retorna:
+            { codigo: None, descripcion: 'PENDING', cdr_xml: None, pending: True }
+    """
+    username = f"{emisor_ruc}{sol_usuario}" if sol_usuario else emisor_ruc
+    endpoint_url = SUNAT_PROD_SUMMARY_URL if use_production else SUNAT_BETA_SUMMARY_URL
+
+    try:
+        resp_bytes = _send_raw_get_status(endpoint_url, username, sol_password, ticket)
+    except Exception as e:
+        if str(e).startswith("TICKET_PENDING"):
+            return {"codigo": None, "descripcion": "PENDING", "cdr_xml": None, "pending": True}
+        raise
+
+    cdr_bytes = _try_unzip(resp_bytes)
+    parsed = _parse_cdr(cdr_bytes)
+    parsed["pending"] = False
+    return parsed
