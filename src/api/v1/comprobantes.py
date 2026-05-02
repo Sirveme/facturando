@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from uuid import uuid4
-from datetime import timezone, timedelta, datetime
+from datetime import timezone, timedelta, datetime, date, time as dt_time
 from decimal import Decimal
 import hashlib
 import json
@@ -665,7 +665,8 @@ async def enviar_resumen_diario_endpoint(
         boletas = db.query(Comprobante).filter(
             Comprobante.emisor_id == emisor_id,
             Comprobante.tipo_documento == '03',
-            Comprobante.fecha_emision == fecha_obj,
+            Comprobante.fecha_emision >= datetime.combine(fecha_obj, dt_time.min),
+            Comprobante.fecha_emision < datetime.combine(fecha_obj + timedelta(days=1), dt_time.min),
             Comprobante.estado.in_(['aceptado', 'pendiente'])
         ).order_by(Comprobante.serie, Comprobante.numero).all()
 
