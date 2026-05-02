@@ -432,6 +432,8 @@ def _send_raw_summary(endpoint_url: str, username: str, password: str,
   </soapenv:Body>
 </soapenv:Envelope>"""
 
+    print(f"[SUMMARY-SOAP] Envelope completo:\n{soap_envelope[:1000]}")
+
     headers = {
         'Content-Type': 'text/xml; charset=utf-8',
         'SOAPAction': '"urn:sendSummary"',
