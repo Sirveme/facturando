@@ -4,11 +4,11 @@ Usa el nuevo xml_generator.py con estructura UBL 2.1 completa.
 """
 from src.tasks.celery_app import celery_app
 from src.api.dependencies import SessionLocal
-from src.models.models import Comprobante, Emisor, Certificado, RespuestaSunat, LogEnvio
+from src.models.models import Comprobante, Emisor, Certificado, RespuestaSunat, LogEnvio, ResumenDiario
 from src.core.config import settings
 from src.services.xml_generator import build_invoice_xml
 from src.services.firma_digital import firmar_xml
-from src.services.sunat_client import enviar_comprobante
+from src.services.sunat_client import enviar_comprobante, consultar_ticket_resumen
 from cryptography.fernet import Fernet
 import traceback
 import logging
@@ -303,6 +303,118 @@ def enviar_comprobante_task(self, comprobante_id: str):
             pass
 
         return {"exito": False, "error": str(e)}
+
+    finally:
+        db.close()
+
+
+# =====================================================================
+# RESUMEN DIARIO — polling de ticket (getStatus)
+# =====================================================================
+
+@celery_app.task(name='consultar_ticket_resumen', bind=True, max_retries=10)
+def consultar_ticket_resumen_task(self, resumen_id: str):
+    """Consulta el ticket de un Resumen Diario en SUNAT cada 30s hasta tener CDR.
+
+    - codigo='0'  → estado='aceptado' y boletas incluidas → 'autorizado'
+    - codigo!='0' (rechazo)  → estado='rechazado' y boletas vuelven a 'aceptado'
+    - pending → reintentar con countdown=30
+    """
+    from celery.exceptions import Retry
+
+    db = SessionLocal()
+    logger.info("consultar_ticket_resumen START id=%s (try %d)", resumen_id, self.request.retries)
+    print(f"🎫 consultar_ticket_resumen id={resumen_id} (intento {self.request.retries + 1})")
+
+    try:
+        resumen = db.query(ResumenDiario).filter(ResumenDiario.id == resumen_id).first()
+        if not resumen:
+            logger.error("ResumenDiario %s no encontrado", resumen_id)
+            return {"exito": False, "error": "ResumenDiario no encontrado"}
+
+        emisor = db.query(Emisor).filter(Emisor.id == resumen.emisor_id).first()
+        if not emisor:
+            resumen.estado = 'error'
+            resumen.descripcion_sunat = 'Emisor no encontrado'
+            db.commit()
+            return {"exito": False, "error": "Emisor no encontrado"}
+
+        # Desencriptar SOL password
+        sol_password_plain = None
+        if emisor.sol_password:
+            try:
+                f = Fernet(settings.encryption_key.encode())
+                sol_password_plain = f.decrypt(emisor.sol_password.encode()).decode()
+            except Exception:
+                sol_password_plain = emisor.sol_password
+
+        # Llamada a SUNAT — los errores HTTP bajan al except inferior
+        try:
+            cdr = consultar_ticket_resumen(
+                ticket=resumen.ticket,
+                emisor_ruc=emisor.ruc,
+                sol_usuario=emisor.sol_usuario or '',
+                sol_password=sol_password_plain or '',
+                use_production=getattr(emisor, 'produccion', False),
+            )
+        except Retry:
+            raise
+        except Exception as e:
+            logger.exception("Error consultando ticket %s: %s", resumen.ticket, e)
+            if self.request.retries < self.max_retries:
+                raise self.retry(exc=e, countdown=30)
+            resumen.estado = 'error'
+            resumen.descripcion_sunat = str(e)[:500]
+            db.commit()
+            return {"exito": False, "error": str(e)}
+
+        # Pending → reintentar
+        if cdr.get("pending"):
+            logger.info("Ticket %s aún pendiente — reintentando en 30s", resumen.ticket)
+            print(f"⏳ Ticket {resumen.ticket} pendiente — reintentando en 30s")
+            if self.request.retries < self.max_retries:
+                raise self.retry(countdown=30)
+            resumen.estado = 'timeout'
+            resumen.descripcion_sunat = 'Ticket no resuelto tras 10 reintentos'
+            db.commit()
+            return {"exito": False, "error": "Timeout esperando CDR"}
+
+        # CDR recibido → guardar y actualizar boletas
+        codigo = str(cdr.get('codigo') or '')
+        descripcion = cdr.get('descripcion') or ''
+        cdr_xml = cdr.get('cdr_xml')
+
+        resumen.codigo_sunat = codigo
+        resumen.descripcion_sunat = descripcion
+        resumen.cdr_xml = cdr_xml
+
+        # Boletas incluidas: las que quedaron en estado 'en_resumen' para esa fecha+emisor
+        boletas_en_resumen = db.query(Comprobante).filter(
+            Comprobante.emisor_id == resumen.emisor_id,
+            Comprobante.tipo_documento == '03',
+            Comprobante.fecha_emision == resumen.fecha_referencia,
+            Comprobante.estado == 'en_resumen',
+        ).all()
+
+        if codigo == '0':
+            resumen.estado = 'aceptado'
+            for b in boletas_en_resumen:
+                b.estado = 'autorizado'
+            print(f"✅ Resumen {resumen.id} ACEPTADO — {len(boletas_en_resumen)} boletas autorizadas")
+        else:
+            resumen.estado = 'rechazado'
+            # Restaurar boletas para reintento manual
+            for b in boletas_en_resumen:
+                b.estado = 'aceptado'
+            print(f"❌ Resumen {resumen.id} RECHAZADO ({codigo}): {descripcion}")
+
+        db.commit()
+        return {
+            "exito": codigo == '0',
+            "estado": resumen.estado,
+            "codigo": codigo,
+            "descripcion": descripcion,
+        }
 
     finally:
         db.close()
