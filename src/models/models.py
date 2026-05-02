@@ -587,7 +587,7 @@ class Categoria(Base):
 class ApiLog(Base):
     """Log de llamadas a la API pública"""
     __tablename__ = "api_log"
-    
+
     id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
     emisor_id = Column(String(36), ForeignKey("emisor.id"))
     endpoint = Column(String(100))
@@ -598,6 +598,40 @@ class ApiLog(Base):
     ip_origen = Column(String(50))
     duracion_ms = Column(Integer)
     creado_en = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relación
     emisor = relationship("Emisor")
+
+
+# ========================================
+# RESUMEN DIARIO DE BOLETAS (RC)
+# ========================================
+
+class ResumenDiario(Base):
+    """Resumen Diario de Boletas enviado a SUNAT (sendSummary / getStatus)."""
+    __tablename__ = "resumen_diario"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    emisor_id = Column(String(36), ForeignKey("emisor.id"), nullable=False)
+
+    fecha_referencia = Column(Date, nullable=False)
+    correlativo = Column(Integer, nullable=False)
+
+    zip_name = Column(String(100))
+    ticket = Column(String(50))
+    estado = Column(String(20), default='enviado')
+
+    cdr_xml = Column(LargeBinary)
+    codigo_sunat = Column(String(10))
+    descripcion_sunat = Column(Text)
+
+    boletas_incluidas = Column(Integer)
+
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    emisor = relationship("Emisor")
+
+    __table_args__ = (
+        Index('idx_resumen_emisor_fecha', 'emisor_id', 'fecha_referencia', 'correlativo', unique=True),
+    )
