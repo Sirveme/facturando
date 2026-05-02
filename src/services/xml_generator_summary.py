@@ -210,7 +210,7 @@ def build_summary_xml(
     # IssueDate = hoy (fecha de generación del resumen, no la de las boletas)
     fecha_hoy = datetime.now(tz=PERU_TZ).strftime('%Y-%m-%d')
 
-    summary_id = f"RC-{fecha_ref_compact}-{correlativo}"
+    summary_id = f"RC-{fecha_ref_compact}-{str(correlativo).zfill(5)}"
 
     root = etree.Element(
         etree.QName(NSMAP[None], 'SummaryDocuments'),

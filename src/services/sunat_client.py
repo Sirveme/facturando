@@ -632,7 +632,7 @@ def enviar_resumen_diario(
         { ticket, zip_name }
     """
     fecha_compact = fecha.replace('-', '')
-    base_name = f"{emisor_ruc}-RC-{fecha_compact}-{correlativo}"
+    base_name = f"{emisor_ruc}-RC-{fecha_compact}-{str(correlativo).zfill(5)}"
     xml_name = f"{base_name}.xml"
     zip_name = f"{base_name}.zip"
 
