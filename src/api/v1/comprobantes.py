@@ -12,12 +12,14 @@ import json
 import time
 
 from src.api.dependencies import get_db
-from src.models.models import Emisor, Comprobante, LineaDetalle, Cliente, ApiLog
+from src.models.models import Emisor, Comprobante, LineaDetalle, Cliente, ApiLog, ResumenDiario, Certificado
 from src.api.v1.auth import verificar_api_key
 from src.api.v1.schemas import (
     ComprobanteRequest, ComprobanteResponse, ErrorResponse,
     AnularRequest, ComprobanteData, ArchivosData
 )
+from pydantic import BaseModel
+from typing import Optional
 from src.api.v1.pdf_generator import generar_pdf_comprobante
 
 PERU_TZ = timedelta(hours=-5)
@@ -604,3 +606,200 @@ async def buscar_por_referencia(
             "referencia_externa": comprobante.referencia_externa
         }
     }
+
+
+# =========================================================================
+# RESUMEN DIARIO DE BOLETAS (sendSummary)
+# =========================================================================
+
+class ResumenDiarioRequest(BaseModel):
+    fecha: str  # YYYY-MM-DD — fecha de las boletas
+    emisor_id: Optional[str] = None  # opcional, si no se da usa el del token
+
+
+@router.post(
+    "/resumen-diario",
+    summary="Enviar Resumen Diario de Boletas a SUNAT",
+    description="""
+Genera y envía a SUNAT el Resumen Diario de Boletas (RC) de una fecha.
+
+Flujo:
+1. Reúne todas las boletas (tipo `03`) del emisor con fecha indicada
+   y estado `aceptado` o `pendiente` que no hayan sido incluidas en un resumen aún.
+2. Calcula el correlativo del día.
+3. Genera el XML UBL `SummaryDocuments-1.1`, lo firma y lo envía.
+4. Guarda el ticket en la tabla `resumen_diario`.
+5. Lanza una tarea Celery que consulta el ticket cada 30 s hasta obtener el CDR.
+
+Retorna `{ ok, ticket, zip_name, boletas_incluidas }`.
+"""
+)
+async def enviar_resumen_diario_endpoint(
+    data: ResumenDiarioRequest,
+    request: Request,
+    emisor: Emisor = Depends(verificar_api_key),
+    db: Session = Depends(get_db)
+):
+    from cryptography.fernet import Fernet
+    from src.core.config import settings
+    from src.services.xml_generator_summary import build_summary_xml
+    from src.services.firma_digital import firmar_xml
+    from src.services.sunat_client import enviar_resumen_diario as sunat_enviar_resumen
+    from src.tasks.celery_app import celery_app
+
+    inicio = time.time()
+
+    try:
+        # --- Validar fecha ---
+        try:
+            fecha_obj = datetime.strptime(data.fecha, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(400, detail={
+                "exito": False, "error": "fecha debe ser YYYY-MM-DD",
+                "codigo": "INVALID_DATE"
+            })
+
+        emisor_id = data.emisor_id or emisor.id
+
+        # --- 1. Buscar boletas elegibles ---
+        boletas = db.query(Comprobante).filter(
+            Comprobante.emisor_id == emisor_id,
+            Comprobante.tipo_documento == '03',
+            Comprobante.fecha_emision == fecha_obj,
+            Comprobante.estado.in_(['aceptado', 'pendiente'])
+        ).order_by(Comprobante.serie, Comprobante.numero).all()
+
+        if not boletas:
+            return {
+                "ok": False,
+                "mensaje": f"No hay boletas elegibles para la fecha {data.fecha}",
+                "boletas_incluidas": 0,
+            }
+
+        # --- 2. Correlativo del día ---
+        correlativo = db.query(ResumenDiario).filter(
+            ResumenDiario.emisor_id == emisor_id,
+            ResumenDiario.fecha_referencia == fecha_obj,
+        ).count() + 1
+
+        # --- 3. Construir XML ---
+        boletas_payload = []
+        for b in boletas:
+            boletas_payload.append({
+                'serie': b.serie,
+                'numero': b.numero,
+                'tipo_documento': b.tipo_documento,
+                'cliente_tipo_doc': b.cliente_tipo_documento or '1',
+                'cliente_numero_doc': b.cliente_numero_documento or '',
+                'total': float(b.monto_total or 0),
+                'igv': float(b.monto_igv or 0),
+                'base_imponible': float(b.op_gravada or 0),
+                'exonerado': float(b.op_exonerada or 0),
+                'inafecto': float(b.op_inafecta or 0),
+            })
+
+        xml_bytes = build_summary_xml(
+            emisor_ruc=emisor.ruc,
+            emisor_razon_social=emisor.razon_social,
+            emisor_ubigeo=getattr(emisor, 'ubigeo', '') or '',
+            fecha_referencia=fecha_obj,
+            correlativo=correlativo,
+            boletas=boletas_payload,
+        )
+
+        # --- 4. Firmar ---
+        certificado = db.query(Certificado).filter_by(
+            emisor_id=emisor_id, activo=True
+        ).order_by(Certificado.creado_en.desc()).first()
+
+        if not certificado:
+            raise HTTPException(400, detail={
+                "exito": False, "error": "Certificado digital no encontrado",
+                "codigo": "NO_CERTIFICATE"
+            })
+
+        f = Fernet(settings.encryption_key.encode())
+        pfx_bytes = f.decrypt(
+            certificado.pfx_encriptado if isinstance(certificado.pfx_encriptado, bytes)
+            else certificado.pfx_encriptado.encode()
+        )
+        password_pfx = f.decrypt(
+            certificado.password_encriptado if isinstance(certificado.password_encriptado, bytes)
+            else certificado.password_encriptado.encode()
+        ).decode()
+
+        signed_xml = firmar_xml(xml_bytes, pfx_bytes, password_pfx)
+
+        # --- 5. Desencriptar SOL password ---
+        sol_password_plain = None
+        if emisor.sol_password:
+            try:
+                sol_password_plain = f.decrypt(emisor.sol_password.encode()).decode()
+            except Exception:
+                sol_password_plain = emisor.sol_password
+
+        # --- 6. Enviar a SUNAT (sendSummary) ---
+        result = sunat_enviar_resumen(
+            xml_firmado=signed_xml,
+            emisor_ruc=emisor.ruc,
+            fecha=data.fecha,
+            correlativo=correlativo,
+            sol_usuario=emisor.sol_usuario or '',
+            sol_password=sol_password_plain or '',
+            use_production=getattr(emisor, 'produccion', False),
+        )
+
+        ticket = result['ticket']
+        zip_name = result['zip_name']
+
+        # --- 7. Persistir ResumenDiario ---
+        resumen = ResumenDiario(
+            emisor_id=emisor_id,
+            fecha_referencia=fecha_obj,
+            correlativo=correlativo,
+            zip_name=zip_name,
+            ticket=ticket,
+            estado='enviado',
+            boletas_incluidas=len(boletas),
+        )
+        db.add(resumen)
+
+        # Marcar boletas para que un segundo envío no las reincluya
+        for b in boletas:
+            b.estado = 'en_resumen'
+
+        db.commit()
+        db.refresh(resumen)
+
+        # --- 8. Lanzar tarea Celery de polling ---
+        celery_app.send_task('consultar_ticket_resumen', args=[resumen.id])
+
+        # --- 9. Response ---
+        response = {
+            "ok": True,
+            "ticket": ticket,
+            "zip_name": zip_name,
+            "boletas_incluidas": len(boletas),
+            "resumen_id": resumen.id,
+            "fecha_referencia": data.fecha,
+            "correlativo": correlativo,
+            "mensaje": "Resumen Diario enviado. Consultando ticket en background.",
+        }
+
+        duracion = int((time.time() - inicio) * 1000)
+        log_api_call(db, emisor_id, request, "/comprobantes/resumen-diario", 200, response, duracion)
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        duracion = int((time.time() - inicio) * 1000)
+        error_response = {
+            "exito": False,
+            "error": "Error enviando Resumen Diario",
+            "codigo": "RESUMEN_ERROR",
+            "detalle": str(e),
+        }
+        log_api_call(db, emisor.id, request, "/comprobantes/resumen-diario", 500, error_response, duracion)
+        raise HTTPException(500, detail=error_response)
