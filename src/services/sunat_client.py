@@ -469,14 +469,51 @@ def _send_raw_summary(endpoint_url: str, username: str, password: str,
             pass
         raise Exception(f"SUNAT HTTP {response.status_code}: {response.text[:500]}")
 
-    resp_doc = etree.fromstring(response.content)
+    # Preview del body para diagnóstico
+    try:
+        body_preview = response.content.decode('utf-8', errors='replace')
+    except Exception:
+        body_preview = str(response.content)
+    logger.info("[RAW_SUMMARY] Body completo:\n%s", body_preview)
+    print(f"[RAW_SUMMARY] Body completo ({len(response.content)} bytes):\n{body_preview}")
+
+    try:
+        resp_doc = etree.fromstring(response.content)
+    except Exception as e:
+        logger.error("[RAW_SUMMARY] No se pudo parsear XML: %s", e)
+        print(f"[RAW_SUMMARY] ❌ No se pudo parsear XML: {e}")
+        raise Exception(f"sendSummary respondió cuerpo no-XML: {body_preview[:500]}")
+
     ticket_els = resp_doc.xpath("//*[local-name()='ticket']")
     if ticket_els and ticket_els[0].text:
         ticket = ticket_els[0].text.strip()
         logger.info("[RAW_SUMMARY] ticket=%s", ticket)
         return ticket
 
-    raise Exception("No se encontró <ticket> en la respuesta de sendSummary")
+    # Extraer SOAP fault si lo hay (SUNAT a veces lo manda con HTTP 200)
+    fault_strs = resp_doc.xpath("//*[local-name()='faultstring']")
+    fault_codes = resp_doc.xpath("//*[local-name()='faultcode']")
+    fault_msg = fault_strs[0].text.strip() if fault_strs and fault_strs[0].text else None
+    fault_code = fault_codes[0].text.strip() if fault_codes and fault_codes[0].text else None
+
+    if fault_msg or fault_code:
+        msg = f"SUNAT SOAP Fault [{fault_code}]: {fault_msg}"
+        logger.error("[RAW_SUMMARY] %s", msg)
+        print(f"[RAW_SUMMARY] ❌ {msg}")
+        raise Exception(msg)
+
+    # Listar todos los tags presentes para debug
+    all_tags = sorted(set(
+        el.tag.split('}')[-1] if '}' in el.tag else el.tag
+        for el in resp_doc.iter()
+    ))
+    logger.error("[RAW_SUMMARY] Tags en respuesta: %s", all_tags)
+    print(f"[RAW_SUMMARY] Tags en respuesta: {all_tags}")
+
+    raise Exception(
+        f"No se encontró <ticket> ni <faultstring> en la respuesta de sendSummary. "
+        f"Tags presentes: {all_tags}. Body: {body_preview[:500]}"
+    )
 
 
 def _send_raw_get_status(endpoint_url: str, username: str, password: str,
@@ -557,7 +594,19 @@ def _send_raw_get_status(endpoint_url: str, username: str, password: str,
         content_b64 = content_els[0].text.strip()
         return base64.b64decode(content_b64)
 
-    raise Exception(f"getStatus sin <content>; statusCode={status_code}")
+    # Diagnóstico: loguear body si no hay <content>
+    try:
+        body_preview = response.content.decode('utf-8', errors='replace')
+    except Exception:
+        body_preview = str(response.content)
+    logger.error("[RAW_GETSTATUS] Sin <content>; body:\n%s", body_preview)
+    print(f"[RAW_GETSTATUS] ❌ Sin <content>; body ({len(response.content)} bytes):\n{body_preview}")
+
+    fault_strs = resp_doc.xpath("//*[local-name()='faultstring']")
+    if fault_strs and fault_strs[0].text:
+        raise Exception(f"SUNAT SOAP Fault en getStatus: {fault_strs[0].text.strip()}")
+
+    raise Exception(f"getStatus sin <content>; statusCode={status_code}; body={body_preview[:500]}")
 
 
 def enviar_resumen_diario(
