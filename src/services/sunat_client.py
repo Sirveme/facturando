@@ -434,7 +434,7 @@ def _send_raw_summary(endpoint_url: str, username: str, password: str,
 
     headers = {
         'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': 'urn:sendSummary',
+        'SOAPAction': '"urn:sendSummary"',
     }
 
     logger.info("[RAW_SUMMARY] Enviando a %s", endpoint_url)
@@ -543,7 +543,7 @@ def _send_raw_get_status(endpoint_url: str, username: str, password: str,
 
     headers = {
         'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': 'urn:getStatus',
+        'SOAPAction': '"urn:getStatus"',
     }
 
     logger.info("[RAW_GETSTATUS] ticket=%s endpoint=%s", ticket, endpoint_url)
