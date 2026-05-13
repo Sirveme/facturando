@@ -9,6 +9,12 @@ from src.core.config import settings
 from src.services.xml_generator import build_invoice_xml
 from src.services.firma_digital import firmar_xml
 from src.services.sunat_client import enviar_comprobante, consultar_ticket_resumen
+from src.services.notificaciones_sunat import (
+    clasificar_error_sunat,
+    notificar_reintento_temporal,
+    notificar_resuelto,
+    notificar_fallo_definitivo,
+)
 from cryptography.fernet import Fernet
 import traceback
 import logging
@@ -16,6 +22,68 @@ from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 PERU_TZ = timezone(timedelta(hours=-5))
+
+# Política de reintentos manuales (gestionada con apply_async(eta=...))
+BACKOFF_MINUTOS = [30, 60, 120]      # 30 min → 1 h → 2 h
+MAX_REINTENTOS_TEMPORALES = 3
+MAX_REINTENTOS_PERMANENTES = 0       # los permanentes no se reintentan automáticamente
+
+
+def _programar_reintento_o_fallo(comp, emisor, db, codigo: str, mensaje: str):
+    """
+    Clasifica el error y, según política, reencola con ETA o marca como rechazado.
+    Llamar SIEMPRE después de incrementar comp.intentos_envio.
+    """
+    categoria = clasificar_error_sunat(codigo, mensaje)
+    intentos = comp.intentos_envio or 0
+
+    if categoria == 'temporal' and intentos <= MAX_REINTENTOS_TEMPORALES:
+        idx = min(intentos - 1, len(BACKOFF_MINUTOS) - 1)
+        minutos = BACKOFF_MINUTOS[max(idx, 0)]
+        eta = datetime.now(timezone.utc) + timedelta(minutes=minutos)
+
+        comp.estado = 'pendiente'
+        comp.procesando_desde = None
+        comp.descripcion_respuesta = f"[temporal {codigo or '?'}] {mensaje}"[:500]
+        db.commit()
+
+        logger.info(
+            "REINTENTO %s-%s codigo=%s eta=%dmin (%d/%d)",
+            comp.serie, comp.numero, codigo, minutos, intentos, MAX_REINTENTOS_TEMPORALES,
+        )
+        print(f"⏳ REINTENTO {comp.serie}-{comp.numero} en {minutos}min "
+              f"({intentos}/{MAX_REINTENTOS_TEMPORALES}) — {codigo}")
+
+        try:
+            celery_app.send_task(
+                'enviar_comprobante_sunat',
+                args=[str(comp.id)],
+                eta=eta,
+            )
+        except Exception as e:
+            logger.exception("No se pudo encolar reintento: %s", e)
+
+        notificar_reintento_temporal(
+            comp, emisor, codigo, intentos,
+            MAX_REINTENTOS_TEMPORALES, minutos,
+        )
+        return 'retry_scheduled'
+
+    # Fallo definitivo
+    comp.estado = 'rechazado'
+    comp.procesando_desde = None
+    comp.descripcion_respuesta = (mensaje or '')[:500]
+    db.commit()
+
+    logger.info(
+        "FALLO DEFINITIVO %s-%s categoria=%s codigo=%s intentos=%d",
+        comp.serie, comp.numero, categoria, codigo, intentos,
+    )
+    print(f"🛑 FALLO DEFINITIVO {comp.serie}-{comp.numero} "
+          f"tipo={categoria} codigo={codigo} intentos={intentos}")
+
+    notificar_fallo_definitivo(comp, emisor, categoria, codigo)
+    return 'terminal'
 
 
 def _desencriptar(fernet, valor_encriptado):
@@ -82,7 +150,7 @@ def _build_emisor_dict(emisor) -> dict:
     }
 
 
-@celery_app.task(name='enviar_comprobante_sunat', bind=True, max_retries=3)
+@celery_app.task(name='enviar_comprobante_sunat', bind=True, max_retries=0)
 def enviar_comprobante_task(self, comprobante_id: str):
     """
     Tarea asíncrona para procesar y enviar comprobante a SUNAT.
@@ -217,11 +285,7 @@ def enviar_comprobante_task(self, comprobante_id: str):
             logger.exception(f"Error enviando a SUNAT: {err_text}")
             print(f"❌ Error SUNAT: {err_text}")
 
-            comp.estado = 'rechazado'
-            comp.descripcion_respuesta = err_text
-            db.commit()
-
-            # Guardar error como RespuestaSunat
+            # Guardar error como RespuestaSunat (visibilidad)
             try:
                 respuesta = RespuestaSunat(
                     comprobante_id=comp.id, codigo_cdr='',
@@ -232,10 +296,12 @@ def enviar_comprobante_task(self, comprobante_id: str):
             except Exception:
                 pass
 
-            # Reintentar si quedan intentos
-            if self.request.retries < self.max_retries:
-                raise self.retry(exc=e, countdown=60 * (self.request.retries + 1))
-
+            # Excepción de red/cliente → tratar como transitorio
+            comp.intentos_envio = (comp.intentos_envio or 0) + 1
+            comp.ultimo_intento_envio = datetime.now(timezone.utc)
+            _programar_reintento_o_fallo(
+                comp, emisor, db, codigo='', mensaje=err_text,
+            )
             return {"exito": False, "error": err_text}
 
         # ============================
@@ -251,16 +317,7 @@ def enviar_comprobante_task(self, comprobante_id: str):
             db.add(respuesta)
 
             codigo = str(cdr.get('codigo') or '')
-            if codigo == '0':
-                comp.estado = 'aceptado'
-                print(f"✅ {comp.serie}-{comp.numero} ACEPTADO por SUNAT")
-            elif codigo.startswith('2'):
-                comp.estado = 'aceptado_con_observaciones'
-                print(f"⚠️ {comp.serie}-{comp.numero} ACEPTADO CON OBSERVACIONES")
-            else:
-                comp.estado = 'rechazado'
-                comp.descripcion_respuesta = cdr.get('descripcion', '')
-                print(f"❌ {comp.serie}-{comp.numero} RECHAZADO: {cdr.get('descripcion')}")
+            descripcion_cdr = cdr.get('descripcion') or ''
 
             # Extraer DigestValue del XML firmado (= RESUMEN del CPE)
             try:
@@ -273,7 +330,36 @@ def enviar_comprobante_task(self, comprobante_id: str):
             except Exception as e:
                 logger.warning(f"No se pudo extraer DigestValue: {e}")
 
-            db.commit()
+            intentos_previos = comp.intentos_envio or 0
+
+            if codigo == '0' or codigo.startswith('2'):
+                # Éxito (aceptado o aceptado con observaciones)
+                comp.estado = 'aceptado' if codigo == '0' else 'aceptado_con_observaciones'
+                comp.intentos_envio = intentos_previos + 1
+                comp.ultimo_intento_envio = datetime.now(timezone.utc)
+                comp.procesando_desde = None
+                db.commit()
+
+                if codigo == '0':
+                    print(f"✅ {comp.serie}-{comp.numero} ACEPTADO por SUNAT")
+                else:
+                    print(f"⚠️ {comp.serie}-{comp.numero} ACEPTADO CON OBSERVACIONES")
+
+                # Si veníamos de reintentos, avisar que se resolvió
+                if intentos_previos > 0:
+                    notificar_resuelto(comp, emisor)
+            else:
+                # Rechazo SUNAT → clasificar y decidir reintento vs terminal
+                comp.intentos_envio = intentos_previos + 1
+                comp.ultimo_intento_envio = datetime.now(timezone.utc)
+                db.commit()
+
+                print(f"❌ {comp.serie}-{comp.numero} RECHAZO {codigo}: {descripcion_cdr}")
+
+                _programar_reintento_o_fallo(
+                    comp, emisor, db,
+                    codigo=codigo, mensaje=descripcion_cdr,
+                )
 
         except Exception as e:
             logger.exception("Error guardando CDR")
