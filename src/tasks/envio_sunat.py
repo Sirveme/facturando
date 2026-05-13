@@ -143,7 +143,7 @@ def _build_emisor_dict(emisor) -> dict:
         'razon_social': emisor.razon_social,
         'nombre_comercial': getattr(emisor, 'nombre_comercial', '') or emisor.razon_social,
         'direccion': getattr(emisor, 'direccion', '') or '',
-        'ubigeo': getattr(emisor, 'ubigeo', '150101') or '150101',
+        'ubigeo': getattr(emisor, 'ubigeo', '') or '',
         'departamento': getattr(emisor, 'departamento', '') or '',
         'provincia': getattr(emisor, 'provincia', '') or '',
         'distrito': getattr(emisor, 'distrito', '') or '',
