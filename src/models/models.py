@@ -24,6 +24,7 @@ class Emisor(Base):
     razon_social = Column(String(255), nullable=False)
     nombre_comercial = Column(String(255))
     direccion = Column(Text)
+    ubigeo = Column(String, nullable=True)
     sol_usuario = Column(String(128))
     sol_password = Column(String(255))
     creado_en = Column(DateTime, default=utc_now)
