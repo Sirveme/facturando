@@ -295,7 +295,7 @@ def _build_credit_note_xml(comprobante, emisor: dict) -> bytes:
 
     totales = _calcular_totales(items, moneda)
     root.append(_build_tax_total(totales, moneda))
-    root.append(_build_monetary_total(totales, moneda, tag='RequestedMonetaryTotal'))
+    root.append(_build_monetary_total(totales, moneda, tag='LegalMonetaryTotal'))
 
     for idx, item in enumerate(items, start=1):
         root.append(_build_invoice_line(idx, item, moneda, line_tag='CreditNoteLine',
@@ -358,7 +358,7 @@ def _build_debit_note_xml(comprobante, emisor: dict) -> bytes:
 
     totales = _calcular_totales(items, moneda)
     root.append(_build_tax_total(totales, moneda))
-    root.append(_build_monetary_total(totales, moneda, tag='RequestedMonetaryTotal'))
+    root.append(_build_monetary_total(totales, moneda, tag='LegalMonetaryTotal'))
 
     for idx, item in enumerate(items, start=1):
         root.append(_build_invoice_line(idx, item, moneda, line_tag='DebitNoteLine',
