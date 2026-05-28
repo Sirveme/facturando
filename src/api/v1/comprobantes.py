@@ -417,8 +417,8 @@ async def consultar_comprobante(
             "total": float(comprobante.total),
             "estado": comprobante.estado,
             "hash_cpe": comprobante.hash_cpe,
-            "codigo_sunat": comprobante.codigo_sunat,
-            "mensaje_sunat": comprobante.mensaje_sunat,
+            "codigo_sunat": comprobante.respuesta.codigo_cdr if comprobante.respuesta else None,
+            "mensaje_sunat": comprobante.respuesta.descripcion if comprobante.respuesta else None,
             "referencia_externa": comprobante.referencia_externa
         }
     }
