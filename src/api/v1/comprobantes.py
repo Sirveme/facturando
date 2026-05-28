@@ -383,7 +383,7 @@ async def consultar_comprobante(
     
     items = db.query(LineaDetalle).filter(
         LineaDetalle.comprobante_id == comprobante_id
-    ).order_by(LineaDetalle.item_orden).all()
+    ).order_by(LineaDetalle.orden).all()
     
     return {
         "exito": True,
