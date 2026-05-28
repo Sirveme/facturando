@@ -404,17 +404,17 @@ async def consultar_comprobante(
                 {
                     "descripcion": item.descripcion,
                     "cantidad": float(item.cantidad),
-                    "unidad_medida": item.unidad_medida,
+                    "unidad_medida": item.unidad,
                     "precio_unitario": float(item.precio_unitario),
-                    "subtotal": float(item.subtotal),
-                    "igv": float(item.igv),
-                    "total": float(item.total)
+                    "subtotal": float(item.subtotal or 0),
+                    "igv": float(item.igv or 0),
+                    "total": float(item.monto_linea or 0)
                 }
                 for item in items
             ],
             "subtotal": float(comprobante.op_gravada or 0) + float(comprobante.op_exonerada or 0),
-            "igv": float(comprobante.igv or 0),
-            "total": float(comprobante.total),
+            "igv": float(comprobante.monto_igv or 0),
+            "total": float(comprobante.monto_total or 0),
             "estado": comprobante.estado,
             "hash_cpe": comprobante.hash_cpe,
             "codigo_sunat": comprobante.respuesta.codigo_cdr if comprobante.respuesta else None,
