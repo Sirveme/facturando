@@ -46,6 +46,13 @@ class Emisor(Base):
     formato_nc_nd = Column(String(10), default='A4')
     produccion = Column(Boolean, default=False, nullable=False)
 
+    # GRE - Guía de Remisión Electrónica (API REST OAuth2)
+    gre_client_id = Column(String, nullable=True)
+    gre_client_secret_encrypted = Column(String, nullable=True)  # cifrado igual que sol_password (Fernet)
+    gre_serie = Column(String, default='T060')
+    gre_correlativo = Column(Integer, default=0)
+    gre_sol_usuario = Column(String, nullable=True)  # NULL = usar sol_usuario
+
     # API
     api_key = Column(String(64), unique=True)
     api_secret = Column(String(64))
@@ -636,3 +643,96 @@ class ResumenDiario(Base):
     __table_args__ = (
         Index('idx_resumen_emisor_fecha', 'emisor_id', 'fecha_referencia', 'correlativo', unique=True),
     )
+
+
+# ========================================
+# GUÍA DE REMISIÓN ELECTRÓNICA REMITENTE (GRE, tipo 09)
+# ========================================
+
+class GuiaRemision(Base):
+    """Guía de Remisión Electrónica Remitente (DespatchAdvice UBL 2.1, tipo 09).
+    Alineada a la convención de Comprobante (XML firmado en columna binaria)."""
+    __tablename__ = 'guias_remision'
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    emisor_id = Column(String(36), ForeignKey('emisor.id'), nullable=False)
+
+    serie = Column(String(4), nullable=False)            # ej. T060
+    numero = Column(Integer, nullable=False)
+
+    fecha_emision = Column(Date, nullable=False)
+    fecha_inicio_traslado = Column(Date, nullable=False)
+
+    # Traslado
+    motivo_traslado = Column(String(2), nullable=False)   # catálogo 20
+    descripcion_motivo = Column(String(255))              # obligatorio si motivo=13
+    modalidad_traslado = Column(String(2), nullable=False)  # catálogo 18: 01=Público, 02=Privado
+    peso_bruto_total = Column(Numeric(12, 3), nullable=False)
+    unidad_peso = Column(String(5), default='KGM')
+    numero_bultos = Column(Integer, nullable=True)
+    indicador_vehiculo_m1l = Column(Boolean, default=False)
+
+    # Destinatario
+    dest_tipo_doc = Column(String(1))
+    dest_num_doc = Column(String(15))
+    dest_razon_social = Column(String(500))
+
+    # Punto de partida
+    partida_ubigeo = Column(String(6))
+    partida_direccion = Column(String(500))
+
+    # Punto de llegada
+    llegada_ubigeo = Column(String(6))
+    llegada_direccion = Column(String(500))
+
+    # Transporte privado (modalidad 02; no requeridos si indicador_vehiculo_m1l=True)
+    vehiculo_placa = Column(String(20), nullable=True)
+    conductor_tipo_doc = Column(String(1), nullable=True)
+    conductor_num_doc = Column(String(15), nullable=True)
+    conductor_nombres = Column(String(200), nullable=True)
+    conductor_licencia = Column(String(20), nullable=True)
+
+    # Transporte público (modalidad 01)
+    transportista_tipo_doc = Column(String(1), nullable=True)
+    transportista_num_doc = Column(String(15), nullable=True)
+    transportista_razon_social = Column(String(500), nullable=True)
+
+    # Factura vinculada (opcional)
+    comprobante_id = Column(String(36), ForeignKey('comprobante.id'), nullable=True)
+
+    # Estado SUNAT
+    estado = Column(String(32), default='pendiente')
+    # pendiente/enviado/aceptado/aceptado_observado/rechazado/error
+    num_ticket = Column(String(50))
+    cdr_codigo = Column(String(10))
+    cdr_descripcion = Column(Text)
+    hash_cpe = Column(String(100))                        # DigestValue
+
+    # XML firmado (mismo patrón binario que Comprobante.xml)
+    xml_firmado = Column(LargeBinary)
+
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    emisor = relationship("Emisor")
+    comprobante = relationship("Comprobante")
+    items = relationship('GuiaRemisionItem', back_populates='guia',
+                         cascade='all, delete-orphan', order_by='GuiaRemisionItem.orden')
+
+    __table_args__ = (
+        Index('idx_guia_emisor_serie_numero', 'emisor_id', 'serie', 'numero', unique=True),
+    )
+
+
+class GuiaRemisionItem(Base):
+    __tablename__ = 'guias_remision_items'
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    guia_id = Column(String(36), ForeignKey('guias_remision.id'), nullable=False)
+    orden = Column(Integer, nullable=False)
+    codigo = Column(String(50), nullable=True)
+    descripcion = Column(Text, nullable=False)
+    cantidad = Column(Numeric(12, 3), nullable=False)
+    unidad_medida = Column(String(3), default='NIU')      # catálogo 03
+
+    guia = relationship('GuiaRemision', back_populates='items')
