@@ -76,7 +76,8 @@ _INV_ITEMS_001 = [
      "discrepancia": 0},
 ]
 
-_TRIBUTOS_001 = _calcular_tributos(Decimal("47940.00"))  # CIF del invoice
+_TRIBUTOS_001 = _calcular_tributos(Decimal("47940.00"))      # CIF real (Invoice/DAM)
+_TRIBUTOS_EST_001 = _calcular_tributos(Decimal("48500.00"))  # CIF estimado al registrar la OC
 
 IMP_001 = {
     "codigo": "IMP-2026-001",
@@ -141,10 +142,24 @@ IMP_001 = {
         "fecha_entrega": "2026-04-18",
         "regimen": "10 - Importación para el consumo",
         "partidas": [
-            {"partida": "2208.30.00.00", "descripcion": "Whisky", "cif_usd": 33040.00},
-            {"partida": "2204.21.00.00", "descripcion": "Vino reserva", "cif_usd": 11400.00},
+            {"partida": "2208.30.00.00", "descripcion": "Whisky single malt", "cif_usd": 33040.00,
+             "tratamiento": "Ad valorem 6% · ISC 20% (licores) · IGV+IPM 18%",
+             "partida_declarada": "2208.30.00.00", "partida_sugerida": "2208.30.00.00", "alerta": False},
+            {"partida": "2204.21.00.00", "descripcion": "Vino reserva tinto", "cif_usd": 11400.00,
+             "tratamiento": "Ad valorem 6% · ISC 20% (licores) · IGV+IPM 18%",
+             "partida_declarada": "2204.21.90.00", "partida_sugerida": "2204.21.00.00", "alerta": True},
         ],
         "cif_total_usd": 47940.00,
+        "checklist": [
+            {"item": "Orden de compra conciliada", "ok": True},
+            {"item": "Invoice comercial cargado", "ok": True},
+            {"item": "Packing list validado contra Invoice", "ok": True},
+            {"item": "BL / conocimiento de embarque", "ok": True},
+            {"item": "Partidas arancelarias asignadas", "ok": True},
+            {"item": "Discrepancia de cantidades resuelta", "ok": False},
+        ],
+        "advertencia": "Partida 2204.21.90.00 declarada para el vino reserva; el clasificador sugiere "
+                       "2204.21.00.00 (vino embotellado ≤ 2 L). Revisar antes de transmitir la DAM.",
     },
 
     "dam": {
@@ -159,6 +174,13 @@ IMP_001 = {
             "texto": "OC 200 cajas vs Invoice/DAM 198 cajas — discrepancia de -2 cajas de whisky arrastrada desde el Invoice.",
             "ok": False,
         },
+    },
+
+    "liquidacion": {
+        "estimado": _TRIBUTOS_EST_001,    # al registrar la OC (CIF USD 48,500 · 200 cajas)
+        "real": _TRIBUTOS_001,            # con la DAM numerada (CIF USD 47,940 · 198 cajas)
+        "cif_est_usd": 48500.00,
+        "cif_real_usd": 47940.00,
     },
 
     "timeline": [
@@ -249,6 +271,53 @@ def obtener_operacion(codigo: str):
     o["progreso"] = progreso(op)
     o["etapas"] = ETAPAS
     return o
+
+
+def comparativo_liquidacion(op: dict):
+    """Comparativo 'estimado al registrar la OC' vs 'DAM real', tributo a tributo,
+    con la variación visible. Devuelve None si la operación no tiene liquidación."""
+    liq = op.get("liquidacion")
+    if not liq:
+        return None
+    est, real = liq["estimado"], liq["real"]
+    campos = [
+        ("CIF (base en S/)", "cif_pen"),
+        ("Ad valorem", "ad_valorem"),
+        ("ISC (licores)", "isc"),
+        ("IGV + IPM", "igv"),
+        ("Percepción", "percepcion"),
+        ("Total a pagar", "total"),
+    ]
+    filas = []
+    for label, k in campos:
+        e, r = est[k], real[k]
+        delta = round(r - e, 2)
+        filas.append({"label": label, "estimado": e, "real": r, "delta": delta,
+                      "destacar": k == "total"})
+    return {
+        "tc": real["tc"],
+        "cif_est_usd": liq["cif_est_usd"],
+        "cif_real_usd": liq["cif_real_usd"],
+        "filas": filas,
+        "delta_total": round(real["total"] - est["total"], 2),
+    }
+
+
+# Datos precargados para el wizard "Nueva operación" (demo).
+NUEVA_PREFILL = {
+    "proveedor": "Highland Distillers Ltd",
+    "proveedor_pais": "Escocia, Reino Unido",
+    "incoterm": "CIF Callao",
+    "moneda": "USD",
+    "condicion_pago": "50% adelanto / 50% contra BL",
+    "fob": 45000.00, "flete": 2800.00, "seguro": 700.00, "cif": 48500.00,
+    "items": [
+        {"codigo": "WSM-12", "descripcion": "Whisky Single Malt 12 años (caja x6 bot. 700ml)",
+         "cajas": 120, "precio_caja": 280.00, "partida": "2208.30.00.00"},
+        {"codigo": "VRT-RES", "descripcion": "Vino Reserva Tinto (caja x12 bot. 750ml)",
+         "cajas": 80, "precio_caja": 142.50, "partida": "2204.21.00.00"},
+    ],
+}
 
 
 # ---------------------------------------------------------------------------
