@@ -65,6 +65,22 @@ def _build_party_doc(tag_party: str, tipo_doc: str, num_doc: str, razon_social: 
     return party_wrap
 
 
+def _build_issuer_party(ruc: str):
+    """cac:IssuerParty/cac:PartyIdentification/cbc:ID (schemeID=6) — RUC del
+    emisor del documento referenciado. SUNAT lo exige para TODO
+    AdditionalDocumentReference (rechazo 3380)."""
+    issuer = _cac('IssuerParty')
+    pid = _cac('PartyIdentification')
+    pid_id = _cbc('ID', ruc or '')
+    pid_id.set('schemeID', '6')
+    pid_id.set('schemeName', 'Documento de Identidad')
+    pid_id.set('schemeAgencyName', 'PE:SUNAT')
+    pid_id.set('schemeURI', CAT_DOC_URI)
+    pid.append(pid_id)
+    issuer.append(pid)
+    return issuer
+
+
 def _build_address(tag: str, ubigeo: str, direccion: str):
     """DeliveryAddress / DespatchAddress: ID=ubigeo + AddressLine/Line."""
     addr = _cac(tag)
@@ -209,6 +225,9 @@ def build_despatch_advice_xml(guia, emisor: dict) -> bytes:
         adr = _cac('AdditionalDocumentReference')
         adr.append(_cbc('ID', f"{comprobante.serie}-{comprobante.numero}"))
         adr.append(_cbc('DocumentTypeCode', '01'))
+        # SUNAT 3380: el RUC del emisor del documento. La factura la emitió el
+        # propio emisor de la guía → siempre su RUC.
+        adr.append(_build_issuer_party(emisor.get('ruc', '')))
         root.append(adr)
 
     # Documentos relacionados (ADITIVO). Acceso defensivo: si la tabla aún no
@@ -225,18 +244,10 @@ def build_despatch_advice_xml(guia, emisor: dict) -> bytes:
         adr = _cac('AdditionalDocumentReference')
         adr.append(_cbc('ID', numero))
         adr.append(_cbc('DocumentTypeCode', tipo))
+        # SUNAT 3380: RUC del emisor del documento referenciado (obligatorio).
         ruc_emisor_doc = (getattr(doc, 'emisor_doc_ruc', None) or '').strip()
         if ruc_emisor_doc:
-            issuer = _cac('IssuerParty')
-            pid = _cac('PartyIdentification')
-            pid_id = _cbc('ID', ruc_emisor_doc)
-            pid_id.set('schemeID', '6')
-            pid_id.set('schemeName', 'Documento de Identidad')
-            pid_id.set('schemeAgencyName', 'PE:SUNAT')
-            pid_id.set('schemeURI', CAT_DOC_URI)
-            pid.append(pid_id)
-            issuer.append(pid)
-            adr.append(issuer)
+            adr.append(_build_issuer_party(ruc_emisor_doc))
         root.append(adr)
 
     # 3. Signature reference (mismo patrón facturas)
