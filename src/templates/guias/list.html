@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Guías de Remisión - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=6">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/importaciones.css') }}?v=1">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    {% include "guias/_nav.html" %}
+
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">🚚 Guías de Remisión</h1>
+                <p class="page-description">Guías de Remisión Electrónica Remitente (GRE, tipo 09)</p>
+            </div>
+            <div class="page-actions">
+                <a class="btn btn-primary" href="/guias/nueva">➕ Nueva guía</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body" style="padding: 0;">
+                <div class="table-container">
+                    <table class="imp-table">
+                        <thead>
+                            <tr>
+                                <th>Serie-Número</th>
+                                <th>Fecha</th>
+                                <th>Motivo</th>
+                                <th>Destinatario</th>
+                                <th>Estado</th>
+                                <th>Factura</th>
+                                <th style="width: 180px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for g in guias %}
+                            <tr>
+                                <td><strong>{{ g.serie }}{% if g.numero %}-{{ g.numero }}{% else %}<span style="color:var(--text-muted);">-(sin asignar)</span>{% endif %}</strong></td>
+                                <td>{{ g.fecha_emision }}</td>
+                                <td>{{ motivos.get(g.motivo_traslado, g.motivo_traslado) }}</td>
+                                <td>
+                                    {{ g.dest_razon_social or '—' }}
+                                    <div style="font-size: var(--text-xs); color: var(--text-tertiary);">{{ g.dest_num_doc }}</div>
+                                </td>
+                                <td><span class="imp-badge imp-badge--{{ estado_tono.get(g.estado, 'muted') }}">{{ g.estado }}</span></td>
+                                <td>
+                                    {% if g.comprobante_id and comps.get(g.comprobante_id) %}
+                                        <a href="/comprobantes" title="{{ comps.get(g.comprobante_id) }}">{{ comps.get(g.comprobante_id) }}</a>
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td class="num">
+                                    {% if g.estado in ('aceptado', 'aceptado_observado') %}
+                                        <a class="btn btn-ghost btn-sm" href="/guias/{{ g.id }}/pdf" target="_blank">Ver PDF</a>
+                                    {% endif %}
+                                    {% if g.estado == 'error' %}
+                                        <button class="btn btn-ghost btn-sm" onclick="reintentar('{{ g.id }}')">Reintentar</button>
+                                    {% endif %}
+                                    {% if g.cdr_descripcion and g.estado in ('rechazado', 'error') %}
+                                        <button class="btn btn-ghost btn-sm" title="{{ g.cdr_descripcion }}" onclick="verMotivo({{ g.cdr_descripcion|tojson }})">Motivo</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="7" class="text-center" style="padding: var(--space-8); color: var(--text-secondary);">
+                                Aún no hay guías. Crea la primera con “Nueva guía”.
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal motivo (rechazo/error) -->
+<div class="modal" id="modal-motivo">
+    <div class="modal-backdrop" onclick="cerrarModal('modal-motivo')"></div>
+    <div class="modal-content" style="max-width: 520px;">
+        <div class="modal-header">
+            <h3>Detalle SUNAT</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-motivo')">&times;</button>
+        </div>
+        <div class="modal-body"><p id="motivo-texto" style="word-break: break-word;"></p></div>
+        <div class="modal-footer"><button class="btn btn-primary" onclick="cerrarModal('modal-motivo')">Cerrar</button></div>
+    </div>
+</div>
+
+<!-- Overlay de espera -->
+<div class="modal" id="modal-espera">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" style="max-width: 360px; text-align:center;">
+        <div class="modal-body" style="padding: var(--space-8);">
+            <div class="loading-spinner" style="margin: 0 auto var(--space-4);"></div>
+            <p style="color: var(--text-secondary);">Reintentando con SUNAT… puede tomar unos segundos.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function cerrarModal(id){ document.getElementById(id).classList.remove('active'); }
+    function verMotivo(txt){ document.getElementById('motivo-texto').textContent = txt; document.getElementById('modal-motivo').classList.add('active'); }
+
+    async function reintentar(id){
+        document.getElementById('modal-espera').classList.add('active');
+        try {
+            const resp = await fetch('/guias/' + id + '/reintentar', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+            const res = await resp.json();
+            document.getElementById('modal-espera').classList.remove('active');
+            if (res.estado === 'aceptado' || res.estado === 'aceptado_observado' || res.estado === 'enviado') {
+                if (window.toast) toast.success('GRE reenviada', 'Estado: ' + res.estado);
+                location.reload();
+            } else {
+                verMotivo(res.cdr_descripcion || res.error || ('Estado: ' + (res.estado || 'desconocido')));
+            }
+        } catch (e) {
+            document.getElementById('modal-espera').classList.remove('active');
+            verMotivo('Error de red al reintentar: ' + e);
+        }
+    }
+</script>
+{% endblock %}

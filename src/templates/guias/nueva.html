@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Guía de Remisión - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=6">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/importaciones.css') }}?v=1">
+<style>
+    .gre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+    .gre-item-row { display: grid; grid-template-columns: 130px 1fr 90px 90px 36px; gap: 8px; align-items: end; margin-bottom: 8px; }
+    @media (max-width: 720px){ .gre-grid{ grid-template-columns: 1fr; } .gre-item-row{ grid-template-columns: 1fr 1fr; } }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    {% include "guias/_nav.html" %}
+
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">🚚 Nueva Guía de Remisión</h1>
+                <p class="page-description">GRE Remitente (tipo 09) · emisión y envío a SUNAT</p>
+            </div>
+            <div class="page-actions">
+                <a class="btn btn-ghost" href="/guias">← Volver</a>
+            </div>
+        </div>
+
+        {% if comp_label %}
+        <div class="imp-alert imp-alert--ok" style="margin-bottom: var(--space-4);">
+            <span class="imp-alert__icon">🔗</span>
+            <span>Guía vinculada a la factura <strong>{{ comp_label }}</strong> — destinatario e ítems pre-llenados.</span>
+        </div>
+        {% endif %}
+
+        <form id="form-gre">
+            <input type="hidden" id="comprobante_id" value="{{ prefill.comprobante_id }}">
+
+            <!-- Datos del traslado -->
+            <div class="card" style="margin-bottom: var(--space-4);">
+                <div class="card-body">
+                    <h3 class="imp-card-title">📋 Datos del traslado</h3>
+                    <div class="gre-grid">
+                        <div class="input-group">
+                            <label class="input-label">Motivo (catálogo 20)</label>
+                            <select id="motivo_traslado" class="input">
+                                <option value="01">01 - Venta</option>
+                                <option value="02">02 - Compra</option>
+                                <option value="04">04 - Traslado entre establecimientos</option>
+                                <option value="08">08 - Importación</option>
+                                <option value="13">13 - Otros</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="grp-desc-motivo" style="display:none;">
+                            <label class="input-label">Descripción del motivo (obligatorio si 13)</label>
+                            <input type="text" id="descripcion_motivo" class="input" placeholder="Detalle del motivo">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Fecha de emisión</label>
+                            <input type="date" id="fecha_emision" class="input" value="{{ hoy }}">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Fecha inicio de traslado</label>
+                            <input type="date" id="fecha_inicio_traslado" class="input" value="{{ hoy }}">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Peso bruto total</label>
+                            <input type="number" step="0.001" min="0" id="peso_bruto_total" class="input" placeholder="0.000">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Unidad de peso / N° de bultos</label>
+                            <div style="display:flex; gap:8px;">
+                                <select id="unidad_peso" class="input" style="max-width:110px;">
+                                    <option value="KGM">KGM</option>
+                                    <option value="TNE">TNE</option>
+                                </select>
+                                <input type="number" min="0" id="numero_bultos" class="input" placeholder="Bultos">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modalidad / transporte -->
+            <div class="card" style="margin-bottom: var(--space-4);">
+                <div class="card-body">
+                    <h3 class="imp-card-title">🚛 Modalidad de transporte (catálogo 18)</h3>
+                    <div class="input-group" style="max-width:320px;">
+                        <select id="modalidad_traslado" class="input">
+                            <option value="02">02 - Transporte privado</option>
+                            <option value="01">01 - Transporte público</option>
+                        </select>
+                    </div>
+
+                    <!-- Privado -->
+                    <div id="bloque-privado">
+                        <label class="input-label" style="display:flex; align-items:center; gap:8px; margin: 8px 0;">
+                            <input type="checkbox" id="indicador_vehiculo_m1l"> Vehículo categoría M1 o L (sin placa/conductor)
+                        </label>
+                        <div class="gre-grid" id="bloque-conductor">
+                            <div class="input-group">
+                                <label class="input-label">Placa del vehículo</label>
+                                <input type="text" id="vehiculo_placa" class="input" placeholder="ABC-123">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Conductor — N° documento</label>
+                                <input type="text" id="conductor_num_doc" class="input" placeholder="DNI">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Conductor — Nombres</label>
+                                <input type="text" id="conductor_nombres" class="input">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Conductor — Licencia</label>
+                                <input type="text" id="conductor_licencia" class="input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Público -->
+                    <div id="bloque-publico" style="display:none;">
+                        <div class="gre-grid">
+                            <div class="input-group">
+                                <label class="input-label">Transportista — RUC</label>
+                                <input type="text" id="transportista_num_doc" class="input" placeholder="20XXXXXXXXX">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Transportista — Razón social</label>
+                                <input type="text" id="transportista_razon_social" class="input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Partida / Llegada / Destinatario -->
+            <div class="card" style="margin-bottom: var(--space-4);">
+                <div class="card-body">
+                    <h3 class="imp-card-title">📍 Puntos y destinatario</h3>
+                    <div class="gre-grid">
+                        <div class="input-group">
+                            <label class="input-label">Partida — Dirección</label>
+                            <input type="text" id="partida_direccion" class="input" value="{{ partida_direccion_def }}">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Partida — Ubigeo</label>
+                            <input type="text" id="partida_ubigeo" class="input" value="{{ partida_ubigeo_def }}" placeholder="150101">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Llegada — Dirección</label>
+                            <input type="text" id="llegada_direccion" class="input" value="{{ prefill.llegada_direccion }}">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Llegada — Ubigeo</label>
+                            <input type="text" id="llegada_ubigeo" class="input" placeholder="150101">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Destinatario — Tipo / N° doc</label>
+                            <div style="display:flex; gap:8px;">
+                                <select id="dest_tipo_doc" class="input" style="max-width:90px;">
+                                    <option value="6" {% if prefill.dest_tipo_doc == '6' %}selected{% endif %}>RUC</option>
+                                    <option value="1" {% if prefill.dest_tipo_doc == '1' %}selected{% endif %}>DNI</option>
+                                    <option value="4" {% if prefill.dest_tipo_doc == '4' %}selected{% endif %}>CE</option>
+                                </select>
+                                <input type="text" id="dest_num_doc" class="input" value="{{ prefill.dest_num_doc }}">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Destinatario — Razón social / Nombre</label>
+                            <input type="text" id="dest_razon_social" class="input" value="{{ prefill.dest_razon_social }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="card" style="margin-bottom: var(--space-4);">
+                <div class="card-body">
+                    <h3 class="imp-card-title">📦 Bienes a trasladar</h3>
+                    <div class="gre-item-row" style="font-size: var(--text-xs); color: var(--text-tertiary);">
+                        <div>Código</div><div>Descripción</div><div>Cantidad</div><div>Unidad</div><div></div>
+                    </div>
+                    <div id="items-container"></div>
+                    <button type="button" class="btn btn-ghost btn-sm" id="btn-add-item">➕ Agregar ítem</button>
+                </div>
+            </div>
+
+            <div style="display:flex; gap: var(--space-3); align-items:center;">
+                <button type="submit" class="btn btn-primary" id="btn-emitir">📤 Emitir y enviar a SUNAT</button>
+                <a class="btn btn-ghost" href="/guias">Cancelar</a>
+            </div>
+        </form>
+    </main>
+</div>
+
+<!-- Overlay de espera -->
+<div class="modal" id="modal-espera">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" style="max-width: 380px; text-align:center;">
+        <div class="modal-body" style="padding: var(--space-8);">
+            <div class="loading-spinner" style="margin: 0 auto var(--space-4);"></div>
+            <p style="color: var(--text-secondary);">Firmando y enviando a SUNAT…<br>puede tomar varios segundos.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal resultado/error -->
+<div class="modal" id="modal-result">
+    <div class="modal-backdrop" onclick="cerrarModal('modal-result')"></div>
+    <div class="modal-content" style="max-width: 540px;">
+        <div class="modal-header"><h3 id="result-titulo">Resultado</h3><button class="modal-close" onclick="cerrarModal('modal-result')">&times;</button></div>
+        <div class="modal-body"><p id="result-texto" style="word-break: break-word;"></p></div>
+        <div class="modal-footer"><button class="btn btn-primary" onclick="cerrarModal('modal-result')">Cerrar</button></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const PREFILL_ITEMS = {{ prefill['items']|tojson }};
+
+    function cerrarModal(id){ document.getElementById(id).classList.remove('active'); }
+
+    // --- Toggles ---
+    const motivo = document.getElementById('motivo_traslado');
+    motivo.addEventListener('change', () => {
+        document.getElementById('grp-desc-motivo').style.display = (motivo.value === '13') ? '' : 'none';
+    });
+
+    const modalidad = document.getElementById('modalidad_traslado');
+    const m1l = document.getElementById('indicador_vehiculo_m1l');
+    function syncTransporte(){
+        const priv = modalidad.value === '02';
+        document.getElementById('bloque-privado').style.display = priv ? '' : 'none';
+        document.getElementById('bloque-publico').style.display = priv ? 'none' : '';
+        document.getElementById('bloque-conductor').style.display = (priv && !m1l.checked) ? '' : 'none';
+    }
+    modalidad.addEventListener('change', syncTransporte);
+    m1l.addEventListener('change', syncTransporte);
+
+    // --- Items dinámicos ---
+    const cont = document.getElementById('items-container');
+    function itemRow(it){
+        it = it || {};
+        const div = document.createElement('div');
+        div.className = 'gre-item-row';
+        div.innerHTML = `
+            <input type="text" class="input it-codigo" placeholder="Código" value="${(it.codigo||'').replace(/"/g,'&quot;')}">
+            <input type="text" class="input it-desc" placeholder="Descripción" value="${(it.descripcion||'').replace(/"/g,'&quot;')}">
+            <input type="number" step="0.001" min="0" class="input it-cant" placeholder="1" value="${it.cantidad!=null?it.cantidad:''}">
+            <select class="input it-unidad">
+                <option value="NIU">NIU</option><option value="ZZ">ZZ</option>
+                <option value="KGM">KGM</option><option value="BX">BX</option><option value="LTR">LTR</option>
+            </select>
+            <button type="button" class="btn-icon-danger btn-del-item" title="Quitar">✕</button>`;
+        if (it.unidad_medida){ const s=div.querySelector('.it-unidad'); if([...s.options].some(o=>o.value===it.unidad_medida)) s.value=it.unidad_medida; }
+        div.querySelector('.btn-del-item').addEventListener('click', () => {
+            if (cont.querySelectorAll('.gre-item-row').length > 1) div.remove();
+        });
+        cont.appendChild(div);
+    }
+    document.getElementById('btn-add-item').addEventListener('click', () => itemRow());
+    if (PREFILL_ITEMS && PREFILL_ITEMS.length) PREFILL_ITEMS.forEach(itemRow); else itemRow();
+
+    syncTransporte();
+
+    // --- Submit ---
+    document.getElementById('form-gre').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const items = [];
+        cont.querySelectorAll('.gre-item-row').forEach(r => {
+            const desc = r.querySelector('.it-desc').value.trim();
+            if (!desc) return;
+            items.push({
+                codigo: r.querySelector('.it-codigo').value.trim() || null,
+                descripcion: desc,
+                cantidad: parseFloat(r.querySelector('.it-cant').value) || 1,
+                unidad_medida: r.querySelector('.it-unidad').value,
+            });
+        });
+        if (!items.length){ if(window.toast) toast.error('Faltan ítems','Agrega al menos un bien a trasladar'); return; }
+
+        const payload = {
+            comprobante_id: document.getElementById('comprobante_id').value || null,
+            motivo_traslado: motivo.value,
+            descripcion_motivo: document.getElementById('descripcion_motivo').value || null,
+            modalidad_traslado: modalidad.value,
+            indicador_vehiculo_m1l: m1l.checked,
+            vehiculo_placa: document.getElementById('vehiculo_placa').value || null,
+            conductor_num_doc: document.getElementById('conductor_num_doc').value || null,
+            conductor_nombres: document.getElementById('conductor_nombres').value || null,
+            conductor_licencia: document.getElementById('conductor_licencia').value || null,
+            transportista_num_doc: document.getElementById('transportista_num_doc').value || null,
+            transportista_razon_social: document.getElementById('transportista_razon_social').value || null,
+            fecha_emision: document.getElementById('fecha_emision').value,
+            fecha_inicio_traslado: document.getElementById('fecha_inicio_traslado').value,
+            partida_ubigeo: document.getElementById('partida_ubigeo').value,
+            partida_direccion: document.getElementById('partida_direccion').value,
+            llegada_ubigeo: document.getElementById('llegada_ubigeo').value,
+            llegada_direccion: document.getElementById('llegada_direccion').value,
+            dest_tipo_doc: document.getElementById('dest_tipo_doc').value,
+            dest_num_doc: document.getElementById('dest_num_doc').value,
+            dest_razon_social: document.getElementById('dest_razon_social').value,
+            peso_bruto_total: document.getElementById('peso_bruto_total').value || 0,
+            unidad_peso: document.getElementById('unidad_peso').value,
+            numero_bultos: document.getElementById('numero_bultos').value || null,
+            items: items,
+        };
+
+        document.getElementById('btn-emitir').disabled = true;
+        document.getElementById('modal-espera').classList.add('active');
+        try {
+            const resp = await fetch('/guias/emitir', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+            const res = await resp.json();
+            document.getElementById('modal-espera').classList.remove('active');
+            const ok = ['aceptado','aceptado_observado','enviado'].includes(res.estado);
+            if (ok) {
+                if (window.toast) toast.success('GRE emitida', (res.serie? res.serie+'-'+res.numero+' · ':'') + 'Estado: ' + res.estado);
+                window.location.href = res.redirect || '/guias';
+            } else {
+                document.getElementById('btn-emitir').disabled = false;
+                document.getElementById('result-titulo').textContent = 'No se pudo emitir';
+                document.getElementById('result-texto').textContent =
+                    res.cdr_descripcion || res.error || ('Estado: ' + (res.estado || 'desconocido'));
+                document.getElementById('modal-result').classList.add('active');
+            }
+        } catch (err) {
+            document.getElementById('modal-espera').classList.remove('active');
+            document.getElementById('btn-emitir').disabled = false;
+            document.getElementById('result-titulo').textContent = 'Error de red';
+            document.getElementById('result-texto').textContent = String(err);
+            document.getElementById('modal-result').classList.add('active');
+        }
+    });
+</script>
+{% endblock %}
