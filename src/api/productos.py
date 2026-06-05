@@ -11,6 +11,7 @@ import csv
 import io
 
 from src.api.dependencies import get_db
+from src.api.auth_utils import obtener_emisor_actual
 from src.models.models import Emisor, Producto
 
 router = APIRouter(prefix="/api/productos", tags=["productos"])
@@ -21,16 +22,13 @@ router = APIRouter(prefix="/api/productos", tags=["productos"])
 # =============================================
 
 @router.get("/buscar")
-def buscar_productos(request: FastAPIRequest, q: str = "", db: Session = Depends(get_db)):
+async def buscar_productos(request: FastAPIRequest, q: str = "", db: Session = Depends(get_db)):
     """Autocomplete: busca productos activos del emisor por codigo_interno o
-    descripción (ilike), máx 10 resultados. JSON compacto para la emisión."""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
+    descripción (ilike), máx 10 resultados. JSON compacto para la emisión.
 
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    Autentica con la cookie de sesión del dashboard (session_token, vía
+    obtener_emisor_actual), igual que /api/comprobantes/emitir."""
+    emisor = await obtener_emisor_actual(request, db)
 
     q = (q or "").strip()
     query = db.query(Producto).filter(
@@ -155,57 +153,6 @@ def listar_productos(
         "page": page,
         "limit": limit,
         "pages": (total + limit - 1) // limit
-    }
-
-
-# =============================================
-# BÚSQUEDA RÁPIDA (para emisión)
-# =============================================
-
-@router.get("/buscar")
-def buscar_productos(
-    request: FastAPIRequest,
-    q: str,
-    db: Session = Depends(get_db)
-):
-    """Búsqueda rápida para formulario de emisión"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
-    
-    productos = db.query(Producto).filter(
-        Producto.emisor_id == emisor.id,
-        Producto.activo == True,
-        or_(
-            Producto.codigo_interno.ilike(f"%{q}%"),
-            Producto.codigo_barras.ilike(f"%{q}%"),
-            Producto.descripcion.ilike(f"%{q}%")
-        )
-    ).order_by(
-        Producto.es_favorito.desc(),
-        Producto.veces_usado.desc(),
-        Producto.descripcion
-    ).limit(10).all()
-    
-    return {
-        "exito": True,
-        "datos": [
-            {
-                "id": p.id,
-                "codigo": p.codigo_interno,
-                "descripcion": p.descripcion,
-                "precio_unitario": float(p.precio_venta or 0),
-                "stock": float(p.stock_actual or 0),
-                "unidad_medida": p.unidad_medida,
-                "tipo_afectacion_igv": p.tipo_afectacion_igv,
-                "afecto_igv": p.afecto_igv
-            }
-            for p in productos
-        ]
     }
 
 
