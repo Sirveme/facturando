@@ -40,53 +40,6 @@
     </div>
 </header>
 
-<aside class="sidebar" id="sidebar">
-    <nav class="sidebar-nav">
-        <div class="sidebar-section">
-            <a href="/dashboard" class="sidebar-link">
-                <span class="sidebar-link-icon">📊</span>
-                <span>Dashboard</span>
-            </a>
-            <a href="/comprobantes" class="sidebar-link">
-                <span class="sidebar-link-icon">📄</span>
-                <span>Comprobantes</span>
-            </a>
-            <a href="/comprobantes/emitir" class="sidebar-link">
-                <span class="sidebar-link-icon">➕</span>
-                <span>Emitir</span>
-            </a>
-            <a href="/guias" class="sidebar-link active">
-                <span class="sidebar-link-icon">🚚</span>
-                <span>Guías de Remisión</span>
-            </a>
-            <a href="/productos" class="sidebar-link">
-                <span class="sidebar-link-icon">📦</span>
-                <span>Productos</span>
-            </a>
-            <a href="/importaciones" class="sidebar-link">
-                <span class="sidebar-link-icon">🚢</span>
-                <span>Importaciones</span>
-            </a>
-            <a href="/clientes" class="sidebar-link">
-                <span class="sidebar-link-icon">👥</span>
-                <span>Clientes</span>
-            </a>
-            <a href="/reportes" class="sidebar-link">
-                <span class="sidebar-link-icon">📈</span>
-                <span>Reportes</span>
-            </a>
-            <a href="/configuracion" class="sidebar-link">
-                <span class="sidebar-link-icon">⚙️</span>
-                <span>Configuración</span>
-            </a>
-        </div>
-        <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
-            <a href="/logout" class="sidebar-link">
-                <span class="sidebar-link-icon">🚪</span>
-                <span>Cerrar Sesión</span>
-            </a>
-        </div>
-    </nav>
-</aside>
+{% include 'partials/_sidebar.html' %}
 
 <div class="mobile-overlay" id="mobile-overlay"></div>

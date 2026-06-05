@@ -56,6 +56,7 @@
                                 <td class="num">
                                     {% if g.estado in ('aceptado', 'aceptado_observado') %}
                                         <a class="btn btn-ghost btn-sm" href="/guias/{{ g.id }}/pdf" target="_blank">Ver PDF</a>
+                                        <a class="btn btn-ghost btn-sm" href="/guias/{{ g.id }}/pdf?regen=1" target="_blank" title="Regenerar PDF con logo" style="opacity:.6; padding-left:6px; padding-right:6px;">↻</a>
                                     {% endif %}
                                     {% if g.estado == 'error' %}
                                         <button class="btn btn-ghost btn-sm" onclick="reintentar('{{ g.id }}')">Reintentar</button>
