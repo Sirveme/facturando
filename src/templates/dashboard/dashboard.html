@@ -323,54 +323,7 @@
     </header>
     
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <nav class="sidebar-nav">
-            <div class="sidebar-section">
-                <a href="/dashboard" class="sidebar-link {% if request.url.path == '/dashboard' %}active{% endif %}">
-                    <span class="sidebar-link-icon">📊</span>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/comprobantes" class="sidebar-link {% if '/comprobantes' in request.url.path and 'emitir' not in request.url.path and 'nota' not in request.url.path %}active{% endif %}">
-                    <span class="sidebar-link-icon">📄</span>
-                    <span>Comprobantes</span>
-                </a>
-                <a href="/comprobantes/emitir" class="sidebar-link {% if request.url.path == '/comprobantes/emitir' %}active{% endif %}">
-                    <span class="sidebar-link-icon">➕</span>
-                    <span>Emitir</span>
-                </a>
-                <a href="/productos" class="sidebar-link {% if '/productos' in request.url.path %}active{% endif %}">
-                    <span class="sidebar-link-icon">📦</span>
-                    <span>Productos</span>
-                </a>
-                <a href="/guias" class="sidebar-link {% if '/guias' in request.url.path %}active{% endif %}">
-                    <span class="sidebar-link-icon">🚚</span>
-                    <span>Guías de Remisión</span>
-                </a>
-                <a href="/importaciones" class="sidebar-link {% if '/importaciones' in request.url.path %}active{% endif %}">
-                    <span class="sidebar-link-icon">🚢</span>
-                    <span>Importaciones</span>
-                </a>
-                <a href="/clientes" class="sidebar-link {% if '/clientes' in request.url.path %}active{% endif %}">
-                    <span class="sidebar-link-icon">👥</span>
-                    <span>Clientes</span>
-                </a>
-                <a href="/reportes" class="sidebar-link {% if '/reportes' in request.url.path %}active{% endif %}">
-                    <span class="sidebar-link-icon">📈</span>
-                    <span>Reportes</span>
-                </a>
-                <a href="/configuracion" class="sidebar-link {% if '/configuracion' in request.url.path %}active{% endif %}">
-                    <span class="sidebar-link-icon">⚙️</span>
-                    <span>Configuración</span>
-                </a>
-            </div>
-            <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
-                <a href="/logout" class="sidebar-link">
-                    <span class="sidebar-link-icon">🚪</span>
-                    <span>Cerrar Sesión</span>
-                </a>
-            </div>
-        </nav>
-    </aside>
+        {% include 'partials/_sidebar.html' %}
     
     <!-- Mobile Overlay -->
     <div class="mobile-overlay" id="mobile-overlay"></div>
