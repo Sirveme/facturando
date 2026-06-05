@@ -742,6 +742,9 @@ async def emitir_comprobante(
             id=str(uuid4()),
             comprobante_id=comprobante.id,
             orden=i,
+            # codigo del catálogo si el item lo trae (autocomplete); si no, NULL
+            # (texto libre, no descuenta stock) → comportamiento actual intacto.
+            codigo=(item.get('codigo') or None),
             descripcion=item.get('descripcion', ''),
             cantidad=cantidad,
             unidad=item.get('unidad_medida', 'NIU'),
@@ -774,6 +777,17 @@ async def emitir_comprobante(
                 comprobante.estado = 'rechazado'
             db.commit()
             print(f"DEBUG: Envío síncrono resultado: {resultado}")
+            # Hook no-fatal: descontar stock al quedar aceptada.
+            if comprobante.estado == 'aceptado':
+                try:
+                    from src.services.stock_service import descontar_por_comprobante
+                    descontar_por_comprobante(db, comprobante.id)
+                except Exception as _e:
+                    try:
+                        db.rollback()
+                    except Exception:
+                        pass
+                    print(f"[STOCK] Descuento no-fatal falló: {_e}")
     except Exception as e:
         print(f"ERROR al encolar envío SUNAT: {e}")
         # No fallar la emisión si falla el envío

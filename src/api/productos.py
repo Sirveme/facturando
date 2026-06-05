@@ -17,6 +17,57 @@ router = APIRouter(prefix="/api/productos", tags=["productos"])
 
 
 # =============================================
+# BUSCAR PRODUCTOS (autocomplete de emisión)
+# =============================================
+
+@router.get("/buscar")
+def buscar_productos(request: FastAPIRequest, q: str = "", db: Session = Depends(get_db)):
+    """Autocomplete: busca productos activos del emisor por codigo_interno o
+    descripción (ilike), máx 10 resultados. JSON compacto para la emisión."""
+    session_ruc = request.cookies.get("session")
+    if not session_ruc:
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
+    if not emisor:
+        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+
+    q = (q or "").strip()
+    query = db.query(Producto).filter(
+        Producto.emisor_id == emisor.id,
+        Producto.activo == True,
+    )
+    if q:
+        query = query.filter(
+            or_(
+                Producto.codigo_interno.ilike(f"%{q}%"),
+                Producto.descripcion.ilike(f"%{q}%"),
+            )
+        )
+
+    productos = (
+        query.order_by(Producto.es_favorito.desc(), Producto.descripcion)
+        .limit(10)
+        .all()
+    )
+    return {
+        "exito": True,
+        "datos": [
+            {
+                "id": p.id,
+                "codigo_interno": p.codigo_interno,
+                "descripcion": p.descripcion,
+                "precio_venta": float(p.precio_venta or 0),
+                "unidad_medida": p.unidad_medida,
+                "stock_actual": float(p.stock_actual or 0),
+                "maneja_stock": p.maneja_stock,
+            }
+            for p in productos
+        ],
+    }
+
+
+# =============================================
 # LISTAR PRODUCTOS
 # =============================================
 
