@@ -1,0 +1,79 @@
+{% extends "importaciones/base_importaciones.html" %}
+{% from 'importaciones/_icons.html' import ico %}
+
+{% block title %}Pre-DAM — {{ op.codigo }}{% endblock %}
+
+{% block content %}
+<div class="cx-pagehead">
+    <div>
+        <div class="cx-eyebrow">Espacio de trabajo · {{ op.codigo }}</div>
+        <h1 class="cx-title">Preparación de la DAM</h1>
+        <p class="cx-subtitle">Completitud documentaria, clasificación arancelaria y tratamiento tributario antes de transmitir al agente.</p>
+    </div>
+    <div class="cx-pagehead__actions">
+        <a class="cx-btn cx-btn--ghost" href="/importaciones/{{ op.codigo }}">{{ ico('back') }} Volver a la operación</a>
+    </div>
+</div>
+
+<div class="cx-detail-grid">
+    <!-- Checklist de completitud -->
+    <div class="cx-card">
+        <div class="cx-card__body">
+            <h3 class="cx-card__title">{{ ico('check') }} Completitud</h3>
+            {% for c in op.pre_dam.checklist %}
+            <div class="cx-check">
+                <span class="cx-check__mark {% if c.ok %}cx-check__mark--ok{% else %}cx-check__mark--pend{% endif %}">
+                    {% if c.ok %}{{ ico('check', 'ico-sm') }}{% else %}{{ ico('alerta', 'ico-sm') }}{% endif %}
+                </span>
+                <span class="cx-check__text {% if not c.ok %}is-pend{% endif %}">{{ c.item }}</span>
+            </div>
+            {% endfor %}
+            <dl class="cx-kv" style="margin-top:18px;">
+                <dt>Agente</dt><dd>{{ op.pre_dam.agente_aduana }}</dd>
+                <dt>Régimen</dt><dd>{{ op.pre_dam.regimen }}</dd>
+                <dt>CIF total</dt><dd>USD {{ "{:,.2f}".format(op.pre_dam.cif_total_usd) }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Clasificación + tratamiento -->
+    <div class="cx-card">
+        <div class="cx-card__body">
+            <h3 class="cx-card__title">{{ ico('documento') }} Clasificación arancelaria</h3>
+
+            {% if op.pre_dam.advertencia %}
+            <div class="cx-alert">{{ ico('alerta') }} <span>{{ op.pre_dam.advertencia }}</span></div>
+            {% endif %}
+
+            <table class="cx-table">
+                <thead>
+                    <tr><th>Mercadería</th><th>Partida declarada</th><th>Sugerida</th><th>Tratamiento</th><th class="num">CIF (USD)</th></tr>
+                </thead>
+                <tbody>
+                    {% for pp in op.pre_dam.partidas %}
+                    <tr {% if pp.alerta %}class="cx-row-warn"{% endif %}>
+                        <td>{{ pp.descripcion }}</td>
+                        <td><span class="code {% if pp.alerta %}cx-cell-diff{% endif %}">{{ pp.partida_declarada }}</span></td>
+                        <td>
+                            {% if pp.alerta %}<span class="code">{{ pp.partida_sugerida }}</span> <span class="cx-delta cx-delta--neg" style="margin-left:4px;">revisar</span>
+                            {% else %}<span class="cx-delta--zero">conforme</span>{% endif %}
+                        </td>
+                        <td class="cx-muted" style="font-size:12.5px;">{{ pp.tratamiento }}</td>
+                        <td class="num">{{ "{:,.2f}".format(pp.cif_usd) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot><tr><td colspan="4" class="num">CIF total</td><td class="num">{{ "{:,.2f}".format(op.pre_dam.cif_total_usd) }}</td></tr></tfoot>
+            </table>
+
+            <h4 style="font-family:var(--cx-serif); font-size:17px; margin:24px 0 12px;">Exportar data Pre-DAM al agente</h4>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a class="cx-btn cx-btn--sm" href="/importaciones/{{ op.codigo }}/export/txt">{{ ico('download', 'ico-sm') }} TXT</a>
+                <a class="cx-btn cx-btn--sm" href="/importaciones/{{ op.codigo }}/export/xml">{{ ico('download', 'ico-sm') }} XML</a>
+                <a class="cx-btn cx-btn--sm" href="/importaciones/{{ op.codigo }}/export/json">{{ ico('download', 'ico-sm') }} JSON</a>
+                <button class="cx-btn cx-btn--sm cx-btn--primary" onclick="cxToast('Pre-DAM transmitida (demo)', 'Data enviada a {{ op.pre_dam.agente_aduana }}.')">{{ ico('arrow', 'ico-sm') }} Transmitir al agente</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

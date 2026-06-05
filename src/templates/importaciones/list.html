@@ -1,65 +1,56 @@
-{% extends "base.html" %}
+{% extends "importaciones/base_importaciones.html" %}
+{% from 'importaciones/_icons.html' import ico %}
 
-{% block title %}Importaciones - facturalo.pro{% endblock %}
+{% block title %}Operaciones — Comercio Exterior{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=6">
-<link rel="stylesheet" href="{{ url_for('static', path='/css/importaciones.css') }}?v=1">
-{% endblock %}
+{% block content %}
+<div class="cx-pagehead">
+    <div>
+        <div class="cx-eyebrow">Cartera de importación</div>
+        <h1 class="cx-title">Operaciones</h1>
+        <p class="cx-subtitle">Seguimiento de extremo a extremo: orden de compra, documentación, despacho y liquidación aduanera.</p>
+    </div>
+    <div class="cx-pagehead__actions">
+        <a class="cx-btn cx-btn--primary" href="/importaciones/nueva">{{ ico('plus') }} Nueva operación</a>
+    </div>
+</div>
 
-{% block body %}
-<div class="dashboard-layout">
-    {% include "importaciones/_nav.html" %}
-
-    <main class="main">
-        <div class="page-header">
-            <div>
-                <span class="imp-preview-banner">● Vista previa del módulo</span>
-                <h1 class="page-title">🚢 Importaciones</h1>
-                <p class="page-description">Seguimiento de operaciones de importación, documentación y liquidación aduanera</p>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-body" style="padding: 0;">
-                <div class="table-container">
-                    <table class="imp-table">
-                        <thead>
-                            <tr>
-                                <th>Operación</th>
-                                <th>Proveedor</th>
-                                <th>Carga</th>
-                                <th>Estado</th>
-                                <th class="num">FOB (USD)</th>
-                                <th class="num">CIF (USD)</th>
-                                <th>ETA</th>
-                                <th style="min-width: 160px;">Progreso</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for op in operaciones %}
-                            <tr style="cursor:pointer;" onclick="location.href='/importaciones/{{ op.codigo }}'">
-                                <td><strong style="color: var(--primary-bright);">{{ op.codigo }}</strong></td>
-                                <td>
-                                    {{ op.proveedor }}
-                                    <div style="font-size: var(--text-xs); color: var(--text-tertiary);">{{ op.proveedor_pais }} · {{ op.incoterm }}</div>
-                                </td>
-                                <td style="max-width: 220px;">{{ op.resumen_carga }}</td>
-                                <td><span class="imp-badge imp-badge--{{ op.estado_tono }}">{{ op.estado_label }}</span></td>
-                                <td class="num">{{ "{:,.2f}".format(op.fob) }}</td>
-                                <td class="num">{{ "{:,.2f}".format(op.cif) }}</td>
-                                <td>{{ op.fecha_eta }}</td>
-                                <td>
-                                    <div class="imp-progress"><div class="imp-progress__bar" style="width: {{ op.progreso.porcentaje }}%;"></div></div>
-                                    <div class="imp-progress__label">{{ op.etapa_actual }} · {{ op.progreso.indice }}/{{ op.progreso.total }} etapas</div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </main>
+<div class="cx-card">
+    <div class="cx-card__body" style="padding: 6px 8px;">
+        <table class="cx-table">
+            <thead>
+                <tr>
+                    <th>Operación</th>
+                    <th>Proveedor</th>
+                    <th>Carga</th>
+                    <th>Estado</th>
+                    <th class="num">FOB (USD)</th>
+                    <th class="num">CIF (USD)</th>
+                    <th>ETA</th>
+                    <th style="min-width: 170px;">Avance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for op in operaciones %}
+                <tr class="is-clickable" onclick="location.href='/importaciones/{{ op.codigo }}'">
+                    <td><span class="code">{{ op.codigo }}</span></td>
+                    <td>
+                        {{ op.proveedor }}
+                        <div class="cx-faint" style="font-size:11.5px;">{{ op.proveedor_pais }} · {{ op.incoterm }}</div>
+                    </td>
+                    <td style="max-width: 230px;" class="cx-muted">{{ op.resumen_carga }}</td>
+                    <td><span class="cx-badge cx-badge--{{ op.estado_tono }}">{{ op.estado_label }}</span></td>
+                    <td class="num">{{ "{:,.2f}".format(op.fob) }}</td>
+                    <td class="num">{{ "{:,.2f}".format(op.cif) }}</td>
+                    <td class="cx-muted">{{ op.fecha_eta }}</td>
+                    <td>
+                        <div class="cx-progress"><div class="cx-progress__bar" style="width: {{ op.progreso.porcentaje }}%;"></div></div>
+                        <div class="cx-progress__label">{{ op.etapa_actual }} · {{ op.progreso.indice }}/{{ op.progreso.total }} etapas</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

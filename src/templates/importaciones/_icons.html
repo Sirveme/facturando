@@ -1,0 +1,39 @@
+{#
+  Iconografía pro del panel Importadores — SVG inline, línea fina (stroke 1.5),
+  24x24, consistentes entre sí. Sin emojis. Uso: {{ ico('nave', 'ico-lg') }}
+#}
+{% macro ico(name, cls='') -%}
+<svg class="ico {{ cls }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == 'operacion' -%}
+  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+{%- elif name == 'proveedor' -%}
+  <path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/>
+{%- elif name == 'nave' -%}
+  <path d="M2 20a2.4 2.4 0 0 0 2 1 2.4 2.4 0 0 0 2-1 2.4 2.4 0 0 1 2-1 2.4 2.4 0 0 1 2 1 2.4 2.4 0 0 0 2 1 2.4 2.4 0 0 0 2-1 2.4 2.4 0 0 1 2-1 2.4 2.4 0 0 1 2 1 2.4 2.4 0 0 0 2 1"/><path d="M4 18 3 9h18l-2 7"/><path d="M12 3v6"/><path d="M8 9V6h8v3"/>
+{%- elif name == 'documento' -%}
+  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/>
+{%- elif name == 'alerta' -%}
+  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>
+{%- elif name == 'check' -%}
+  <path d="M20 6 9 17l-5-5"/>
+{%- elif name == 'plus' -%}
+  <path d="M12 5v14M5 12h14"/>
+{%- elif name == 'liquidacion' -%}
+  <rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h3M8 18h3"/><path d="M15 14h2v4h-2z"/>
+{%- elif name == 'config' -%}
+  <path d="M4 6h11M19 6h1M4 12h1M9 12h11M4 18h7M15 18h5"/><circle cx="17" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="13" cy="18" r="2"/>
+{%- elif name == 'arrow' -%}
+  <path d="M5 12h14M12 5l7 7-7 7"/>
+{%- elif name == 'back' -%}
+  <path d="M19 12H5M12 19l-7-7 7-7"/>
+{%- elif name == 'download' -%}
+  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+{%- elif name == 'clock' -%}
+  <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+{%- elif name == 'scale' -%}
+  <path d="M12 3v18M5 7h14M7 7l-3 7a3 3 0 0 0 6 0zM17 7l-3 7a3 3 0 0 0 6 0z"/><path d="M7 21h10"/>
+{%- elif name == 'logout' -%}
+  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>
+{%- endif -%}
+</svg>
+{%- endmacro %}

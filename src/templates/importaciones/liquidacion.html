@@ -1,0 +1,105 @@
+{% extends "importaciones/base_importaciones.html" %}
+{% from 'importaciones/_icons.html' import ico %}
+
+{% block title %}Liquidación — {{ op.codigo }}{% endblock %}
+
+{% block content %}
+<div class="cx-pagehead">
+    <div>
+        <div class="cx-eyebrow">Espacio de trabajo · {{ op.codigo }}</div>
+        <h1 class="cx-title">Simulador de liquidación</h1>
+        <p class="cx-subtitle">Del CIF a la deuda aduanera, y el contraste entre lo estimado al comprar y lo realmente liquidado en la DAM.</p>
+    </div>
+    <div class="cx-pagehead__actions">
+        <a class="cx-btn cx-btn--ghost" href="/importaciones/{{ op.codigo }}">{{ ico('back') }} Volver a la operación</a>
+    </div>
+</div>
+
+{% if not op.dam %}
+<div class="cx-card">
+    <div class="cx-card__body">
+        <div class="cx-alert">{{ ico('clock') }} <span>La operación <strong>{{ op.codigo }}</strong> aún no tiene DAM numerada (etapa actual: {{ op.etapa_actual }}). La liquidación estará disponible una vez numerada la DAM.</span></div>
+        <a class="cx-btn" href="/importaciones/{{ op.codigo }}">{{ ico('back') }} Volver a la operación</a>
+    </div>
+</div>
+{% else %}
+{% set t = op.dam.tributos %}
+
+<!-- Flujo de cálculo -->
+<div class="cx-card">
+    <div class="cx-card__body">
+        <h3 class="cx-card__title">{{ ico('scale') }} Cálculo sobre la DAM <span class="cx-faint" style="font-family:var(--cx-sans);font-size:12px;font-weight:400;">· TC S/ {{ "{:,.3f}".format(t.tc) }}</span></h3>
+        <div class="cx-liq-flow">
+            <div class="cx-liq-flow__node">Base CIF<b>S/ {{ "{:,.2f}".format(t.cif_pen) }}</b></div>
+            <span class="cx-liq-flow__op">{{ ico('arrow', 'ico-sm') }}</span>
+            <div class="cx-liq-flow__node">Ad valorem · {{ t.ad_valorem_rate }}<b>S/ {{ "{:,.2f}".format(t.ad_valorem) }}</b></div>
+            <span class="cx-liq-flow__op">{{ ico('arrow', 'ico-sm') }}</span>
+            <div class="cx-liq-flow__node">ISC · {{ t.isc_rate }}<b>S/ {{ "{:,.2f}".format(t.isc) }}</b></div>
+            <span class="cx-liq-flow__op">{{ ico('arrow', 'ico-sm') }}</span>
+            <div class="cx-liq-flow__node">IGV + IPM · {{ t.igv_rate }}<b>S/ {{ "{:,.2f}".format(t.igv) }}</b></div>
+            <span class="cx-liq-flow__op">{{ ico('arrow', 'ico-sm') }}</span>
+            <div class="cx-liq-flow__node">Percepción · {{ t.percepcion_rate }}<b>S/ {{ "{:,.2f}".format(t.percepcion) }}</b></div>
+            <span class="cx-liq-flow__op">{{ ico('arrow', 'ico-sm') }}</span>
+            <div class="cx-liq-flow__node cx-liq-flow__node--total">Total a pagar<b>S/ {{ "{:,.2f}".format(t.total) }}</b></div>
+        </div>
+    </div>
+</div>
+
+<!-- Comparativo estimado vs real -->
+{% if comp %}
+<div class="cx-card mt-6">
+    <div class="cx-card__body">
+        <h3 class="cx-card__title">{{ ico('liquidacion') }} Estimado al registrar la OC vs. DAM real</h3>
+        <p class="cx-muted" style="margin-top:-8px;">
+            CIF estimado USD {{ "{:,.2f}".format(comp.cif_est_usd) }} (200 cajas) ·
+            CIF real USD {{ "{:,.2f}".format(comp.cif_real_usd) }} (198 cajas, tras la discrepancia del Invoice).
+        </p>
+
+        <table class="cx-table cx-compare">
+            <thead>
+                <tr><th>Concepto</th><th class="num">Estimado (S/)</th><th class="num">DAM real (S/)</th><th class="num">Variación (S/)</th></tr>
+            </thead>
+            <tbody>
+                {% for f in comp.filas %}
+                <tr {% if f.destacar %}class="cx-row-warn"{% endif %}>
+                    <td {% if f.destacar %}style="font-weight:600;"{% endif %}>{{ f.label }}</td>
+                    <td class="num">{{ "{:,.2f}".format(f.estimado) }}</td>
+                    <td class="num">{{ "{:,.2f}".format(f.real) }}</td>
+                    <td class="num">
+                        {% if f.delta > 0 %}<span class="cx-var-neg">+{{ "{:,.2f}".format(f.delta) }}</span>
+                        {% elif f.delta < 0 %}<span class="cx-var-pos">{{ "{:,.2f}".format(f.delta) }}</span>
+                        {% else %}<span class="cx-delta--zero">—</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="cx-callout">
+            {{ ico('scale', 'ico-lg') }}
+            <div>
+                <div class="cx-muted" style="font-size:12px; letter-spacing:.04em;">Variación total a pagar (real vs. estimado)</div>
+                <div class="cx-callout__big {% if comp.delta_total > 0 %}cx-var-neg{% elif comp.delta_total < 0 %}cx-var-pos{% endif %}">
+                    {% if comp.delta_total > 0 %}+{% endif %}S/ {{ "{:,.2f}".format(comp.delta_total) }}
+                </div>
+                <div class="cx-muted" style="font-size:13px; margin-top:4px;">
+                    {% if comp.delta_total > 0 %}
+                        Sobrecosto frente a lo proyectado al comprar — el tipo de costo inesperado que esta operación busca anticipar.
+                    {% elif comp.delta_total < 0 %}
+                        Por debajo de lo proyectado: la discrepancia de -2 cajas redujo la base imponible. Control de costos sin sorpresas.
+                    {% else %}
+                        Sin variación frente a lo estimado.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:22px;">
+            <button class="cx-btn cx-btn--primary" onclick="cxToast('Liquidación aprobada (demo)', 'Costo de importación conciliado contra la DAM.')">{{ ico('check') }} Aprobar liquidación</button>
+            <a class="cx-btn" href="/importaciones/{{ op.codigo }}/export/json">{{ ico('download', 'ico-sm') }} Exportar costeo (JSON)</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

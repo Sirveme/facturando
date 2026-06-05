@@ -1,0 +1,124 @@
+{% extends "importaciones/base_importaciones.html" %}
+{% from 'importaciones/_icons.html' import ico %}
+
+{% block title %}Nueva operación — Comercio Exterior{% endblock %}
+
+{% block content %}
+<div class="cx-pagehead">
+    <div>
+        <div class="cx-eyebrow">Registro de importación</div>
+        <h1 class="cx-title">Nueva operación</h1>
+        <p class="cx-subtitle">Tres pasos: proveedor y condiciones, items de la orden de compra, y revisión final.</p>
+    </div>
+    <div class="cx-pagehead__actions">
+        <a class="cx-btn cx-btn--ghost" href="/importaciones">{{ ico('back') }} Cancelar</a>
+    </div>
+</div>
+
+<!-- Indicador de pasos -->
+<div class="cx-steps">
+    <div class="cx-step active" id="ind-1"><span class="cx-step__num">1</span><span class="cx-step__label">Proveedor</span></div>
+    <div class="cx-step__line"></div>
+    <div class="cx-step" id="ind-2"><span class="cx-step__num">2</span><span class="cx-step__label">Items OC</span></div>
+    <div class="cx-step__line"></div>
+    <div class="cx-step" id="ind-3"><span class="cx-step__num">3</span><span class="cx-step__label">Revisión</span></div>
+</div>
+
+<div class="cx-card">
+    <div class="cx-card__body">
+
+        <!-- Paso 1 -->
+        <section class="cx-wstep" data-step="1">
+            <h3 class="cx-card__title">{{ ico('proveedor') }} Proveedor y condiciones</h3>
+            <div class="cx-grid-2">
+                <div class="cx-field"><label>Proveedor</label><input class="cx-input" value="{{ pre.proveedor }}"></div>
+                <div class="cx-field"><label>País de origen</label><input class="cx-input" value="{{ pre.proveedor_pais }}"></div>
+            </div>
+            <div class="cx-grid-3">
+                <div class="cx-field"><label>Incoterm</label><input class="cx-input" value="{{ pre.incoterm }}"></div>
+                <div class="cx-field"><label>Moneda</label><input class="cx-input" value="{{ pre.moneda }}"></div>
+                <div class="cx-field"><label>Condición de pago</label><input class="cx-input" value="{{ pre.condicion_pago }}"></div>
+            </div>
+            <div class="cx-grid-3">
+                <div class="cx-field"><label>FOB (USD)</label><input class="cx-input num" value="{{ "{:,.2f}".format(pre.fob) }}"></div>
+                <div class="cx-field"><label>Flete (USD)</label><input class="cx-input num" value="{{ "{:,.2f}".format(pre.flete) }}"></div>
+                <div class="cx-field"><label>Seguro (USD)</label><input class="cx-input num" value="{{ "{:,.2f}".format(pre.seguro) }}"></div>
+            </div>
+        </section>
+
+        <!-- Paso 2 -->
+        <section class="cx-wstep" data-step="2" style="display:none;">
+            <h3 class="cx-card__title">{{ ico('operacion') }} Items de la orden de compra</h3>
+            <table class="cx-table">
+                <thead><tr><th>Código</th><th>Descripción</th><th>Partida sugerida</th><th class="num">Cajas</th><th class="num">P. Unit. (USD)</th><th class="num">Total (USD)</th></tr></thead>
+                <tbody>
+                    {% set total_oc = namespace(v=0) %}
+                    {% for it in pre['items'] %}
+                    {% set sub = it.cajas * it.precio_caja %}
+                    {% set total_oc.v = total_oc.v + sub %}
+                    <tr>
+                        <td><span class="code">{{ it.codigo }}</span></td>
+                        <td>{{ it.descripcion }}</td>
+                        <td><span class="code">{{ it.partida }}</span></td>
+                        <td class="num">{{ it.cajas }}</td>
+                        <td class="num">{{ "{:,.2f}".format(it.precio_caja) }}</td>
+                        <td class="num">{{ "{:,.2f}".format(sub) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot><tr><td colspan="5" class="num">FOB estimado</td><td class="num">{{ "{:,.2f}".format(total_oc.v) }}</td></tr></tfoot>
+            </table>
+        </section>
+
+        <!-- Paso 3 -->
+        <section class="cx-wstep" data-step="3" style="display:none;">
+            <h3 class="cx-card__title">{{ ico('check') }} Revisión</h3>
+            <div class="cx-alert cx-alert--ok">{{ ico('check') }} <span>Todo listo. Al registrar, la operación entra en seguimiento desde la etapa <strong>OC</strong>.</span></div>
+            <dl class="cx-kv">
+                <dt>Proveedor</dt><dd>{{ pre.proveedor }} · {{ pre.proveedor_pais }}</dd>
+                <dt>Incoterm</dt><dd>{{ pre.incoterm }} · {{ pre.condicion_pago }}</dd>
+                <dt>CIF estimado</dt><dd>USD {{ "{:,.2f}".format(pre.cif) }}</dd>
+                <dt>Items</dt><dd>{{ pre['items'] | length }} líneas de mercadería</dd>
+            </dl>
+        </section>
+
+        <div class="cx-wizard-actions">
+            <button class="cx-btn cx-btn--ghost" id="wz-prev" style="visibility:hidden;">{{ ico('back') }} Atrás</button>
+            <button class="cx-btn cx-btn--primary" id="wz-next">Continuar {{ ico('arrow', 'ico-sm') }}</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var paso = 1, TOTAL = 3;
+    var prev = document.getElementById('wz-prev'), next = document.getElementById('wz-next');
+
+    function render() {
+        document.querySelectorAll('.cx-wstep').forEach(function(s) {
+            s.style.display = (parseInt(s.dataset.step) === paso) ? 'block' : 'none';
+        });
+        for (var i = 1; i <= TOTAL; i++) {
+            var ind = document.getElementById('ind-' + i);
+            ind.classList.toggle('active', i === paso);
+            ind.classList.toggle('done', i < paso);
+        }
+        prev.style.visibility = paso === 1 ? 'hidden' : 'visible';
+        next.innerHTML = paso === TOTAL
+            ? 'Registrar operación'
+            : 'Continuar <svg class="ico ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+    }
+
+    prev.addEventListener('click', function() { if (paso > 1) { paso--; render(); } });
+    next.addEventListener('click', function() {
+        if (paso < TOTAL) { paso++; render(); }
+        else {
+            cxToast('Operación registrada (demo)', 'La operación quedó en seguimiento desde la etapa OC.');
+            next.disabled = true;
+            setTimeout(function() { window.location.href = '/importaciones'; }, 1800);
+        }
+    });
+    render();
+</script>
+{% endblock %}

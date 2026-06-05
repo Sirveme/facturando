@@ -1,0 +1,88 @@
+{% extends "importaciones/base_importaciones.html" %}
+{% from 'importaciones/_icons.html' import ico %}
+
+{% block title %}Matching OC ↔ Invoice — {{ op.codigo }}{% endblock %}
+
+{% block content %}
+<div class="cx-pagehead">
+    <div>
+        <div class="cx-eyebrow">Espacio de trabajo · {{ op.codigo }}</div>
+        <h1 class="cx-title">Matching OC ↔ Invoice</h1>
+        <p class="cx-subtitle">Conciliación línea a línea entre la orden de compra y la factura comercial del proveedor.</p>
+    </div>
+    <div class="cx-pagehead__actions">
+        <a class="cx-btn cx-btn--ghost" href="/importaciones/{{ op.codigo }}">{{ ico('back') }} Volver a la operación</a>
+    </div>
+</div>
+
+{% set ns = namespace(lineas_dif=0, cajas_dif=0) %}
+{% for it in op.invoice['items'] %}
+    {% if it.discrepancia != 0 %}{% set ns.lineas_dif = ns.lineas_dif + 1 %}{% set ns.cajas_dif = ns.cajas_dif + it.discrepancia %}{% endif %}
+{% endfor %}
+
+<!-- Resumen de discrepancias -->
+<div class="cx-summary-grid">
+    <div class="cx-summary">
+        <div class="cx-summary__label">Líneas con discrepancia</div>
+        <div class="cx-summary__value {% if ns.lineas_dif %}cx-var-neg{% endif %}">{{ ns.lineas_dif }}</div>
+    </div>
+    <div class="cx-summary">
+        <div class="cx-summary__label">Cajas en diferencia</div>
+        <div class="cx-summary__value {% if ns.cajas_dif %}cx-var-neg{% endif %}">{{ ns.cajas_dif }}</div>
+    </div>
+    <div class="cx-summary">
+        <div class="cx-summary__label">Impacto en monto (USD)</div>
+        <div class="cx-summary__value {% if op.invoice.discrepancia_monto %}cx-var-neg{% endif %}">{{ "{:,.2f}".format(op.invoice.discrepancia_monto) }}</div>
+    </div>
+</div>
+
+<div class="cx-card">
+    <div class="cx-card__body">
+        <h3 class="cx-card__title">{{ ico('scale') }} Conciliación línea a línea</h3>
+
+        {% if op.invoice.discrepancia_monto %}
+        <div class="cx-alert">{{ ico('alerta') }} <span>{{ op.invoice.discrepancia_texto }}</span></div>
+        {% endif %}
+
+        <table class="cx-table">
+            <thead>
+                <tr>
+                    <th>Código</th><th>Descripción</th>
+                    <th class="num">Cajas OC</th><th class="num">Cajas Invoice</th><th class="num">Δ Cajas</th>
+                    <th class="num">P. Unit.</th><th class="num">Total OC</th><th class="num">Total Invoice</th><th class="num">Δ Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for it in op.invoice['items'] %}
+                {% set total_oc = it.cajas_oc * it.precio_caja %}
+                {% set delta_monto = it.total - total_oc %}
+                <tr {% if it.discrepancia != 0 %}class="cx-row-warn"{% endif %}>
+                    <td><span class="code">{{ it.codigo }}</span></td>
+                    <td>{{ it.descripcion }}</td>
+                    <td class="num">{{ it.cajas_oc }}</td>
+                    <td class="num {% if it.discrepancia != 0 %}cx-cell-diff{% endif %}">{{ it.cajas_inv }}</td>
+                    <td class="num">{% if it.discrepancia != 0 %}<span class="cx-delta cx-delta--neg">{{ it.discrepancia }}</span>{% else %}<span class="cx-delta--zero">—</span>{% endif %}</td>
+                    <td class="num">{{ "{:,.2f}".format(it.precio_caja) }}</td>
+                    <td class="num">{{ "{:,.2f}".format(total_oc) }}</td>
+                    <td class="num">{{ "{:,.2f}".format(it.total) }}</td>
+                    <td class="num">{% if delta_monto %}<span class="cx-var-neg">{{ "{:,.2f}".format(delta_monto) }}</span>{% else %}<span class="cx-delta--zero">—</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="6" class="num">Totales</td>
+                    <td class="num">{{ "{:,.2f}".format(op.orden_compra.fob) }}</td>
+                    <td class="num">{{ "{:,.2f}".format(op.invoice.fob) }}</td>
+                    <td class="num"><strong class="cx-var-neg">{{ "{:,.2f}".format(op.invoice.discrepancia_monto) }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:22px;">
+            <button class="cx-btn cx-btn--primary" onclick="cxToast('Observación registrada (demo)', 'Se aceptó el Invoice con observación por -2 cajas de whisky.')">{{ ico('check') }} Aceptar con observación</button>
+            <button class="cx-btn" onclick="cxToast('Solicitud enviada (demo)', 'Se solicitó nota de crédito al proveedor por USD 560.00.')">{{ ico('documento') }} Solicitar nota de crédito</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

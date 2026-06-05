@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+{% from 'importaciones/_icons.html' import ico %}
+{% set p = request.url.path %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Comercio Exterior — Importadores{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/importaciones_pro.css') }}?v=1">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="cx-shell">
+
+    <!-- Marca -->
+    <div class="cx-brand">
+        <a href="/importaciones" class="cx-brand__mark">{{ ico('nave') }}</a>
+        <div>
+            <div class="cx-brand__name">Comercio Exterior</div>
+            <div class="cx-brand__sub">Trade &amp; Aduanas</div>
+        </div>
+    </div>
+
+    <!-- Topbar -->
+    <header class="cx-topbar">
+        <span class="cx-topbar__eyebrow">Gestión de importaciones · Licores de alta gama</span>
+        <div class="cx-org">
+            <div class="cx-org__info">
+                <div class="cx-org__name">{{ emisor.razon_social if emisor else 'Importador' }}</div>
+                <div class="cx-org__ruc">RUC {{ user_ruc if user_ruc else (emisor.ruc if emisor else '') }}</div>
+            </div>
+            <div class="cx-org__avatar">{{ (emisor.razon_social[:1] if emisor and emisor.razon_social else 'I') }}</div>
+        </div>
+    </header>
+
+    <!-- Sidebar propio -->
+    <nav class="cx-side">
+        <div class="cx-side__group">Operación</div>
+        <a href="/importaciones" class="{{ 'active' if p == '/importaciones' or ('/importaciones/IMP' in p and not p.endswith('/liquidacion')) }}">
+            {{ ico('operacion') }} <span>Operaciones</span>
+        </a>
+        <a href="/importaciones/nueva" class="{{ 'active' if p.endswith('/nueva') }}">
+            {{ ico('plus') }} <span>Nueva operación</span>
+        </a>
+        <a href="/importaciones/IMP-2026-001/liquidacion" class="{{ 'active' if p.endswith('/liquidacion') }}">
+            {{ ico('liquidacion') }} <span>Liquidaciones</span>
+        </a>
+
+        <div class="cx-side__group">Acervo</div>
+        <a href="#" class="is-soft">{{ ico('documento') }} <span>Documentos</span></a>
+        <a href="#" class="is-soft">{{ ico('config') }} <span>Configuración</span></a>
+
+        <div class="cx-side__foot">
+            <a href="/dashboard">{{ ico('logout') }} <span>Volver a Facturalo</span></a>
+        </div>
+    </nav>
+
+    <!-- Contenido -->
+    <main class="cx-main">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<!-- Toast propio (autónomo, sin dependencias de Facturalo) -->
+<div id="cx-toasts" style="position:fixed; right:24px; bottom:24px; display:flex; flex-direction:column; gap:10px; z-index:90;"></div>
+<script>
+    function cxToast(msg, sub) {
+        var host = document.getElementById('cx-toasts');
+        var el = document.createElement('div');
+        el.style.cssText = 'min-width:260px;background:#1a2235;border:1px solid rgba(200,164,90,.45);' +
+            'border-left:3px solid #c8a45a;border-radius:10px;padding:14px 18px;color:#e9ecf5;' +
+            'font-family:Jost,sans-serif;box-shadow:0 16px 48px rgba(0,0,0,.5);opacity:0;transform:translateY(8px);' +
+            'transition:opacity .25s,transform .25s;';
+        el.innerHTML = '<div style="font-size:14px;font-weight:500;">' + msg + '</div>' +
+            (sub ? '<div style="font-size:12px;color:#9aa4bd;margin-top:3px;">' + sub + '</div>' : '');
+        host.appendChild(el);
+        requestAnimationFrame(function(){ el.style.opacity = 1; el.style.transform = 'none'; });
+        setTimeout(function(){ el.style.opacity = 0; el.style.transform = 'translateY(8px)';
+            setTimeout(function(){ el.remove(); }, 300); }, 3600);
+    }
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
