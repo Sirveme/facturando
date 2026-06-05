@@ -95,6 +95,7 @@ function renderizarTabla(productos) {
             </td>
             <td>
                 <div class="acciones-fila">
+                    <button class="btn-accion" onclick="location.href='/stock/${p.id}/kardex'" title="Kardex / movimientos">📜</button>
                     <button class="btn-accion" onclick="editarProducto('${p.id}')" title="Editar">✏️</button>
                     <button class="btn-accion danger" onclick="eliminarProducto('${p.id}')" title="Eliminar">🗑️</button>
                 </div>
