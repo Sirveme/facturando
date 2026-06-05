@@ -720,10 +720,29 @@ class GuiaRemision(Base):
     comprobante = relationship("Comprobante")
     items = relationship('GuiaRemisionItem', back_populates='guia',
                          cascade='all, delete-orphan', order_by='GuiaRemisionItem.orden')
+    docs_relacionados = relationship('GuiaRemisionDocRelacionado', back_populates='guia',
+                                     cascade='all, delete-orphan', order_by='GuiaRemisionDocRelacionado.orden')
 
     __table_args__ = (
         Index('idx_guia_emisor_serie_numero', 'emisor_id', 'serie', 'numero', unique=True),
     )
+
+
+class GuiaRemisionDocRelacionado(Base):
+    """Documentos relacionados de una GRE (trazabilidad). Catálogo SUNAT de
+    documentos relacionados: 01=Factura, 09=Guía remitente, 50=DAM,
+    04=Liquidación de compra, 99=Otros (con descripción)."""
+    __tablename__ = 'guias_remision_docs_relacionados'
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    guia_id = Column(String(36), ForeignKey('guias_remision.id'), nullable=False)
+    orden = Column(Integer, nullable=False, default=1)
+    tipo_doc = Column(String(2), nullable=False)          # catálogo doc. relacionados
+    descripcion = Column(String(255), nullable=True)      # obligatorio si tipo_doc=99
+    numero = Column(String(50), nullable=False)
+    emisor_doc_ruc = Column(String(11), nullable=True)    # RUC del emisor del doc (opcional)
+
+    guia = relationship('GuiaRemision', back_populates='docs_relacionados')
 
 
 class GuiaRemisionItem(Base):
