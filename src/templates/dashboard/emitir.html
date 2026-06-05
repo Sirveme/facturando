@@ -589,13 +589,13 @@ document.getElementById('btn-buscar-cliente').addEventListener('click', async ()
     btn.textContent = '⏳';
     
     try {
-        const endpoint = tipoDoc === '6' ? `/api/consulta/ruc/${numero}` : `/api/consulta/dni/${numero}`;
+        const endpoint = tipoDoc === '6' ? `/api/ruc/${numero}` : `/api/dni/${numero}`;
         const response = await fetch(endpoint);
         const result = await response.json();
-        
+
         if (result.exito && result.datos) {
             const datos = result.datos;
-            
+
             // Llenar campos
             if (tipoDoc === '6') {
             // RUC
@@ -615,8 +615,13 @@ document.getElementById('btn-buscar-cliente').addEventListener('click', async ()
             document.getElementById('cliente_distrito').value = '';
             document.getElementById('cliente_ubigeo').value = '';
         }
-            
+
             toast.success('Encontrado', datos.razon_social || datos.nombre_completo);
+            // Advertencia si el contribuyente está de baja / no habido
+            if (tipoDoc === '6' && datos.habilitado === false) {
+                toast.warning('Contribuyente observado',
+                    `Estado: ${datos.estado || '—'} · Condición: ${datos.condicion || '—'}`);
+            }
         } else {
             toast.error('No encontrado', result.mensaje || 'No se encontró información');
         }
