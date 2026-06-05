@@ -20,9 +20,13 @@ from sqlalchemy.orm import Session, defer
 from src.api.dependencies import get_db
 from src.api.auth_utils import obtener_emisor_actual
 from src.api.frontend import templates
-from src.models.models import Emisor, Comprobante, GuiaRemision, GuiaRemisionItem
+from src.models.models import (
+    Emisor, Comprobante, GuiaRemision, GuiaRemisionItem, GuiaRemisionDocRelacionado,
+)
 from src.services.gre_service import emitir_guia, peru_now
-from src.services.pdf_generator_gre import MOTIVOS_TRASLADO, MODALIDADES_TRASLADO
+from src.services.pdf_generator_gre import (
+    MOTIVOS_TRASLADO, MODALIDADES_TRASLADO, TIPOS_DOC_RELACIONADO,
+)
 
 router = APIRouter()
 
@@ -75,9 +79,23 @@ async def guias_list(request: Request, db: Session = Depends(get_db)):
         for c in db.query(Comprobante).filter(Comprobante.id.in_(comp_ids)).all():
             comps[c.id] = f"{c.serie}-{c.numero}"
 
+    # Documentos relacionados por guía (defensivo: la tabla puede no existir aún).
+    docs_rel = {}
+    try:
+        guia_ids = [g.id for g in guias]
+        if guia_ids:
+            for d in (db.query(GuiaRemisionDocRelacionado)
+                      .filter(GuiaRemisionDocRelacionado.guia_id.in_(guia_ids))
+                      .order_by(GuiaRemisionDocRelacionado.orden).all()):
+                docs_rel.setdefault(d.guia_id, []).append(d)
+    except Exception:
+        db.rollback()
+        docs_rel = {}
+
     return templates.TemplateResponse("guias/list.html", {
         "request": request, "emisor": emisor, "user_ruc": emisor.ruc,
-        "guias": guias, "comps": comps,
+        "guias": guias, "comps": comps, "docs_rel": docs_rel,
+        "tipos_doc_rel": TIPOS_DOC_RELACIONADO,
         "motivos": MOTIVOS_TRASLADO, "estado_tono": ESTADO_TONO,
     })
 
@@ -123,6 +141,7 @@ async def guias_nueva(request: Request, comprobante_id: str = "", db: Session = 
         "hoy": peru_now().date().isoformat(),
         "partida_ubigeo_def": emisor.ubigeo or "",
         "partida_direccion_def": emisor.direccion or "",
+        "tipos_doc_rel": TIPOS_DOC_RELACIONADO,
     })
 
 
@@ -175,6 +194,23 @@ def _crear_guia_desde_payload(db, emisor: Emisor, data: dict) -> GuiaRemision:
             cantidad=_dec(it.get("cantidad"), "1"),
             unidad_medida=it.get("unidad_medida") or "NIU",
         ))
+
+    # Documentos relacionados (FASE 1). El comprobante_id sigue generando su
+    # referencia tipo 01 aparte; aquí van SOLO los adicionales.
+    g.docs_relacionados = []
+    for j, doc in enumerate(data.get("documentos_relacionados", []), start=1):
+        tipo = (doc.get("tipo_doc") or "").strip()
+        numero = (doc.get("numero") or "").strip()
+        if not tipo or not numero:
+            continue
+        g.docs_relacionados.append(GuiaRemisionDocRelacionado(
+            orden=j,
+            tipo_doc=tipo,
+            descripcion=(doc.get("descripcion") or None),
+            numero=numero,
+            emisor_doc_ruc=(doc.get("emisor_doc_ruc") or None),
+        ))
+
     db.add(g)
     db.commit()
     return g
