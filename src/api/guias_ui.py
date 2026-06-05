@@ -226,7 +226,7 @@ async def guias_reintentar(guia_id: str, request: Request, db: Session = Depends
 
 
 @router.get("/guias/{guia_id}/pdf")
-async def guias_pdf(guia_id: str, request: Request, db: Session = Depends(get_db)):
+async def guias_pdf(guia_id: str, request: Request, regen: int = 0, db: Session = Depends(get_db)):
     try:
         emisor = await obtener_emisor_actual(request, db)
     except Exception:
@@ -237,7 +237,20 @@ async def guias_pdf(guia_id: str, request: Request, db: Session = Depends(get_db
         .filter(GuiaRemision.id == guia_id, GuiaRemision.emisor_id == emisor.id)
         .first()
     )
-    if not guia or not guia.pdf:
+    if not guia:
+        return RedirectResponse(url="/guias")
+
+    # FASE 4 — Regenerar el PDF EN producción (con logo) y re-cachear antes de servir.
+    # Solo guías aceptadas: el PDF cacheado pudo generarse en local sin acceso al logo.
+    if regen and guia.estado in ("aceptado", "aceptado_observado"):
+        from src.services.pdf_generator_gre import generar_pdf_gre
+        try:
+            guia.pdf = generar_pdf_gre(db, guia.id)
+            db.commit()
+        except Exception:
+            db.rollback()
+
+    if not guia.pdf:
         return RedirectResponse(url="/guias")
 
     return Response(

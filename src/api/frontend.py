@@ -288,13 +288,44 @@ async def emitir_comprobante_page(request: Request, db: Session = Depends(get_db
         emisor = await obtener_emisor_actual(request, db)
     except:
         return RedirectResponse(url="/login")
-    
+
+    # Series REALES del emisor por tipo de comprobante (desde BD, no hardcodeadas).
+    # Fuente: series ya emitidas en `comprobante` + las declaradas en config_json.
+    series_por_tipo: dict[str, set] = {}
+    for tipo, serie in (
+        db.query(Comprobante.tipo_documento, Comprobante.serie)
+        .filter(Comprobante.emisor_id == emisor.id)
+        .distinct()
+        .all()
+    ):
+        if tipo and serie:
+            series_por_tipo.setdefault(tipo, set()).add(serie)
+
+    cfg_series = (emisor.config_json or {}).get("series") or {}
+    for tipo, info in cfg_series.items():
+        s = info.get("serie") if isinstance(info, dict) else info
+        if s:
+            series_por_tipo.setdefault(tipo, set()).add(s)
+
+    # Fallback solo cuando el emisor aún no tiene ninguna serie real para ese tipo
+    # (emisor nuevo): así puede emitir su primer comprobante. No se inyecta sobre
+    # tipos que ya tienen series reales -> sin "F001 fantasma".
+    defaults = {
+        '01': ['F001'], '03': ['B001'], '12': ['T001'],
+        '07': ['FC01', 'BC01'], '08': ['FD01', 'BD01'],
+    }
+    series_emisor = {
+        tipo: (sorted(series_por_tipo.get(tipo, set())) or defs)
+        for tipo, defs in defaults.items()
+    }
+
     return templates.TemplateResponse(
         "dashboard/emitir.html",
         {
             "request": request,
             "emisor": emisor,
-            "user_ruc": emisor.ruc
+            "user_ruc": emisor.ruc,
+            "series_emisor": series_emisor,
         }
     )
 
