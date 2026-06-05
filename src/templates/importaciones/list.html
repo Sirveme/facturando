@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Importaciones - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=6">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/importaciones.css') }}?v=1">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    {% include "importaciones/_nav.html" %}
+
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <span class="imp-preview-banner">● Vista previa del módulo</span>
+                <h1 class="page-title">🚢 Importaciones</h1>
+                <p class="page-description">Seguimiento de operaciones de importación, documentación y liquidación aduanera</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body" style="padding: 0;">
+                <div class="table-container">
+                    <table class="imp-table">
+                        <thead>
+                            <tr>
+                                <th>Operación</th>
+                                <th>Proveedor</th>
+                                <th>Carga</th>
+                                <th>Estado</th>
+                                <th class="num">FOB (USD)</th>
+                                <th class="num">CIF (USD)</th>
+                                <th>ETA</th>
+                                <th style="min-width: 160px;">Progreso</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for op in operaciones %}
+                            <tr style="cursor:pointer;" onclick="location.href='/importaciones/{{ op.codigo }}'">
+                                <td><strong style="color: var(--primary-bright);">{{ op.codigo }}</strong></td>
+                                <td>
+                                    {{ op.proveedor }}
+                                    <div style="font-size: var(--text-xs); color: var(--text-tertiary);">{{ op.proveedor_pais }} · {{ op.incoterm }}</div>
+                                </td>
+                                <td style="max-width: 220px;">{{ op.resumen_carga }}</td>
+                                <td><span class="imp-badge imp-badge--{{ op.estado_tono }}">{{ op.estado_label }}</span></td>
+                                <td class="num">{{ "{:,.2f}".format(op.fob) }}</td>
+                                <td class="num">{{ "{:,.2f}".format(op.cif) }}</td>
+                                <td>{{ op.fecha_eta }}</td>
+                                <td>
+                                    <div class="imp-progress"><div class="imp-progress__bar" style="width: {{ op.progreso.porcentaje }}%;"></div></div>
+                                    <div class="imp-progress__label">{{ op.etapa_actual }} · {{ op.progreso.indice }}/{{ op.progreso.total }} etapas</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

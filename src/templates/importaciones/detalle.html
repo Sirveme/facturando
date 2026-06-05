@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}{{ op.codigo }} - Importaciones - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=6">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/importaciones.css') }}?v=1">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    {% include "importaciones/_nav.html" %}
+
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <span class="imp-preview-banner">● Vista previa del módulo</span>
+                <h1 class="page-title">🚢 {{ op.codigo }}</h1>
+                <p class="page-description">{{ op.proveedor }} · {{ op.proveedor_pais }} · {{ op.incoterm }}</p>
+            </div>
+            <div class="page-actions">
+                <a class="btn btn-ghost" href="/importaciones">← Volver</a>
+                <span class="imp-badge imp-badge--{{ op.estado_tono }}" style="align-self:center;">{{ op.estado_label }}</span>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="imp-kpis">
+            <div class="imp-kpi">
+                <div class="imp-kpi__label">FOB</div>
+                <div class="imp-kpi__value">$ {{ "{:,.0f}".format(op.fob) }}</div>
+                <div class="imp-kpi__sub">{{ op.moneda }}</div>
+            </div>
+            <div class="imp-kpi">
+                <div class="imp-kpi__label">CIF</div>
+                <div class="imp-kpi__value">$ {{ "{:,.0f}".format(op.cif) }}</div>
+                <div class="imp-kpi__sub">Flete ${{ "{:,.0f}".format(op.flete) }} · Seguro ${{ "{:,.0f}".format(op.seguro) }}</div>
+            </div>
+            <div class="imp-kpi">
+                <div class="imp-kpi__label">Incoterm</div>
+                <div class="imp-kpi__value" style="font-size: var(--text-lg);">{{ op.incoterm }}</div>
+                <div class="imp-kpi__sub">{{ op.resumen_carga }}</div>
+            </div>
+            <div class="imp-kpi">
+                <div class="imp-kpi__label">ETA</div>
+                <div class="imp-kpi__value" style="font-size: var(--text-lg);">{{ op.fecha_eta }}</div>
+                <div class="imp-kpi__sub">{{ op.etapa_actual }} · {{ op.progreso.indice }}/{{ op.progreso.total }}</div>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 300px 1fr; gap: var(--space-6); align-items:start;">
+            <!-- Timeline -->
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="imp-card-title">📍 Línea de tiempo</h3>
+                    <div class="imp-timeline">
+                        {% for ev in op.timeline %}
+                        <div class="imp-timeline__item">
+                            <div class="imp-timeline__dot imp-timeline__dot--{{ ev.estado }}">
+                                {% if ev.estado == 'completado' %}✓{% elif ev.estado == 'alerta' %}!{% endif %}
+                            </div>
+                            <div class="imp-timeline__hito">{{ ev.hito }}</div>
+                            <div class="imp-timeline__meta">
+                                {{ ev.fecha if ev.fecha else 'Pendiente' }}{% if ev.doc %} · {{ ev.doc }}{% endif %}
+                            </div>
+                            {% if ev.nota %}<div class="imp-timeline__nota">⚠ {{ ev.nota }}</div>{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secciones (tabs) -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="imp-tabs">
+                        <button class="imp-tab active" data-target="tab-oc">Orden de Compra</button>
+                        {% if op.invoice %}<button class="imp-tab" data-target="tab-invoice">Invoice</button>{% endif %}
+                        {% if op.packing_list %}<button class="imp-tab" data-target="tab-packing">Packing List</button>{% endif %}
+                        {% if op.bl_awb %}<button class="imp-tab" data-target="tab-bl">BL / AWB</button>{% endif %}
+                        {% if op.pre_dam %}<button class="imp-tab" data-target="tab-predam">Pre-DAM</button>{% endif %}
+                        {% if op.dam %}<button class="imp-tab" data-target="tab-dam">DAM</button>{% endif %}
+                    </div>
+
+                    <!-- OC -->
+                    <div class="imp-tabpane active" id="tab-oc">
+                        <h3 class="imp-card-title">🧾 {{ op.orden_compra.numero }} <span style="color:var(--text-tertiary); font-weight:400; font-size:var(--text-sm);">· {{ op.orden_compra.fecha }}</span></h3>
+                        <dl class="imp-kv" style="margin-bottom: var(--space-4);">
+                            <dt>Proveedor</dt><dd>{{ op.proveedor }} ({{ op.proveedor_pais }})</dd>
+                            <dt>Condición de pago</dt><dd>{{ op.orden_compra.condicion_pago }}</dd>
+                            <dt>Incoterm</dt><dd>{{ op.incoterm }}</dd>
+                        </dl>
+                        <table class="imp-table">
+                            <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cajas</th><th class="num">P. Unit. (USD)</th><th class="num">Total (USD)</th></tr></thead>
+                            <tbody>
+                                {% for it in op.orden_compra['items'] %}
+                                <tr>
+                                    <td><strong>{{ it.codigo }}</strong></td>
+                                    <td>{{ it.descripcion }}</td>
+                                    <td class="num">{{ it.cajas }}</td>
+                                    <td class="num">{{ "{:,.2f}".format(it.precio_caja) }}</td>
+                                    <td class="num">{{ "{:,.2f}".format(it.total) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr><td colspan="4" class="num">FOB</td><td class="num">{{ "{:,.2f}".format(op.orden_compra.fob) }}</td></tr>
+                                <tr><td colspan="4" class="num">Flete</td><td class="num">{{ "{:,.2f}".format(op.orden_compra.flete) }}</td></tr>
+                                <tr><td colspan="4" class="num">Seguro</td><td class="num">{{ "{:,.2f}".format(op.orden_compra.seguro) }}</td></tr>
+                                <tr><td colspan="4" class="num">CIF</td><td class="num">{{ "{:,.2f}".format(op.orden_compra.cif) }}</td></tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    {% if op.invoice %}
+                    <!-- Invoice -->
+                    <div class="imp-tabpane" id="tab-invoice">
+                        <h3 class="imp-card-title">📑 {{ op.invoice.numero }} <span style="color:var(--text-tertiary); font-weight:400; font-size:var(--text-sm);">· {{ op.invoice.fecha }}</span></h3>
+                        {% if op.invoice.discrepancia_monto %}
+                        <div class="imp-alert">
+                            <span class="imp-alert__icon">⚠</span>
+                            <span>{{ op.invoice.discrepancia_texto }}</span>
+                        </div>
+                        {% endif %}
+                        <table class="imp-table">
+                            <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cajas OC</th><th class="num">Cajas Invoice</th><th class="num">Δ</th><th class="num">P. Unit.</th><th class="num">Total (USD)</th></tr></thead>
+                            <tbody>
+                                {% for it in op.invoice['items'] %}
+                                <tr {% if it.discrepancia != 0 %}class="imp-row-warn"{% endif %}>
+                                    <td><strong>{{ it.codigo }}</strong></td>
+                                    <td>{{ it.descripcion }}</td>
+                                    <td class="num">{{ it.cajas_oc }}</td>
+                                    <td class="num">{{ it.cajas_inv }}</td>
+                                    <td class="num">{% if it.discrepancia != 0 %}<span style="color:var(--warning-text); font-weight:700;">{{ it.discrepancia }}</span>{% else %}—{% endif %}</td>
+                                    <td class="num">{{ "{:,.2f}".format(it.precio_caja) }}</td>
+                                    <td class="num">{{ "{:,.2f}".format(it.total) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr><td colspan="6" class="num">FOB Invoice</td><td class="num">{{ "{:,.2f}".format(op.invoice.fob) }}</td></tr>
+                                <tr><td colspan="6" class="num">CIF Invoice</td><td class="num">{{ "{:,.2f}".format(op.invoice.cif) }}</td></tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if op.packing_list %}
+                    <!-- Packing List -->
+                    <div class="imp-tabpane" id="tab-packing">
+                        <h3 class="imp-card-title">📦 {{ op.packing_list.numero }} <span style="color:var(--text-tertiary); font-weight:400; font-size:var(--text-sm);">· {{ op.packing_list.fecha }}</span></h3>
+                        <div class="imp-alert imp-alert--ok">
+                            <span class="imp-alert__icon">✓</span>
+                            <span>Validación cruzada: {{ op.packing_list.validacion }}</span>
+                        </div>
+                        <table class="imp-table">
+                            <thead><tr><th>Descripción</th><th class="num">Cajas</th><th class="num">Peso neto (kg)</th><th class="num">Peso bruto (kg)</th></tr></thead>
+                            <tbody>
+                                {% for l in op.packing_list.lineas %}
+                                <tr>
+                                    <td>{{ l.descripcion }}</td>
+                                    <td class="num">{{ l.cajas }}</td>
+                                    <td class="num">{{ "{:,.1f}".format(l.peso_neto) }}</td>
+                                    <td class="num">{{ "{:,.1f}".format(l.peso_bruto) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td class="num">{{ op.packing_list.total_pallets }} pallets · Total</td>
+                                    <td class="num">{{ op.packing_list.total_cajas }}</td>
+                                    <td class="num">{{ "{:,.1f}".format(op.packing_list.peso_neto_total) }}</td>
+                                    <td class="num">{{ "{:,.1f}".format(op.packing_list.peso_bruto_total) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if op.bl_awb %}
+                    <!-- BL / AWB -->
+                    <div class="imp-tabpane" id="tab-bl">
+                        <h3 class="imp-card-title">🚢 {{ op.bl_awb.tipo }} · {{ op.bl_awb.numero }}</h3>
+                        <dl class="imp-kv">
+                            <dt>Naviera</dt><dd>{{ op.bl_awb.naviera }}</dd>
+                            <dt>Nave / Vuelo</dt><dd>{{ op.bl_awb.nave }}</dd>
+                            <dt>Puerto origen</dt><dd>{{ op.bl_awb.puerto_origen }}</dd>
+                            <dt>Puerto destino</dt><dd>{{ op.bl_awb.puerto_destino }}</dd>
+                            <dt>ETD</dt><dd>{{ op.bl_awb.etd }}</dd>
+                            <dt>ETA</dt><dd>{{ op.bl_awb.eta }}</dd>
+                            <dt>Contenedor</dt><dd>{{ op.bl_awb.contenedor }}</dd>
+                        </dl>
+                    </div>
+                    {% endif %}
+
+                    {% if op.pre_dam %}
+                    <!-- Pre-DAM -->
+                    <div class="imp-tabpane" id="tab-predam">
+                        <h3 class="imp-card-title">🗂️ Datos consolidados Pre-DAM</h3>
+                        <dl class="imp-kv" style="margin-bottom: var(--space-4);">
+                            <dt>Agente de aduana</dt><dd>{{ op.pre_dam.agente_aduana }}</dd>
+                            <dt>Entregado</dt><dd>{{ op.pre_dam.fecha_entrega }}</dd>
+                            <dt>Régimen</dt><dd>{{ op.pre_dam.regimen }}</dd>
+                            <dt>CIF total</dt><dd>USD {{ "{:,.2f}".format(op.pre_dam.cif_total_usd) }}</dd>
+                        </dl>
+                        <table class="imp-table" style="margin-bottom: var(--space-4);">
+                            <thead><tr><th>Partida arancelaria</th><th>Descripción</th><th class="num">CIF (USD)</th></tr></thead>
+                            <tbody>
+                                {% for p in op.pre_dam.partidas %}
+                                <tr><td><strong>{{ p.partida }}</strong></td><td>{{ p.descripcion }}</td><td class="num">{{ "{:,.2f}".format(p.cif_usd) }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <a class="btn btn-ghost" href="/importaciones/{{ op.codigo }}/export/txt">⬇ Exportar TXT</a>
+                            <a class="btn btn-ghost" href="/importaciones/{{ op.codigo }}/export/xml">⬇ Exportar XML</a>
+                            <a class="btn btn-ghost" href="/importaciones/{{ op.codigo }}/export/json">⬇ Exportar JSON</a>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if op.dam %}
+                    <!-- DAM -->
+                    <div class="imp-tabpane" id="tab-dam">
+                        <h3 class="imp-card-title">🛃 DAM {{ op.dam.numero }}
+                            <span class="imp-badge imp-badge--{{ op.dam.canal_tono }}">Canal {{ op.dam.canal }}</span>
+                        </h3>
+                        <dl class="imp-kv" style="margin-bottom: var(--space-4);">
+                            <dt>Fecha numeración</dt><dd>{{ op.dam.fecha }}</dd>
+                            <dt>Canal</dt><dd>{{ op.dam.canal }} — {{ op.dam.canal_desc }}</dd>
+                            <dt>Tipo de cambio</dt><dd>S/ {{ "{:,.3f}".format(op.dam.tributos.tc) }}</dd>
+                            <dt>Base CIF</dt><dd>S/ {{ "{:,.2f}".format(op.dam.tributos.cif_pen) }}</dd>
+                        </dl>
+                        <table class="imp-table" style="margin-bottom: var(--space-4);">
+                            <thead><tr><th>Tributo</th><th>Tasa</th><th class="num">Monto (S/)</th></tr></thead>
+                            <tbody>
+                                <tr><td>Ad valorem</td><td>{{ op.dam.tributos.ad_valorem_rate }}</td><td class="num">{{ "{:,.2f}".format(op.dam.tributos.ad_valorem) }}</td></tr>
+                                <tr><td>ISC (licores)</td><td>{{ op.dam.tributos.isc_rate }}</td><td class="num">{{ "{:,.2f}".format(op.dam.tributos.isc) }}</td></tr>
+                                <tr><td>IGV + IPM</td><td>{{ op.dam.tributos.igv_rate }}</td><td class="num">{{ "{:,.2f}".format(op.dam.tributos.igv) }}</td></tr>
+                                <tr><td>Percepción</td><td>{{ op.dam.tributos.percepcion_rate }}</td><td class="num">{{ "{:,.2f}".format(op.dam.tributos.percepcion) }}</td></tr>
+                            </tbody>
+                            <tfoot>
+                                <tr><td colspan="2" class="num">Total tributos</td><td class="num">{{ "{:,.2f}".format(op.dam.tributos.total) }}</td></tr>
+                            </tfoot>
+                        </table>
+                        <div class="imp-alert {% if op.dam.validacion_final.ok %}imp-alert--ok{% endif %}">
+                            <span class="imp-alert__icon">{% if op.dam.validacion_final.ok %}✓{% else %}⚠{% endif %}</span>
+                            <span><strong>Validación cruzada OC vs Invoice vs DAM:</strong> {{ op.dam.validacion_final.texto }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Conexión con lo funcional: GRE de ingreso a almacén -->
+        <div class="card" style="margin-top: var(--space-6);">
+            <div class="card-body" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap: var(--space-4);">
+                <div>
+                    <h3 class="imp-card-title" style="margin-bottom:4px;">📦 Ingreso a almacén</h3>
+                    <p style="color: var(--text-secondary); font-size: var(--text-sm); margin:0;">
+                        Genera la Guía de Remisión Electrónica de ingreso de la mercadería nacionalizada.
+                    </p>
+                </div>
+                <a class="btn btn-primary" href="/guias">Generar GRE de ingreso a almacén →</a>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.imp-tab').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.imp-tab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.imp-tabpane').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            var pane = document.getElementById(btn.dataset.target);
+            if (pane) pane.classList.add('active');
+        });
+    });
+</script>
+{% endblock %}
