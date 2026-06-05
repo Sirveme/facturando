@@ -232,6 +232,18 @@ def emitir_guia(db, guia_id: str) -> dict:
         db.commit()
         return {"exito": False, "error": "Emisor no encontrado"}
 
+    # FASE 3 — Reintento con fechas vigentes.
+    # Una guía en 'error' pudo quedar con fecha_emision en el pasado; SUNAT rechaza
+    # la GRE si la fecha ya no es vigente. Como el XML se regenera desde BD en cada
+    # emisión, basta refrescar las fechas a hoy (hora Perú) antes de regenerarlo.
+    if guia.estado == "error":
+        hoy = peru_now().date()
+        if guia.fecha_emision and guia.fecha_emision < hoy:
+            guia.fecha_emision = hoy
+            guia.fecha_inicio_traslado = hoy
+            db.commit()
+            logger.info("[GRE_SVC] Guía %s: fechas refrescadas a %s para reintento", guia_id, hoy)
+
     # 2. Asignar correlativo si numero es NULL
     if guia.numero is None:
         serie, numero = asignar_numero_gre(db, emisor)
