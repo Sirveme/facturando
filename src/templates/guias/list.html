@@ -51,7 +51,12 @@
                                 <td>
                                     {% if g.comprobante_id and comps.get(g.comprobante_id) %}
                                         <a href="/comprobantes" title="{{ comps.get(g.comprobante_id) }}">{{ comps.get(g.comprobante_id) }}</a>
-                                    {% else %}—{% endif %}
+                                    {% elif not docs_rel.get(g.id) %}—{% endif %}
+                                    {% for d in docs_rel.get(g.id, []) %}
+                                        <div style="font-size: var(--text-xs); color: var(--text-tertiary);" title="{{ tipos_doc_rel.get(d.tipo_doc, d.tipo_doc) }}">
+                                            {{ tipos_doc_rel.get(d.tipo_doc, d.tipo_doc) }}: {{ d.numero }}{% if d.emisor_doc_ruc %} · {{ d.emisor_doc_ruc }}{% endif %}
+                                        </div>
+                                    {% endfor %}
                                 </td>
                                 <td class="num">
                                     {% if g.estado in ('aceptado', 'aceptado_observado') %}
