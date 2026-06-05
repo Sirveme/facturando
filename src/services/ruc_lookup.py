@@ -12,6 +12,7 @@ Endpoints (v2, devuelven dirección + ubigeo desagregado y estado/condición):
 Diseño: timeout 8s y NO-FATAL — ante cualquier fallo devuelve
 {"encontrado": False, "mensaje": ...} sin levantar excepción.
 """
+import os
 import logging
 from typing import Dict, Optional
 
@@ -26,15 +27,24 @@ _TIMEOUT = 8  # segundos (no-fatal)
 
 
 def _token() -> Optional[str]:
-    tok = getattr(settings, "APIS_NET_PE_TOKEN", "") or ""
-    return tok.strip() or None
+    # Fuente primaria: el entorno VIVO en cada llamada (evita el snapshot que
+    # pydantic-settings congela al import; en Railway ese snapshot quedaba vacío).
+    tok = os.environ.get("APIS_NET_PE_TOKEN", "").strip()
+    if not tok:
+        # Fallback a settings (p. ej. cuando solo está en el .env local).
+        tok = (getattr(settings, "APIS_NET_PE_TOKEN", "") or "").strip()
+    return tok or None
 
 
 def _get(path: str, numero: str) -> Optional[dict]:
     """GET no-fatal a apis.net.pe. Devuelve el JSON o None ante cualquier fallo."""
     token = _token()
     if not token:
-        logger.warning("[RUC_LOOKUP] APIS_NET_PE_TOKEN no configurado")
+        apis_vars = sorted(k for k in os.environ if k.upper().startswith("APIS"))
+        logger.warning(
+            "[RUC_LOOKUP] APIS_NET_PE_TOKEN no configurado · %d env vars empiezan con 'APIS': %s",
+            len(apis_vars), apis_vars or "(ninguna)",
+        )
         return None
     headers = {
         "Authorization": f"Bearer {token}",
