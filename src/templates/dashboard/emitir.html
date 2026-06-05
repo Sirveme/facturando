@@ -5,6 +5,48 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=5">
 <link rel="stylesheet" href="{{ url_for('static', path='/css/emitir.css') }}?v=5">
+<style>
+    .autocomplete-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: var(--bg-secondary, #fff);
+        border: 1px solid var(--border-color, #d1d5db);
+        border-radius: var(--radius-md, 6px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+        max-height: 260px;
+        overflow-y: auto;
+        margin-top: 2px;
+    }
+    .autocomplete-item {
+        padding: 8px 10px;
+        cursor: pointer;
+        font-size: 13px;
+        border-bottom: 1px solid var(--border-color, #eee);
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover, .autocomplete-item.activo { background: var(--bg-hover, #f0f1ff); }
+    .autocomplete-item .ac-codigo { font-weight: 700; }
+    .autocomplete-item .ac-meta { color: var(--text-secondary, #64748b); font-size: 11px; }
+    .item-badge {
+        margin-top: 4px;
+        font-size: 11px;
+        color: var(--text-secondary, #64748b);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .item-badge .chip {
+        background: var(--bg-hover, #eef);
+        border-radius: 10px;
+        padding: 1px 8px;
+        font-weight: 600;
+    }
+    .item-badge .chip.warn { background: #fee2e2; color: #b91c1c; }
+</style>
 {% endblock %}
 
 {% block body %}
@@ -312,9 +354,12 @@ fechaInput.addEventListener('change', function() {
 function crearItemHTML(index) {
     return `
         <div class="item-row" data-index="${index}">
-            <div class="input-group" style="flex: 2;">
+            <div class="input-group" style="flex: 2; position: relative;">
                 <label class="input-label">Descripción</label>
-                <input type="text" name="items[${index}][descripcion]" class="input" placeholder="Producto o servicio" required>
+                <input type="text" name="items[${index}][descripcion]" class="input item-descripcion" placeholder="Producto o servicio (escribe para buscar en catálogo)" autocomplete="off" required>
+                <input type="hidden" name="items[${index}][codigo]" class="item-codigo">
+                <div class="autocomplete-dropdown" style="display:none;"></div>
+                <div class="item-badge" style="display:none;"></div>
             </div>
             <div class="input-group" style="flex: 0 0 90px;">
                 <label class="input-label">Cantidad</label>
@@ -377,6 +422,108 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+// ===== Autocomplete de catálogo en los items (Vanilla JS, sin librerías) =====
+(function() {
+    const container = document.getElementById('items-container');
+    if (!container) return;
+    const debounceTimers = new WeakMap();
+
+    function cerrarDropdowns() {
+        document.querySelectorAll('.autocomplete-dropdown').forEach(d => {
+            d.style.display = 'none'; d.innerHTML = ''; d._datos = null;
+        });
+    }
+
+    function limpiarSeleccion(row) {
+        const hidden = row.querySelector('.item-codigo');
+        const badge = row.querySelector('.item-badge');
+        if (hidden) hidden.value = '';
+        if (badge) { badge.style.display = 'none'; badge.innerHTML = ''; badge._producto = null; }
+    }
+
+    function renderBadge(row, p) {
+        const badge = row.querySelector('.item-badge');
+        if (!badge) return;
+        badge._producto = p;
+        const cant = parseFloat(row.querySelector('.item-cantidad').value) || 0;
+        let html = `<span class="chip">${p.codigo_interno}</span>`;
+        if (p.maneja_stock) {
+            const excede = cant > p.stock_actual;
+            html += `<span class="chip ${excede ? 'warn' : ''}">stock: ${p.stock_actual}${excede ? ' ⚠ cantidad supera el stock' : ''}</span>`;
+        }
+        badge.innerHTML = html;
+        badge.style.display = 'flex';
+    }
+
+    function seleccionarProducto(row, p) {
+        row.querySelector('.item-descripcion').value = p.descripcion;
+        const precio = row.querySelector('.item-precio');
+        if (precio && p.precio_venta) precio.value = Number(p.precio_venta).toFixed(2);
+        const unidadSel = row.querySelector('select[name*="unidad"]');
+        if (unidadSel && p.unidad_medida) {
+            if (Array.from(unidadSel.options).some(o => o.value === p.unidad_medida)) {
+                unidadSel.value = p.unidad_medida;
+            }
+        }
+        const hidden = row.querySelector('.item-codigo');
+        if (hidden) hidden.value = p.codigo_interno;
+        renderBadge(row, p);
+        cerrarDropdowns();
+        if (typeof calcularTotales === 'function') calcularTotales();
+    }
+
+    async function buscar(row, q) {
+        const dd = row.querySelector('.autocomplete-dropdown');
+        if (!dd) return;
+        if (!q || q.length < 2) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
+        try {
+            const resp = await fetch('/api/productos/buscar?q=' + encodeURIComponent(q));
+            if (!resp.ok) { dd.style.display = 'none'; return; }
+            const res = await resp.json();
+            const datos = (res && res.datos) || [];
+            if (!datos.length) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
+            dd.innerHTML = datos.map((p, i) => `
+                <div class="autocomplete-item" data-idx="${i}">
+                    <div><span class="ac-codigo">${p.codigo_interno}</span> · ${p.descripcion}</div>
+                    <div class="ac-meta">S/ ${Number(p.precio_venta).toFixed(2)} · ${p.unidad_medida}${p.maneja_stock ? ' · stock: ' + p.stock_actual : ''}</div>
+                </div>`).join('');
+            dd._datos = datos;
+            dd.style.display = 'block';
+        } catch (err) { dd.style.display = 'none'; }
+    }
+
+    // Escribir en descripción: borra la selección previa (FASE 2.4) y busca con debounce.
+    container.addEventListener('input', (e) => {
+        const input = e.target;
+        if (input.classList.contains('item-descripcion')) {
+            const row = input.closest('.item-row');
+            limpiarSeleccion(row);
+            const q = input.value.trim();
+            clearTimeout(debounceTimers.get(input));
+            debounceTimers.set(input, setTimeout(() => buscar(row, q), 300));
+        } else if (input.classList.contains('item-cantidad')) {
+            const row = input.closest('.item-row');
+            const badge = row.querySelector('.item-badge');
+            if (badge && badge._producto) renderBadge(row, badge._producto);
+        }
+    });
+
+    // Click en una opción del dropdown.
+    container.addEventListener('click', (e) => {
+        const item = e.target.closest('.autocomplete-item');
+        if (!item) return;
+        const dd = item.closest('.autocomplete-dropdown');
+        const row = item.closest('.item-row');
+        const p = (dd._datos || [])[parseInt(item.dataset.idx, 10)];
+        if (p) seleccionarProducto(row, p);
+    });
+
+    // Cerrar el dropdown al hacer click fuera de un item-group.
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.input-group')) cerrarDropdowns();
+    });
+})();
 
 // Calcular totales
 function calcularTotales() {
@@ -532,12 +679,14 @@ document.getElementById('form-emitir').addEventListener('submit', async (e) => {
     // Recopilar items
     const items = [];
     document.querySelectorAll('.item-row').forEach((row, index) => {
+        const codigoCat = row.querySelector('.item-codigo') ? row.querySelector('.item-codigo').value.trim() : '';
         items.push({
             descripcion: row.querySelector('input[name*="descripcion"]').value,
             cantidad: parseFloat(row.querySelector('.item-cantidad').value),
             unidad_medida: row.querySelector('select[name*="unidad"]').value,
             precio_unitario: parseFloat(row.querySelector('.item-precio').value),
-            tipo_afectacion_igv: row.querySelector('.item-tipo-igv').value
+            tipo_afectacion_igv: row.querySelector('.item-tipo-igv').value,
+            codigo: codigoCat || null
         });
     });
     
