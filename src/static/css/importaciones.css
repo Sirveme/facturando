@@ -1,0 +1,151 @@
+/* ========================================
+   PANEL IMPORTADORES (demo) — estilos
+   Consistente con el dashboard (tokens de variables.css)
+   ======================================== */
+
+.imp-preview-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--warning-text);
+  background: var(--warning-light);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-full);
+  padding: 2px 12px;
+  margin-bottom: var(--space-4);
+}
+
+/* Badges de estado por tono */
+.imp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.imp-badge--success { background: var(--success-light); color: var(--success-text); border-color: var(--success); }
+.imp-badge--warning { background: var(--warning-light); color: var(--warning-text); border-color: var(--warning); }
+.imp-badge--info    { background: var(--info-light);    color: var(--info-text);    border-color: var(--info); }
+.imp-badge--danger  { background: var(--danger-light);  color: var(--danger-text);  border-color: var(--danger); }
+.imp-badge--muted   { background: var(--bg-tertiary);   color: var(--text-muted);   border-color: var(--border-color); }
+
+/* Barra de progreso de etapas */
+.imp-progress {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.imp-progress__bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-bright));
+  border-radius: var(--radius-full);
+  transition: width var(--transition-base);
+}
+.imp-progress__label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+/* KPIs */
+.imp-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.imp-kpi {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+}
+.imp-kpi__label { font-size: var(--text-xs); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .4px; }
+.imp-kpi__value { font-size: var(--text-2xl); font-weight: var(--weight-bold); color: var(--text-primary); line-height: 1.2; }
+.imp-kpi__sub   { font-size: var(--text-xs); color: var(--text-secondary); }
+
+/* Timeline vertical */
+.imp-timeline { position: relative; margin: var(--space-2) 0 0 0; padding-left: 6px; }
+.imp-timeline__item { position: relative; padding: 0 0 var(--space-6) 32px; }
+.imp-timeline__item::before {
+  content: ""; position: absolute; left: 9px; top: 22px; bottom: -4px;
+  width: 2px; background: var(--border-color);
+}
+.imp-timeline__item:last-child::before { display: none; }
+.imp-timeline__dot {
+  position: absolute; left: 0; top: 4px;
+  width: 20px; height: 20px; border-radius: var(--radius-full);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #fff; background: var(--text-muted);
+  border: 3px solid var(--bg-primary);
+}
+.imp-timeline__dot--completado { background: var(--success); }
+.imp-timeline__dot--alerta     { background: var(--warning); }
+.imp-timeline__dot--pendiente  { background: var(--bg-elevated); color: var(--text-muted); }
+.imp-timeline__hito { font-weight: var(--weight-semibold); color: var(--text-primary); }
+.imp-timeline__meta { font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 2px; }
+.imp-timeline__nota { font-size: var(--text-xs); color: var(--warning-text); margin-top: 2px; }
+
+/* Tabs del detalle */
+.imp-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--space-5);
+}
+.imp-tab {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-secondary); font-size: var(--text-sm); font-weight: var(--weight-medium);
+  padding: 10px 14px; border-bottom: 2px solid transparent; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.imp-tab:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+.imp-tab.active { color: var(--primary-bright); border-bottom-color: var(--primary); }
+.imp-tabpane { display: none; animation: impFade .2s ease; }
+.imp-tabpane.active { display: block; }
+@keyframes impFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Alerta de discrepancia */
+.imp-alert {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--danger-light); border: 1px solid var(--danger);
+  color: var(--danger-text); border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4); margin: var(--space-4) 0;
+  font-size: var(--text-sm); font-weight: var(--weight-medium);
+}
+.imp-alert--ok { background: var(--success-light); border-color: var(--success); color: var(--success-text); }
+.imp-alert__icon { font-size: 18px; line-height: 1; }
+
+/* Tabla compacta de importación */
+.imp-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.imp-table th {
+  text-align: left; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .3px;
+  color: var(--text-tertiary); padding: 8px 10px; border-bottom: 1px solid var(--border-color);
+}
+.imp-table td { padding: 9px 10px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); }
+.imp-table tr:last-child td { border-bottom: none; }
+.imp-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.imp-table tfoot td { font-weight: var(--weight-bold); color: var(--text-primary); border-top: 2px solid var(--border-color); }
+.imp-row-warn td { background: rgba(245, 158, 11, 0.08); }
+.imp-row-warn td:first-child { box-shadow: inset 3px 0 0 var(--warning); }
+
+/* Pares clave/valor */
+.imp-kv { display: grid; grid-template-columns: 180px 1fr; gap: 8px 16px; font-size: var(--text-sm); }
+.imp-kv dt { color: var(--text-tertiary); }
+.imp-kv dd { color: var(--text-primary); margin: 0; font-weight: var(--weight-medium); }
+
+.imp-card-title {
+  font-size: var(--text-base); font-weight: var(--weight-semibold);
+  color: var(--text-primary); margin: 0 0 var(--space-3) 0;
+  display: flex; align-items: center; gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .imp-kv { grid-template-columns: 1fr; gap: 2px 0; }
+  .imp-kv dt { margin-top: 8px; }
+}
