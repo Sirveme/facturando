@@ -1,6 +1,6 @@
 import uuid
 from uuid import uuid4
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from decimal import Decimal
 from sqlalchemy import (
     Column, String, Integer, Boolean, Date, DateTime, Text, Numeric, LargeBinary, JSON, ForeignKey, Index
@@ -711,6 +711,7 @@ class GuiaRemision(Base):
     # XML firmado y CDR (mismo patrón binario que Comprobante.xml)
     xml_firmado = Column(LargeBinary)
     cdr_zip = Column(LargeBinary)                         # zip CDR devuelto por SUNAT
+    pdf = Column(LargeBinary)                             # representación impresa A4 con QR (cache, patrón Comprobante.pdf)
 
     created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
@@ -737,3 +738,46 @@ class GuiaRemisionItem(Base):
     unidad_medida = Column(String(3), default='NIU')      # catálogo 03
 
     guia = relationship('GuiaRemision', back_populates='items')
+
+
+# ========================================
+# STOCK / INVENTARIO (multi-tenant por emisor)
+# ========================================
+
+# Hora de Perú (America/Lima = UTC-5, sin DST), naive
+PERU_TZ = timezone(timedelta(hours=-5))
+
+
+def peru_now():
+    """Datetime actual en hora de Perú (naive)."""
+    return datetime.now(tz=PERU_TZ).replace(tzinfo=None)
+
+
+class MovimientoStock(Base):
+    """Kardex: un movimiento por entrada/salida/ajuste de un producto.
+    Opera sobre la tabla 'producto' (catálogo existente); el control de stock
+    vive en producto.stock_actual / producto.maneja_stock."""
+    __tablename__ = 'movimientos_stock'
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    emisor_id = Column(String(36), ForeignKey('emisor.id'), nullable=False)
+    producto_id = Column(String(36), ForeignKey('producto.id'), nullable=False)
+
+    tipo = Column(String(10), nullable=False)            # entrada/salida/ajuste
+    cantidad = Column(Numeric(12, 3), nullable=False)
+    saldo_resultante = Column(Numeric(12, 3), nullable=False)
+
+    origen_tipo = Column(String(12))                     # comprobante/guia/manual
+    origen_id = Column(String(36), nullable=True)
+    glosa = Column(String(255))
+
+    fecha = Column(DateTime, default=peru_now)           # hora Perú
+    created_at = Column(DateTime, default=utc_now)
+
+    producto = relationship('Producto')
+
+    __table_args__ = (
+        Index('idx_mov_stock_emisor_fecha', 'emisor_id', 'fecha'),
+        Index('idx_mov_stock_producto', 'producto_id'),
+        Index('idx_mov_stock_origen', 'origen_tipo', 'origen_id'),
+    )
