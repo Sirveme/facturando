@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Kardex {{ producto.codigo_interno }} - facturalo.pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=6">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+    {% include "stock/_nav.html" %}
+
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">📜 Kardex · {{ producto.codigo_interno }}</h1>
+                <p class="page-description">{{ producto.descripcion }}{% if not producto.maneja_stock %} · <span style="color: var(--danger, #dc2626);">no maneja stock (solo movimientos manuales)</span>{% endif %}</p>
+            </div>
+            <div class="page-actions">
+                <a class="btn btn-ghost" href="/stock">← Volver</a>
+                <a class="btn btn-primary" href="/stock/ajuste?producto_id={{ producto.id }}">➕ Entrada / Ajuste</a>
+            </div>
+        </div>
+
+        <div class="stats-mini" style="margin-bottom: var(--space-4);">
+            <div class="stat-mini">
+                <span class="stat-mini-value">{{ '%g'|format(producto.stock_actual|float) }}</span>
+                <span class="stat-mini-label">Stock actual ({{ producto.unidad_medida }})</span>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-value">{% if producto.stock_minimo is not none %}{{ '%g'|format(producto.stock_minimo|float) }}{% else %}—{% endif %}</span>
+                <span class="stat-mini-label">Stock mínimo</span>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-value">{{ movimientos|length }}</span>
+                <span class="stat-mini-label">Movimientos</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body" style="padding: 0;">
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th class="text-center">Tipo</th>
+                                <th class="text-right">Cantidad</th>
+                                <th class="text-right">Saldo</th>
+                                <th>Origen</th>
+                                <th>Glosa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in movimientos %}
+                            <tr>
+                                <td>{{ m.fecha.strftime('%d/%m/%Y %H:%M') if m.fecha else '—' }}</td>
+                                <td class="text-center">
+                                    {% if m.tipo == 'entrada' %}<span class="badge badge-success">Entrada</span>
+                                    {% elif m.tipo == 'salida' %}<span class="badge badge-danger">Salida</span>
+                                    {% else %}<span class="badge badge-secondary">Ajuste</span>{% endif %}
+                                </td>
+                                <td class="text-right">{{ '%g'|format(m.cantidad|float) }}</td>
+                                <td class="text-right"><strong>{{ '%g'|format(m.saldo_resultante|float) }}</strong></td>
+                                <td>
+                                    {% if m.origen_tipo == 'comprobante' and m.origen_id %}
+                                        <a href="/comprobantes" title="{{ m.origen_id }}">Comprobante</a>
+                                    {% elif m.origen_tipo == 'guia' and m.origen_id %}
+                                        <span title="{{ m.origen_id }}">GRE</span>
+                                    {% else %}
+                                        {{ m.origen_tipo or 'manual' }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ m.glosa or '' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center" style="padding: var(--space-8); color: var(--text-secondary);">
+                                Sin movimientos todavía.
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
