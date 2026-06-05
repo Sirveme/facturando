@@ -64,6 +64,15 @@ TIPOS_DOC_IDENTIDAD = {
     "0": "DOC.", "1": "DNI", "4": "C.EXT.", "6": "RUC", "7": "PASAPORTE", "A": "CED.DIPL.",
 }
 
+# Catálogo de documentos relacionados de la GRE (trazabilidad)
+TIPOS_DOC_RELACIONADO = {
+    "01": "Factura",
+    "09": "Guía de remisión remitente",
+    "50": "Declaración Aduanera de Mercancías (DAM)",
+    "04": "Liquidación de compra",
+    "99": "Otros",
+}
+
 
 def _qr_text(guia: GuiaRemision, emisor: Emisor) -> str:
     """Texto del QR de la GRE (formato Greenter/SUNAT, separado por |)."""
@@ -345,13 +354,30 @@ def _render_pdf_gre(guia: GuiaRemision, emisor: Emisor) -> bytes:
     table.drawOn(c, ml, y - table_h)
     y -= table_h + 5 * mm
 
-    # Factura vinculada (si existe)
+    # Documentos relacionados (factura vinculada + adicionales)
     comp = getattr(guia, "comprobante", None)
-    if comp is not None:
+    try:
+        docs_rel = list(getattr(guia, "docs_relacionados", None) or [])
+    except Exception:
+        docs_rel = []
+    if comp is not None or docs_rel:
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(COLOR_GRIS_OSCURO)
-        c.drawString(ml, y, f"Documento relacionado: {comp.serie}-{comp.numero}")
-        y -= 6 * mm
+        c.drawString(ml, y, "Documentos relacionados:")
+        y -= 5 * mm
+        c.setFont("Helvetica", 8)
+        if comp is not None:
+            c.drawString(ml + 3 * mm, y, f"• {TIPOS_DOC_RELACIONADO.get('01', 'Factura')}: {comp.serie}-{comp.numero}")
+            y -= 4.5 * mm
+        for doc in docs_rel:
+            tipo = (getattr(doc, "tipo_doc", "") or "").strip()
+            etiqueta = TIPOS_DOC_RELACIONADO.get(tipo, getattr(doc, "descripcion", None) or tipo)
+            numero = (getattr(doc, "numero", "") or "").strip()
+            ruc = (getattr(doc, "emisor_doc_ruc", None) or "").strip()
+            linea = f"• {etiqueta}: {numero}" + (f" (RUC {ruc})" if ruc else "")
+            c.drawString(ml + 3 * mm, y, linea)
+            y -= 4.5 * mm
+        y -= 1.5 * mm
 
     # =====================================================================
     # PIE: QR + hash + estado + leyenda

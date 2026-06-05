@@ -257,12 +257,41 @@ def build_despatch_advice_xml(guia, emisor: dict) -> bytes:
 
     root.append(shipment)
 
-    # 7. AdditionalDocumentReference (factura vinculada)
+    # 7. AdditionalDocumentReference (factura vinculada) — SIN CAMBIOS (aceptado por SUNAT)
     comprobante = getattr(guia, 'comprobante', None)
     if comprobante is not None:
         adr = _cac('AdditionalDocumentReference')
         adr.append(_cbc('ID', f"{comprobante.serie}-{comprobante.numero}"))
         adr.append(_cbc('DocumentTypeCode', '01'))
+        root.append(adr)
+
+    # 7b. AdditionalDocumentReference por cada documento relacionado (ADITIVO).
+    #     Acceso defensivo: si la tabla aún no existe (SQL pendiente en PGAdmin),
+    #     no debe romper la emisión de la GRE.
+    try:
+        docs_rel = list(getattr(guia, 'docs_relacionados', None) or [])
+    except Exception:
+        docs_rel = []
+    for doc in docs_rel:
+        numero = (getattr(doc, 'numero', '') or '').strip()
+        tipo = (getattr(doc, 'tipo_doc', '') or '').strip()
+        if not numero or not tipo:
+            continue
+        adr = _cac('AdditionalDocumentReference')
+        adr.append(_cbc('ID', numero))
+        adr.append(_cbc('DocumentTypeCode', tipo))
+        ruc_emisor_doc = (getattr(doc, 'emisor_doc_ruc', None) or '').strip()
+        if ruc_emisor_doc:
+            issuer = _cac('IssuerParty')
+            pid = _cac('PartyIdentification')
+            pid_id = _cbc('ID', ruc_emisor_doc)
+            pid_id.set('schemeID', '6')
+            pid_id.set('schemeName', 'Documento de Identidad')
+            pid_id.set('schemeAgencyName', 'PE:SUNAT')
+            pid_id.set('schemeURI', CAT_DOC_URI)
+            pid.append(pid_id)
+            issuer.append(pid)
+            adr.append(issuer)
         root.append(adr)
 
     # 8. DespatchLine por item
