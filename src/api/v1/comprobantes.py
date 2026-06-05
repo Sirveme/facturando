@@ -185,7 +185,8 @@ async def emitir_comprobante(
                 "subtotal": base,
                 "igv": igv,
                 "total": total_item,
-                "tipo_afectacion_igv": item.tipo_afectacion_igv
+                "tipo_afectacion_igv": item.tipo_afectacion_igv,
+                "codigo": getattr(item, "codigo", None),
             })
             
             subtotal += base
@@ -282,7 +283,9 @@ async def emitir_comprobante(
                 id=str(uuid4()),
                 comprobante_id=comprobante_id,
                 orden=i,
-                codigo=f"ITEM{i:03d}",
+                # codigo_interno del catálogo si vino explícito (habilita descuento
+                # de stock); si no, el secuencial actual (compatibilidad QueVendi/API).
+                codigo=item_data.get("codigo") or f"ITEM{i:03d}",
                 descripcion=item_data["descripcion"],
                 cantidad=item_data["cantidad"],
                 unidad=item_data["unidad_medida"],

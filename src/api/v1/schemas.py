@@ -34,6 +34,7 @@ class ItemRequest(BaseModel):
     precio_unitario: float = Field(..., description="Precio unitario SIN IGV", gt=0)
     tipo_afectacion_igv: str = Field("10", description="10=Gravado, 20=Exonerado, 30=Inafecto")
     descuento: Optional[float] = Field(0, description="Descuento en soles", ge=0)
+    codigo: Optional[str] = Field(None, description="codigo_interno del catálogo (opcional; habilita descuento de stock)")
     
     class Config:
         json_schema_extra = {
