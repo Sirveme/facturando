@@ -27,6 +27,7 @@ from src.core.config import settings
 from src.models.models import Emisor, Certificado, GuiaRemision
 from src.services.gre_packaging import firmar_y_empaquetar_gre
 from src.services.gre_client import enviar_gre, consultar_ticket
+from src.services.pdf_generator_gre import generar_pdf_gre
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,32 @@ def _parse_cdr_gre(cdr_zip_bytes: bytes) -> dict:
     return out
 
 
+def _generar_y_guardar_pdf(db, guia: GuiaRemision) -> None:
+    """Genera la representación impresa (A4 + QR) y la cachea en guia.pdf.
+    No-fatal: un error de PDF no debe revertir la aceptación de la guía."""
+    try:
+        guia.pdf = generar_pdf_gre(db, guia.id)
+        db.commit()
+        logger.info("[GRE_SVC] PDF generado para guía %s (%d bytes)", guia.id, len(guia.pdf or b""))
+    except Exception as e:
+        db.rollback()
+        logger.exception("[GRE_SVC] No se pudo generar el PDF de la guía %s: %s", guia.id, e)
+
+
+def _descontar_stock_no_fatal(db, guia: GuiaRemision) -> None:
+    """Descuenta stock por la GRE aceptada (solo si no está vinculada a factura).
+    No-fatal: un error de stock no debe afectar la emisión."""
+    try:
+        from src.services.stock_service import descontar_por_guia
+        descontar_por_guia(db, guia.id)
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        logger.warning("[GRE_SVC] Descuento de stock no-fatal falló para guía %s: %s", guia.id, e)
+
+
 def _aplicar_resultado_ticket(db, guia: GuiaRemision, resultado: dict) -> bool:
     """Aplica a la guía el resultado de consultar_ticket. Devuelve True si el
     ticket quedó resuelto (aceptado/observado/rechazado), False si sigue en proceso."""
@@ -128,6 +155,8 @@ def _aplicar_resultado_ticket(db, guia: GuiaRemision, resultado: dict) -> bool:
             guia.cdr_descripcion = cdr.get("descripcion") or "Aceptado por SUNAT"
         db.commit()
         logger.info("[GRE_SVC] Guía %s %s (cdr=%s)", guia.id, guia.estado, guia.cdr_codigo)
+        _generar_y_guardar_pdf(db, guia)
+        _descontar_stock_no_fatal(db, guia)
         return True
 
     if cod == "99":
@@ -255,12 +284,13 @@ def emitir_guia(db, guia_id: str) -> dict:
         logger.exception("[GRE_SVC] Conexión al enviar guía %s", guia_id)
         return {"exito": False, "error": str(e), "estado": "error"}
     except Exception as e:
-        # Validación SUNAT (4xx con detalle) → rechazado, body completo
-        guia.estado = "rechazado"
-        guia.cdr_descripcion = str(e)
+        # HTTP sin evaluación del XML (404, 5xx, etc.) → transporte, reintentable.
+        # 'rechazado' se reserva para CDR codRespuesta=99 (ver _aplicar_resultado_ticket).
+        guia.estado = "error"
+        guia.cdr_descripcion = f"Error de transporte al enviar: {e}"
         db.commit()
-        logger.error("[GRE_SVC] Rechazo SUNAT al enviar guía %s: %s", guia_id, e)
-        return {"exito": False, "error": str(e), "estado": "rechazado"}
+        logger.error("[GRE_SVC] Error de transporte al enviar guía %s: %s", guia_id, e)
+        return {"exito": False, "error": str(e), "estado": "error"}
 
     # 5. Polling del ticket
     return _emitir_paso_polling(db, guia)
@@ -279,9 +309,11 @@ def _emitir_paso_polling(db, guia: GuiaRemision) -> dict:
                             guia.num_ticket, intento, e)
             continue
         except Exception as e:
-            logger.error("[GRE_SVC] Error consulta ticket %s: %s", guia.num_ticket, e)
-            guia.estado = "rechazado"
-            guia.cdr_descripcion = str(e)
+            # HTTP sin evaluación del XML en la consulta → transporte, reintentable.
+            logger.error("[GRE_SVC] Error de transporte consultando ticket %s: %s",
+                         guia.num_ticket, e)
+            guia.estado = "error"
+            guia.cdr_descripcion = f"Error de transporte al consultar ticket: {e}"
             db.commit()
             return _resumen(guia, exito=False)
 

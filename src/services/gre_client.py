@@ -13,6 +13,7 @@ No se loguea client_secret ni password.
 import base64
 import hashlib
 import logging
+import os
 
 import requests
 
@@ -21,22 +22,29 @@ from src.services.gre_auth import get_gre_token
 
 logger = logging.getLogger(__name__)
 
-# Endpoints REST GRE (gem = guías electrónicas de movilización)
-SUNAT_GRE_ENVIO_URL = (
-    "https://api.sunat.gob.pe/v1/contribuyente/gem/comprobantes/{nombreArchivo}"
-)
-SUNAT_GRE_TICKET_URL = (
-    "https://api.sunat.gob.pe/v1/contribuyente/gem/comprobantes/envios/{numTicket}"
-)
+# Host base de la API REST GRE (gem = guías electrónicas de movilización).
+# Override sin tocar código con la variable de entorno GRE_API_BASE.
+# Default: api-cpe (el host api.sunat.gob.pe devolvía HTTP 404).
+GRE_API_BASE = os.environ.get(
+    "GRE_API_BASE", "https://api-cpe.sunat.gob.pe/v1/contribuyente/gem"
+).rstrip("/")
+
+SUNAT_GRE_ENVIO_URL = GRE_API_BASE + "/comprobantes/{nombreArchivo}"
+SUNAT_GRE_TICKET_URL = GRE_API_BASE + "/comprobantes/envios/{numTicket}"
 
 
 def _post_envio(token: str, nombre_archivo: str, body: dict) -> requests.Response:
-    url = SUNAT_GRE_ENVIO_URL.format(nombreArchivo=nombre_archivo)
+    # El path lleva el nombre del archivo SIN la extensión .zip (incluirla da HTTP 404).
+    # El body (nomArchivo) sí conserva el .zip; aquí solo se ajusta la URL.
+    nombre_path = (
+        nombre_archivo[:-4] if nombre_archivo.lower().endswith(".zip") else nombre_archivo
+    )
+    url = SUNAT_GRE_ENVIO_URL.format(nombreArchivo=nombre_path)
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
-    logger.info("[GRE_CLIENT] POST envío %s (%s)", nombre_archivo, url)
+    logger.warning("[GRE_CLIENT] POST %s", url)
     return requests.post(url, json=body, headers=headers,
                          timeout=settings.sunat_timeout)
 
@@ -93,7 +101,7 @@ def enviar_gre(emisor, nombre_archivo: str, zip_bytes: bytes) -> str:
 def _get_ticket(token: str, num_ticket: str) -> requests.Response:
     url = SUNAT_GRE_TICKET_URL.format(numTicket=num_ticket)
     headers = {"Authorization": f"Bearer {token}"}
-    logger.info("[GRE_CLIENT] GET ticket %s (%s)", num_ticket, url)
+    logger.warning("[GRE_CLIENT] GET %s", url)
     return requests.get(url, headers=headers, timeout=settings.sunat_timeout)
 
 
