@@ -658,7 +658,7 @@ class GuiaRemision(Base):
     emisor_id = Column(String(36), ForeignKey('emisor.id'), nullable=False)
 
     serie = Column(String(4), nullable=False)            # ej. T060
-    numero = Column(Integer, nullable=False)
+    numero = Column(Integer, nullable=True)              # NULL en borrador; se asigna al confirmar envío
 
     fecha_emision = Column(Date, nullable=False)
     fecha_inicio_traslado = Column(Date, nullable=False)
@@ -708,8 +708,9 @@ class GuiaRemision(Base):
     cdr_descripcion = Column(Text)
     hash_cpe = Column(String(100))                        # DigestValue
 
-    # XML firmado (mismo patrón binario que Comprobante.xml)
+    # XML firmado y CDR (mismo patrón binario que Comprobante.xml)
     xml_firmado = Column(LargeBinary)
+    cdr_zip = Column(LargeBinary)                         # zip CDR devuelto por SUNAT
 
     created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
