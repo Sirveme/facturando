@@ -223,7 +223,7 @@
                     </div>
                     {% endif %}
                     <div class="gre-doc-row" style="font-size: var(--text-xs); color: var(--text-tertiary);">
-                        <div>Tipo de documento</div><div>Número</div><div>RUC emisor (opcional)</div><div></div>
+                        <div>Tipo de documento</div><div>Número</div><div>RUC emisor *</div><div></div>
                     </div>
                     <div id="docs-container"></div>
                     <button type="button" class="btn btn-ghost btn-sm" id="btn-add-doc">➕ Agregar documento</button>
@@ -386,7 +386,7 @@
             <select class="input doc-tipo">${opts}</select>
             <input type="text" class="input doc-numero" placeholder="Número (ej. F001-123 / DAM)" value="${esc(d.numero)}">
             <div class="input-lupa">
-                <input type="text" class="input doc-ruc" placeholder="RUC emisor" maxlength="11" value="${esc(d.emisor_doc_ruc)}">
+                <input type="text" class="input doc-ruc" placeholder="RUC emisor (obligatorio)" maxlength="11" value="${esc(d.emisor_doc_ruc)}">
                 <button type="button" class="btn btn-ghost btn-sm btn-lupa doc-lupa" title="Consultar RUC">🔍</button>
             </div>
             <button type="button" class="btn-icon-danger btn-del-doc" title="Quitar">✕</button>`;
@@ -457,17 +457,26 @@
         });
         if (!items.length){ if(window.toast) toast.error('Faltan ítems','Agrega al menos un bien a trasladar'); return; }
 
-        // Documentos relacionados (FASE 1.3)
+        // Documentos relacionados (FASE 1.3). SUNAT exige el RUC del emisor del
+        // documento para CADA referencia (rechazo 3380) -> obligatorio.
         const documentos_relacionados = [];
+        let docRucInvalido = false;
         docsCont.querySelectorAll('.gre-doc-row').forEach(r => {
             const numero = r.querySelector('.doc-numero').value.trim();
             if (!numero) return;
+            const ruc = r.querySelector('.doc-ruc').value.trim();
+            if (ruc.length !== 11 || !/^\d{11}$/.test(ruc)) { docRucInvalido = true; return; }
             documentos_relacionados.push({
                 tipo_doc: r.querySelector('.doc-tipo').value,
                 numero: numero,
-                emisor_doc_ruc: r.querySelector('.doc-ruc').value.trim() || null,
+                emisor_doc_ruc: ruc,
             });
         });
+        if (docRucInvalido){
+            if (window.toast) toast.error('RUC del documento requerido',
+                'Cada documento relacionado necesita el RUC (11 dígitos) de su emisor. Para una DAM, es el RUC del agente de aduanas.');
+            return;
+        }
 
         const payload = {
             comprobante_id: document.getElementById('comprobante_id').value || null,
