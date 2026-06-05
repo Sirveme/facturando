@@ -15,6 +15,7 @@ from src.api.admin import router as admin_router
 from src.api.registro import router as registro_router
 from src.api.verificacion import router as verificacion_router
 from src.api.contadores import router as contadores_router
+from src.api.stock_ui import router as stock_router
 
 app = FastAPI(
     title='facturalo.pro',
@@ -51,6 +52,7 @@ app.include_router(registro_router)
 app.include_router(verificacion_router)
 
 app.include_router(contadores_router)
+app.include_router(stock_router, include_in_schema=False)
 
 @app.get("/health")
 def health_check():
