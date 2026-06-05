@@ -16,6 +16,21 @@ logger = logging.getLogger(__name__)
 PERU_TZ = timezone(timedelta(hours=-5))
 
 
+def _descontar_stock_comprobante(session, comp) -> None:
+    """Hook no-fatal: descuenta stock al quedar aceptada una factura/boleta.
+    Un error de stock nunca debe afectar la emisión."""
+    try:
+        if comp.estado in ('aceptado', 'aceptado_con_observaciones'):
+            from src.services.stock_service import descontar_por_comprobante
+            descontar_por_comprobante(session, comp.id)
+    except Exception as e:
+        try:
+            session.rollback()
+        except Exception:
+            pass
+        logger.warning("[STOCK] Descuento no-fatal falló para comprobante %s: %s", comp.id, e)
+
+
 def _desencriptar_sol_password(emisor) -> str | None:
     """Desencripta la clave SOL del emisor. Retorna None si no tiene."""
     if not emisor.sol_password:
@@ -255,6 +270,7 @@ def emitir_comprobante_task(self, comprobante_id: str, test_mode: bool = False):
                     mensaje='CDR simulado guardado', meta_json=None
                 ))
                 session.commit()
+                _descontar_stock_comprobante(session, comp)
                 return {'status': 'ok', 'id': comprobante_id, 'estado': comp.estado}
             except Exception as e:
                 comp.estado = 'rechazado'
@@ -339,6 +355,7 @@ def emitir_comprobante_task(self, comprobante_id: str, test_mode: bool = False):
             session.commit()
             return {'error': 'cdr_save_failed'}
 
+        _descontar_stock_comprobante(session, comp)
         return {'status': 'ok', 'id': comprobante_id, 'estado': comp.estado}
 
     finally:
@@ -434,6 +451,7 @@ def reenviar_comprobante_task(comprobante_id: str):
             return {"status": "error", "mensaje": f"Error guardando CDR: {e}"}
 
         logger.info(f"Comprobante {comprobante_id} reenviado: {comp.estado}")
+        _descontar_stock_comprobante(session, comp)
         return {
             "status": "ok",
             "id": str(comprobante_id),

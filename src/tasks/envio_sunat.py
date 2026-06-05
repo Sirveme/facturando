@@ -340,6 +340,17 @@ def enviar_comprobante_task(self, comprobante_id: str):
                 comp.procesando_desde = None
                 db.commit()
 
+                # Hook no-fatal: descontar stock al quedar aceptada.
+                try:
+                    from src.services.stock_service import descontar_por_comprobante
+                    descontar_por_comprobante(db, comp.id)
+                except Exception as _e:
+                    try:
+                        db.rollback()
+                    except Exception:
+                        pass
+                    logger.warning("[STOCK] Descuento no-fatal falló para %s: %s", comp.id, _e)
+
                 if codigo == '0':
                     print(f"✅ {comp.serie}-{comp.numero} ACEPTADO por SUNAT")
                 else:
