@@ -11,26 +11,10 @@
     @media (max-width: 720px){ .gre-grid{ grid-template-columns: 1fr; } .gre-item-row{ grid-template-columns: 1fr 1fr; } }
     .gre-doc-row { display: grid; grid-template-columns: 180px 1fr 140px 1.5fr 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
     @media (max-width: 720px){ .gre-doc-row{ grid-template-columns: 1fr 1fr; } }
-    /* Autocomplete (mismo patrón de emitir.html, con tokens del tema para
-       contraste correcto en dark/light). */
-    .gre-ac { position: relative; }
-    /* Bug 2: que ni la fila ni el contenedor recorten el dropdown. */
+    /* Estilos de .gre-ac / .gre-ac-dropdown / .gre-ac-item unificados en
+       components.css (zDiseno-02). Aquí solo el overflow de los contenedores
+       de filas para que no recorten el dropdown. */
     #items-container, .gre-item-row, #docs-container, .gre-doc-row { overflow: visible; }
-    .gre-ac-dropdown {
-        position: absolute; top: 100%; left: 0; right: 0;
-        z-index: var(--z-dropdown, 1000);              /* por encima de las tarjetas/campos de abajo */
-        background: var(--bg-secondary);                /* superficie del tema (no color fijo) */
-        color: var(--text-primary);                     /* texto legible siempre */
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-lg);
-        max-height: 240px; overflow-y: auto; margin-top: 2px;
-    }
-    .gre-ac-item { padding: 8px 10px; cursor: pointer; font-size: 13px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); }
-    .gre-ac-item:last-child { border-bottom: none; }
-    .gre-ac-item:hover { background: var(--bg-tertiary); }   /* hover visible y diferenciado en ambos temas */
-    .gre-ac-item .ac-codigo { font-weight: 700; color: var(--text-primary); }
-    .gre-ac-item .ac-meta { color: var(--text-secondary); font-size: 11px; }
     .gre-doc-info { display:flex; align-items:center; gap:8px; padding:8px 12px; border:1px dashed var(--border-color,#d1d5db); border-radius:8px; margin-bottom:12px; font-size:13px; color:var(--text-secondary); }
     /* Selector de factura: fila con número + meta */
     .fac-item { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
