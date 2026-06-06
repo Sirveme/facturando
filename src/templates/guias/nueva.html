@@ -9,15 +9,13 @@
     .gre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
     .gre-item-row { display: grid; grid-template-columns: 130px 1fr 90px 90px 36px; gap: 8px; align-items: end; margin-bottom: 8px; }
     @media (max-width: 720px){ .gre-grid{ grid-template-columns: 1fr; } .gre-item-row{ grid-template-columns: 1fr 1fr; } }
-    .gre-doc-row { display: grid; grid-template-columns: 220px 1fr 150px 36px; gap: 8px; align-items: end; margin-bottom: 8px; }
+    .gre-doc-row { display: grid; grid-template-columns: 180px 1fr 140px 1.5fr 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
     @media (max-width: 720px){ .gre-doc-row{ grid-template-columns: 1fr 1fr; } }
-    .input-lupa { display:flex; gap:6px; align-items:stretch; }
-    .input-lupa .btn-lupa { white-space:nowrap; }
     /* Autocomplete (mismo patrón de emitir.html, con tokens del tema para
        contraste correcto en dark/light). */
     .gre-ac { position: relative; }
     /* Bug 2: que ni la fila ni el contenedor recorten el dropdown. */
-    #items-container, .gre-item-row { overflow: visible; }
+    #items-container, .gre-item-row, #docs-container, .gre-doc-row { overflow: visible; }
     .gre-ac-dropdown {
         position: absolute; top: 100%; left: 0; right: 0;
         z-index: var(--z-dropdown, 1000);              /* por encima de las tarjetas/campos de abajo */
@@ -34,6 +32,15 @@
     .gre-ac-item .ac-codigo { font-weight: 700; color: var(--text-primary); }
     .gre-ac-item .ac-meta { color: var(--text-secondary); font-size: 11px; }
     .gre-doc-info { display:flex; align-items:center; gap:8px; padding:8px 12px; border:1px dashed var(--border-color,#d1d5db); border-radius:8px; margin-bottom:12px; font-size:13px; color:var(--text-secondary); }
+    /* Selector de factura: fila con número + meta */
+    .fac-item { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+    .fac-item .fac-num { font-weight:700; color:var(--text-primary); }
+    .fac-item .fac-total { color:var(--text-primary); font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .fac-item .fac-meta { color:var(--text-secondary); font-size:11px; }
+    /* FASE 3: errores inline */
+    .field-err { display:block; color: var(--danger-text, var(--danger)); font-size:12px; margin-top:3px; }
+    .input.has-err, .select.has-err { border-color: var(--danger) !important; }
+    .gre-item-row.has-err, .gre-doc-row.has-err { outline: 1px solid var(--danger); outline-offset: 2px; border-radius: 6px; }
 </style>
 {% endblock %}
 
@@ -56,6 +63,21 @@
         <div class="imp-alert imp-alert--ok" style="margin-bottom: var(--space-4);">
             <span class="imp-alert__icon">🔗</span>
             <span>Guía vinculada a la factura <strong>{{ comp_label }}</strong> — destinatario e ítems pre-llenados.</span>
+        </div>
+        {% else %}
+        <!-- FASE 1: selector de factura de referencia (prellenado destinatario + ítems) -->
+        <div class="card" style="margin-bottom: var(--space-4);">
+            <div class="card-body">
+                <h3 class="imp-card-title">🔗 Vincular a una factura <span style="font-weight:400; color:var(--text-tertiary); font-size:var(--text-sm);">(opcional)</span></h3>
+                <p style="color: var(--text-secondary); font-size: var(--text-sm); margin: 0 0 10px;">
+                    Elige una factura aceptada (últimos 60 días) para pre-llenar destinatario e ítems. También puedes llenar la guía manualmente.
+                </p>
+                <div class="gre-ac" style="max-width: 560px;">
+                    <input type="text" id="factura-buscar" class="input" autocomplete="off"
+                           placeholder="Busca por número (F001-123) o cliente (RUC / razón social)…">
+                    <div class="gre-ac-dropdown" id="factura-dropdown" style="display:none;"></div>
+                </div>
+            </div>
         </div>
         {% endif %}
 
@@ -189,7 +211,7 @@
                                     <option value="4" {% if prefill.dest_tipo_doc == '4' %}selected{% endif %}>CE</option>
                                 </select>
                                 <input type="text" id="dest_num_doc" class="input" value="{{ prefill.dest_num_doc }}">
-                                <button type="button" class="btn btn-ghost btn-sm btn-lupa" id="btn-buscar-dest" title="Consultar en SUNAT/RENIEC">🔍</button>
+                                <span class="ruc-status" id="dest-ruc-status"></span>
                             </div>
                         </div>
                         <div class="input-group">
@@ -223,7 +245,7 @@
                     </div>
                     {% endif %}
                     <div class="gre-doc-row" style="font-size: var(--text-xs); color: var(--text-tertiary);">
-                        <div>Tipo de documento</div><div>Número</div><div>RUC emisor *</div><div></div>
+                        <div>Tipo de documento</div><div>Número</div><div>RUC emisor *</div><div>Razón social</div><div></div>
                     </div>
                     <div id="docs-container"></div>
                     <button type="button" class="btn btn-ghost btn-sm" id="btn-add-doc">➕ Agregar documento</button>
@@ -261,19 +283,13 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', path='/js/ruc-lookup.js') }}?v=1"></script>
 <script>
     const PREFILL_ITEMS = {{ prefill['items']|tojson }};
     const TIPOS_DOC_REL = {{ tipos_doc_rel|tojson }};
 
     function cerrarModal(id){ document.getElementById(id).classList.remove('active'); }
     function esc(v){ return (v||'').toString().replace(/"/g,'&quot;'); }
-
-    // Lookup RUC/DNI real (FASE 3): tipo '6'->RUC, '1'->DNI. No-fatal.
-    async function lookupDoc(tipoDoc, numero){
-        const ep = (tipoDoc === '6') ? `/api/ruc/${numero}` : `/api/dni/${numero}`;
-        const r = await fetch(ep);
-        return r.json();
-    }
 
     // --- Toggles ---
     const motivo = document.getElementById('motivo_traslado');
@@ -384,66 +400,213 @@
         const opts = Object.keys(TIPOS_DOC_REL).map(k => `<option value="${k}">${k} - ${TIPOS_DOC_REL[k]}</option>`).join('');
         div.innerHTML = `
             <select class="input doc-tipo">${opts}</select>
-            <input type="text" class="input doc-numero" placeholder="Número (ej. F001-123 / DAM)" value="${esc(d.numero)}">
-            <div class="input-lupa">
-                <input type="text" class="input doc-ruc" placeholder="RUC emisor (obligatorio)" maxlength="11" value="${esc(d.emisor_doc_ruc)}">
-                <button type="button" class="btn btn-ghost btn-sm btn-lupa doc-lupa" title="Consultar RUC">🔍</button>
+            <div class="gre-ac">
+                <input type="text" class="input doc-numero" autocomplete="off" placeholder="Número" value="${esc(d.numero)}">
+                <div class="gre-ac-dropdown doc-num-dropdown" style="display:none;"></div>
             </div>
+            <input type="text" class="input doc-ruc" placeholder="RUC emisor *" maxlength="11" value="${esc(d.emisor_doc_ruc)}">
+            <div class="doc-razon-cell"><span class="doc-razon"></span><span class="ruc-status"></span></div>
             <button type="button" class="btn-icon-danger btn-del-doc" title="Quitar">✕</button>`;
-        if (d.tipo_doc){ const s = div.querySelector('.doc-tipo'); if ([...s.options].some(o => o.value === d.tipo_doc)) s.value = d.tipo_doc; }
+        const tipoSel = div.querySelector('.doc-tipo');
+        const numIn = div.querySelector('.doc-numero');
+        const rucIn = div.querySelector('.doc-ruc');
+        const numDd = div.querySelector('.doc-num-dropdown');
+        if (d.tipo_doc){ if ([...tipoSel.options].some(o => o.value === d.tipo_doc)) tipoSel.value = d.tipo_doc; }
         div.querySelector('.btn-del-doc').addEventListener('click', () => div.remove());
-        div.querySelector('.doc-lupa').addEventListener('click', () => buscarRucEn(div.querySelector('.doc-ruc')));
+
+        // Placeholder/máscara según el tipo de documento.
+        function docPlaceholder(t){
+            if (t === '09') return 'Serie-número (escribe para buscar guías)';
+            if (t === '50') return 'DAM: 118-2026-10-NNNNNN';
+            if (t === '01') return 'F001-123';
+            if (t === '04') return 'Serie-número';
+            return 'Número del documento';
+        }
+        function setPlaceholder(){ numIn.placeholder = docPlaceholder(tipoSel.value); }
+        setPlaceholder();
+
+        // FASE 2: autocomplete del número SOLO para tipo 09 (guías aceptadas).
+        let numTimer = null;
+        function closeNumDd(){ numDd.style.display='none'; numDd.innerHTML=''; numDd._datos=null; }
+        async function buscarDocs(){
+            if (tipoSel.value !== '09'){ closeNumDd(); return; }
+            try {
+                const r = await fetch('/api/docs-referencia?tipo=09&q=' + encodeURIComponent(numIn.value.trim()));
+                const res = await r.json();
+                const datos = (res && res.datos) || [];
+                if (!datos.length){ closeNumDd(); return; }
+                numDd.innerHTML = datos.map((x, i) => `
+                    <div class="gre-ac-item" data-idx="${i}">
+                        <div><span class="ac-codigo">${x.label}</span></div>
+                        <div class="ac-meta">${x.sublabel || ''}</div>
+                    </div>`).join('');
+                numDd._datos = datos; numDd.style.display = 'block';
+            } catch(e){ closeNumDd(); }
+        }
+        numIn.addEventListener('input', () => {
+            if (tipoSel.value !== '09'){ closeNumDd(); return; }
+            clearTimeout(numTimer); numTimer = setTimeout(buscarDocs, 300);
+        });
+        numIn.addEventListener('focus', () => { if (tipoSel.value === '09') buscarDocs(); });
+        numDd.addEventListener('click', (e) => {
+            const item = e.target.closest('.gre-ac-item'); if (!item) return;
+            const x = (numDd._datos || [])[parseInt(item.dataset.idx, 10)]; if (!x) return;
+            numIn.value = x.numero || '';
+            if (x.emisor_ruc){ rucIn.value = x.emisor_ruc; rucIn.dispatchEvent(new Event('input')); }  // dispara el lookup -> razón social
+            closeNumDd();
+        });
+        document.addEventListener('click', (e) => { if (!div.contains(e.target)) closeNumDd(); });
+        tipoSel.addEventListener('change', () => { setPlaceholder(); closeNumDd(); });
+
+        // Lookup automático del RUC emisor; la razón social queda visible en la fila.
+        const razon = div.querySelector('.doc-razon');
+        RucLookup.attach({
+            input: rucIn,
+            status: div.querySelector('.ruc-status'),
+            getTipo: () => '6',
+            onResult: (dd, meta) => {
+                if (meta.notFound || !dd) { razon.textContent = ''; razon.removeAttribute('title'); razon.classList.remove('is-warn'); return; }
+                razon.textContent = dd.razon_social || '';
+                razon.setAttribute('title', (dd.razon_social || '') + (meta.baja ? ` — ${dd.estado || ''}/${dd.condicion || ''}` : ''));
+                razon.classList.toggle('is-warn', !!meta.baja);
+            }
+        });
         docsCont.appendChild(div);
     }
     document.getElementById('btn-add-doc').addEventListener('click', () => docRow());
 
-    // Valida un RUC suelto (emisor_doc_ruc): muestra razón social + advertencia de baja.
-    async function buscarRucEn(inputEl){
-        const num = (inputEl.value || '').trim();
-        if (num.length !== 11){ if (window.toast) toast.warning('RUC inválido', 'Debe tener 11 dígitos'); return; }
-        try {
-            const res = await lookupDoc('6', num);
-            if (res.exito && res.datos){
-                if (window.toast) toast.success('RUC válido', res.datos.razon_social || '');
-                if (res.datos.habilitado === false && window.toast)
-                    toast.warning('Contribuyente observado', `Estado: ${res.datos.estado || '—'} · ${res.datos.condicion || '—'}`);
-            } else if (window.toast){ toast.error('No encontrado', res.mensaje || 'Sin información'); }
-        } catch(e){ if (window.toast) toast.error('Error de red', String(e)); }
-    }
-
-    // --- FASE 3.4: lookup del destinatario ---
-    document.getElementById('btn-buscar-dest').addEventListener('click', async () => {
-        const tipo = document.getElementById('dest_tipo_doc').value;
-        const num = document.getElementById('dest_num_doc').value.trim();
-        const btn = document.getElementById('btn-buscar-dest');
-        if ((tipo === '6' && num.length !== 11) || (tipo === '1' && num.length !== 8)){
-            if (window.toast) toast.warning('Documento inválido', tipo === '6' ? 'RUC de 11 dígitos' : 'DNI de 8 dígitos');
-            return;
+    // --- Lookup automático del destinatario (RUC/DNI) ---
+    RucLookup.attach({
+        input: document.getElementById('dest_num_doc'),
+        status: document.getElementById('dest-ruc-status'),
+        getTipo: () => document.getElementById('dest_tipo_doc').value,
+        tipoSelect: document.getElementById('dest_tipo_doc'),
+        onResult: (d, meta) => {
+            if (meta.notFound || !d) return;
+            document.getElementById('dest_razon_social').value = d.razon_social || d.nombre_completo || '';
+            // Conveniencia: completar llegada si están vacíos (no destructivo).
+            if (meta.tipo === '6' && d.direccion && !document.getElementById('llegada_direccion').value)
+                document.getElementById('llegada_direccion').value = d.direccion;
+            if (meta.tipo === '6' && d.ubigeo && !document.getElementById('llegada_ubigeo').value)
+                document.getElementById('llegada_ubigeo').value = d.ubigeo;
         }
-        btn.disabled = true; btn.textContent = '⏳';
-        try {
-            const res = await lookupDoc(tipo, num);
-            if (res.exito && res.datos){
-                const d = res.datos;
-                document.getElementById('dest_razon_social').value = d.razon_social || d.nombre_completo || '';
-                // Conveniencia: completar llegada si están vacíos (no destructivo).
-                if (tipo === '6' && d.direccion && !document.getElementById('llegada_direccion').value)
-                    document.getElementById('llegada_direccion').value = d.direccion;
-                if (tipo === '6' && d.ubigeo && !document.getElementById('llegada_ubigeo').value)
-                    document.getElementById('llegada_ubigeo').value = d.ubigeo;
-                if (window.toast) toast.success('Encontrado', d.razon_social || d.nombre_completo || '');
-                if (tipo === '6' && d.habilitado === false && window.toast)
-                    toast.warning('Contribuyente observado', `Estado: ${d.estado || '—'} · Condición: ${d.condicion || '—'}`);
-            } else if (window.toast){ toast.error('No encontrado', res.mensaje || 'Sin información'); }
-        } catch(e){ if (window.toast) toast.error('Error de red', String(e)); }
-        finally { btn.disabled = false; btn.textContent = '🔍'; }
     });
 
     syncTransporte();
 
+    // --- FASE 1: selector de factura de referencia (solo si no se llegó con ?comprobante_id=) ---
+    (function(){
+        const inp = document.getElementById('factura-buscar');
+        const dd  = document.getElementById('factura-dropdown');
+        if (!inp || !dd) return;
+        let t = null;
+        function close(){ dd.style.display='none'; dd.innerHTML=''; dd._datos=null; }
+        async function buscar(){
+            try {
+                const r = await fetch('/api/comprobantes/recientes?q=' + encodeURIComponent(inp.value.trim()));
+                const res = await r.json();
+                const datos = (res && res.datos) || [];
+                if (!datos.length){
+                    dd.innerHTML = '<div class="gre-ac-item" style="cursor:default; color:var(--text-tertiary);">Sin facturas aceptadas (últimos 60 días)</div>';
+                    dd.style.display='block'; dd._datos=null; return;
+                }
+                dd.innerHTML = datos.map((c,i) => `
+                    <div class="gre-ac-item" data-idx="${i}">
+                        <div class="fac-item">
+                            <span class="fac-num">${c.label}</span>
+                            <span class="fac-total">${(c.moneda==='USD'?'$ ':'S/ ') + Number(c.total||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+                        </div>
+                        <div class="fac-meta">${c.fecha} · ${esc(c.cliente||'')}</div>
+                    </div>`).join('');
+                dd._datos = datos; dd.style.display='block';
+            } catch(e){ close(); }
+        }
+        inp.addEventListener('focus', buscar);
+        inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(buscar, 300); });
+        dd.addEventListener('click', (e) => {
+            const item = e.target.closest('.gre-ac-item');
+            if (!item || item.dataset.idx === undefined) return;
+            const c = (dd._datos || [])[parseInt(item.dataset.idx, 10)];
+            if (!c) return;
+            // Reutiliza EXACTAMENTE el mismo prellenado de servidor que ?comprobante_id=
+            window.location.href = '/guias/nueva?comprobante_id=' + encodeURIComponent(c.id);
+        });
+        document.addEventListener('click', (e) => { if (!e.target.closest('.gre-ac')) close(); });
+    })();
+
+    // --- FASE 3: validación inline en cliente ---
+    function clearErrs(){
+        document.querySelectorAll('.field-err').forEach(e => e.remove());
+        document.querySelectorAll('.has-err').forEach(e => e.classList.remove('has-err'));
+    }
+    function mkErr(msg){ const s = document.createElement('small'); s.className = 'field-err'; s.textContent = msg; return s; }
+    function fieldErr(el, msg){ if (!el) return; el.classList.add('has-err'); el.insertAdjacentElement('afterend', mkErr(msg)); }
+    function rowErr(rowEl, inputEl, msg){ rowEl.classList.add('has-err'); if (inputEl) inputEl.classList.add('has-err'); rowEl.appendChild(mkErr(msg)); }
+
+    function validarFormGRE(){
+        clearErrs();
+        // Motivo 13 → descripción obligatoria
+        if (motivo.value === '13' && !document.getElementById('descripcion_motivo').value.trim()){
+            document.getElementById('grp-desc-motivo').style.display = '';
+            fieldErr(document.getElementById('descripcion_motivo'), 'Obligatorio cuando el motivo es "Otros" (13).');
+        }
+        // Transporte
+        if (modalidad.value === '02' && !m1l.checked){
+            const placa = document.getElementById('vehiculo_placa');
+            const cond  = document.getElementById('conductor_num_doc');
+            if (!placa.value.trim()) fieldErr(placa, 'Indica la placa del vehículo.');
+            if (!cond.value.trim())  fieldErr(cond, 'Indica el documento del conductor.');
+        } else if (modalidad.value === '01'){
+            const tr = document.getElementById('transportista_num_doc');
+            if (!tr.value.trim()) fieldErr(tr, 'Indica el RUC del transportista.');
+        }
+        // Peso
+        const peso = document.getElementById('peso_bruto_total');
+        if (!(parseFloat(peso.value) > 0)) fieldErr(peso, 'El peso bruto debe ser mayor a 0.');
+        // Ubigeos (6 dígitos numéricos)
+        const ub = /^\d{6}$/;
+        const pu = document.getElementById('partida_ubigeo');
+        if (!ub.test(pu.value.trim())) fieldErr(pu, 'Ubigeo de partida: 6 dígitos numéricos.');
+        const lu = document.getElementById('llegada_ubigeo');
+        if (!ub.test(lu.value.trim())) fieldErr(lu, 'Ubigeo de llegada: 6 dígitos numéricos.');
+        // Ítems
+        let itemsOk = 0;
+        cont.querySelectorAll('.gre-item-row').forEach(r => {
+            const desc = r.querySelector('.it-desc'), cant = r.querySelector('.it-cant');
+            const d = desc.value.trim(), c = parseFloat(cant.value);
+            if (!d && !(c > 0)) return;                                   // fila vacía → se ignora
+            if (!d){ rowErr(r, desc, 'Falta la descripción del bien.'); return; }
+            if (!(c > 0)){ rowErr(r, cant, 'La cantidad debe ser mayor a 0.'); return; }
+            itemsOk++;
+        });
+        if (itemsOk === 0){
+            const firstRow = cont.querySelector('.gre-item-row');
+            if (firstRow && !firstRow.querySelector('.field-err'))
+                rowErr(firstRow, firstRow.querySelector('.it-desc'), 'Agrega al menos un bien a trasladar.');
+        }
+        // Documentos relacionados
+        docsCont.querySelectorAll('.gre-doc-row').forEach(r => {
+            const num = r.querySelector('.doc-numero'), ruc = r.querySelector('.doc-ruc');
+            const nv = num.value.trim(), rv = ruc.value.trim();
+            if (!nv && !rv) return;                                       // fila vacía → se ignora
+            if (!nv) rowErr(r, num, 'Falta el número del documento.');
+            if (!/^\d{11}$/.test(rv)) rowErr(r, ruc, 'RUC del emisor: 11 dígitos.');
+        });
+
+        const err = document.querySelector('.field-err');
+        if (err){
+            const target = err.closest('.input-group, .gre-item-row, .gre-doc-row') || err;
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (window.toast) toast.error('Revisa el formulario', 'Corrige los campos marcados en rojo.');
+            return false;
+        }
+        return true;
+    }
+
     // --- Submit ---
     document.getElementById('form-gre').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!validarFormGRE()) return;
         const items = [];
         cont.querySelectorAll('.gre-item-row').forEach(r => {
             const desc = r.querySelector('.it-desc').value.trim();
@@ -455,28 +618,19 @@
                 unidad_medida: r.querySelector('.it-unidad').value,
             });
         });
-        if (!items.length){ if(window.toast) toast.error('Faltan ítems','Agrega al menos un bien a trasladar'); return; }
 
-        // Documentos relacionados (FASE 1.3). SUNAT exige el RUC del emisor del
-        // documento para CADA referencia (rechazo 3380) -> obligatorio.
+        // Documentos relacionados (validados ya por validarFormGRE).
         const documentos_relacionados = [];
-        let docRucInvalido = false;
         docsCont.querySelectorAll('.gre-doc-row').forEach(r => {
             const numero = r.querySelector('.doc-numero').value.trim();
-            if (!numero) return;
             const ruc = r.querySelector('.doc-ruc').value.trim();
-            if (ruc.length !== 11 || !/^\d{11}$/.test(ruc)) { docRucInvalido = true; return; }
+            if (!numero || !/^\d{11}$/.test(ruc)) return;
             documentos_relacionados.push({
                 tipo_doc: r.querySelector('.doc-tipo').value,
                 numero: numero,
                 emisor_doc_ruc: ruc,
             });
         });
-        if (docRucInvalido){
-            if (window.toast) toast.error('RUC del documento requerido',
-                'Cada documento relacionado necesita el RUC (11 dígitos) de su emisor. Para una DAM, es el RUC del agente de aduanas.');
-            return;
-        }
 
         const payload = {
             comprobante_id: document.getElementById('comprobante_id').value || null,
