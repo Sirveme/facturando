@@ -145,6 +145,60 @@ async def guias_nueva(request: Request, comprobante_id: str = "", db: Session = 
     })
 
 
+def _es_ubigeo(v) -> bool:
+    v = (str(v) if v is not None else "").strip()
+    return len(v) == 6 and v.isdigit()
+
+
+def _validar_payload_gre(data: dict, emisor: Emisor) -> str | None:
+    """Validación de servidor (espejo de la del cliente). Devuelve el primer
+    mensaje de error claro, o None si todo está OK."""
+    # Items
+    items = [it for it in (data.get("items") or [])
+             if (it.get("descripcion") or "").strip()]
+    if not items:
+        return "Agrega al menos un ítem con descripción."
+    for i, it in enumerate(items, start=1):
+        cant = _dec(it.get("cantidad"), "0")
+        if cant <= 0:
+            return f"El ítem {i} ('{(it.get('descripcion') or '').strip()[:30]}') necesita una cantidad mayor a 0."
+
+    # Peso
+    if _dec(data.get("peso_bruto_total"), "0") <= 0:
+        return "El peso bruto total debe ser mayor a 0."
+
+    # Motivo 13 → descripción obligatoria
+    motivo = (data.get("motivo_traslado") or "01").strip()
+    if motivo == "13" and not (data.get("descripcion_motivo") or "").strip():
+        return "El motivo 'Otros' (13) requiere una descripción."
+
+    # Transporte
+    modalidad = (data.get("modalidad_traslado") or "02").strip()
+    if modalidad == "02" and not bool(data.get("indicador_vehiculo_m1l")):
+        if not (data.get("vehiculo_placa") or "").strip() or not (data.get("conductor_num_doc") or "").strip():
+            return "Transporte privado: indica la placa del vehículo y el documento del conductor."
+    elif modalidad == "01":
+        if not (data.get("transportista_num_doc") or "").strip():
+            return "Transporte público: indica el RUC del transportista."
+
+    # Ubigeos (partida cae al del emisor si viene vacío)
+    partida_ubigeo = (data.get("partida_ubigeo") or emisor.ubigeo or "")
+    if not _es_ubigeo(partida_ubigeo):
+        return "El ubigeo de partida debe tener 6 dígitos numéricos."
+    if not _es_ubigeo(data.get("llegada_ubigeo")):
+        return "El ubigeo de llegada debe tener 6 dígitos numéricos."
+
+    # Documentos relacionados: número + RUC emisor obligatorios
+    for j, doc in enumerate(data.get("documentos_relacionados") or [], start=1):
+        numero = (doc.get("numero") or "").strip()
+        ruc = (doc.get("emisor_doc_ruc") or "").strip()
+        if not numero:
+            return f"El documento relacionado #{j} necesita un número."
+        if len(ruc) != 11 or not ruc.isdigit():
+            return f"El documento relacionado #{j} necesita el RUC (11 dígitos) de su emisor."
+    return None
+
+
 def _crear_guia_desde_payload(db, emisor: Emisor, data: dict) -> GuiaRemision:
     serie = emisor.gre_serie or "T060"
     g = GuiaRemision(
@@ -224,8 +278,9 @@ async def guias_emitir(request: Request, db: Session = Depends(get_db)):
         return JSONResponse({"exito": False, "error": "No autorizado"}, status_code=401)
 
     data = await request.json()
-    if not data.get("items"):
-        return JSONResponse({"exito": False, "error": "Agrega al menos un ítem"}, status_code=400)
+    error = _validar_payload_gre(data, emisor)
+    if error:
+        return JSONResponse({"exito": False, "error": error}, status_code=400)
 
     try:
         guia = _crear_guia_desde_payload(db, emisor, data)
