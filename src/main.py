@@ -19,6 +19,7 @@ from src.api.stock_ui import router as stock_router
 from src.api.importaciones_ui import router as importaciones_router
 from src.api.guias_ui import router as guias_router
 from src.api.lookup_ui import router as lookup_router
+from src.api.referencias_ui import router as referencias_router
 
 app = FastAPI(
     title='facturalo.pro',
@@ -46,6 +47,9 @@ app.include_router(api_v1_router)
 app.include_router(admin_router)
 
 
+# Antes de api_router: sus rutas literales (/api/comprobantes/recientes) deben
+# ganarle al catch-all /api/comprobantes/{comprobante_id} de routes.py.
+app.include_router(referencias_router, include_in_schema=False)
 app.include_router(api_router, prefix='/api', include_in_schema=False)
 app.include_router(frontend_router, include_in_schema=False)
 app.include_router(productos_router, include_in_schema=False)
