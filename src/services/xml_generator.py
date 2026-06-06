@@ -168,6 +168,13 @@ def _build_factura_boleta_xml(comprobante, emisor: dict) -> bytes:
     invoice.append(type_code)
     logger.info(f"[XML_GEN] ✓ InvoiceTypeCode={tipo_doc} listID=0101")
 
+    # 3b. Leyendas (cbc:Note, catálogo 52) — posición UBL: tras InvoiceTypeCode,
+    #     antes de DocumentCurrencyCode. 1000=monto en letras (siempre);
+    #     2002=Amazonía bienes (solo emisor es_amazonia con op. exonerada).
+    totales = _calcular_totales(items, moneda)
+    _build_leyendas(invoice, totales, emisor, moneda)
+    logger.info("[XML_GEN] ✓ Leyendas (Note cat.52)")
+
     invoice.append(_cbc('DocumentCurrencyCode', moneda))
 
     # 4. Signature reference
@@ -211,6 +218,109 @@ def _build_factura_boleta_xml(comprobante, emisor: dict) -> bytes:
 # PAYMENT TERMS (Forma de Pago)
 # Obligatorio desde RS 000193-2020/SUNAT
 # =============================================
+
+# =============================================
+# LEYENDAS — Catálogo 52 (cbc:Note languageLocaleID)
+# Posición UBL: tras InvoiceTypeCode, antes de DocumentCurrencyCode.
+# =============================================
+
+# Texto oficial del catálogo 52 (verificado vs. manual SUNAT / facturadores PE).
+LEYENDAS_AMAZONIA = {
+    '2002': 'BIENES TRANSFERIDOS EN LA AMAZONIA REGION SELVA PARA SER CONSUMIDOS EN LA MISMA',
+    '2003': 'SERVICIOS PRESTADOS EN LA AMAZONIA REGION SELVA PARA SER CONSUMIDOS EN LA MISMA',
+}
+
+
+def _convertir_grupo(n):
+    """Convierte un número de 1 a 999 a texto (copia local, sin dependencias)."""
+    unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE']
+    decenas = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA',
+               'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA']
+    especiales = {
+        11: 'ONCE', 12: 'DOCE', 13: 'TRECE', 14: 'CATORCE', 15: 'QUINCE',
+        16: 'DIECISEIS', 17: 'DIECISIETE', 18: 'DIECIOCHO', 19: 'DIECINUEVE',
+        21: 'VEINTIUN', 22: 'VEINTIDOS', 23: 'VEINTITRES', 24: 'VEINTICUATRO',
+        25: 'VEINTICINCO', 26: 'VEINTISEIS', 27: 'VEINTISIETE', 28: 'VEINTIOCHO',
+        29: 'VEINTINUEVE'
+    }
+    centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS',
+                'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS']
+    if n == 0:
+        return ''
+    if n == 100:
+        return 'CIEN'
+    if n in especiales:
+        return especiales[n]
+    resultado = ''
+    c_val = n // 100
+    resto = n % 100
+    if c_val > 0:
+        resultado = centenas[c_val]
+        if resto > 0:
+            resultado += ' '
+    if resto in especiales:
+        resultado += especiales[resto]
+    elif resto > 0:
+        d = resto // 10
+        u = resto % 10
+        if d > 0:
+            resultado += decenas[d]
+            if u > 0:
+                resultado += ' Y ' + unidades[u]
+        else:
+            resultado += unidades[u]
+    return resultado
+
+
+def _numero_a_letras(numero, moneda='PEN'):
+    """Total a letras. Ej: 168.00 -> 'CIENTO SESENTA Y OCHO CON 00/100 SOLES'."""
+    numero = float(numero)
+    entero = int(numero)
+    decimales = round((numero - entero) * 100)
+    if entero == 0:
+        texto = 'CERO'
+    elif entero < 1000:
+        texto = _convertir_grupo(entero)
+    elif entero < 1000000:
+        miles = entero // 1000
+        resto = entero % 1000
+        texto = 'MIL' if miles == 1 else _convertir_grupo(miles) + ' MIL'
+        if resto > 0:
+            texto += ' ' + _convertir_grupo(resto)
+    elif entero < 1000000000:
+        millones = entero // 1000000
+        resto = entero % 1000000
+        texto = 'UN MILLON' if millones == 1 else _convertir_grupo(millones) + ' MILLONES'
+        if resto > 0:
+            miles = resto // 1000
+            cent = resto % 1000
+            if miles > 0:
+                texto += ' MIL' if miles == 1 else ' ' + _convertir_grupo(miles) + ' MIL'
+            if cent > 0:
+                texto += ' ' + _convertir_grupo(cent)
+    else:
+        texto = str(entero)
+    sufijo = 'SOLES' if (moneda or 'PEN') == 'PEN' else ('DOLARES AMERICANOS' if moneda == 'USD' else moneda)
+    return f"{texto} CON {decimales:02d}/100 {sufijo}"
+
+
+def _build_note_leyenda(codigo: str, texto: str):
+    """cbc:Note con languageLocaleID = código de leyenda (catálogo 52)."""
+    note = _cbc('Note', texto)
+    note.set('languageLocaleID', codigo)
+    return note
+
+
+def _build_leyendas(parent, totales, emisor: dict, moneda='PEN'):
+    """Agrega las cbc:Note de leyendas (catálogo 52) a `parent`:
+      - 1000: monto en letras (estándar, siempre).
+      - 2002: Amazonía bienes — solo si el emisor es de Amazonía y hay op. exonerada.
+      (2003 servicios queda preparado en LEYENDAS_AMAZONIA para el futuro.)
+    """
+    parent.append(_build_note_leyenda('1000', 'SON ' + _numero_a_letras(totales['total'], moneda)))
+    if bool(emisor.get('es_amazonia')) and totales.get('exonerado', 0) > 0:
+        parent.append(_build_note_leyenda('2002', LEYENDAS_AMAZONIA['2002']))
+
 
 def _build_payment_terms(comprobante, moneda='PEN', forma_pago='Contado'):
     """Construye PaymentTerms.
@@ -610,7 +720,7 @@ def _build_invoice_line(idx, item, moneda='PEN', line_tag='InvoiceLine',
 
     exemption = _cbc('TaxExemptionReasonCode', tipo_igv)
     exemption.set('listAgencyName', 'PE:SUNAT')
-    exemption.set('listName', 'Tipo de Afectacion del IGV')
+    exemption.set('listName', 'Afectacion del IGV')  # SUNAT cat.07 (fix obs. 4252; sin "Tipo de", sin tilde)
     exemption.set('listURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo07')
     item_tc.append(exemption)
 
