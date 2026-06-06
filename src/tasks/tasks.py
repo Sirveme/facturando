@@ -54,6 +54,8 @@ def _build_emisor_dict(emisor) -> dict:
         'departamento': getattr(emisor, 'departamento', '') or '',
         'provincia': getattr(emisor, 'provincia', '') or '',
         'distrito': getattr(emisor, 'distrito', '') or '',
+        # Para leyenda Amazonía (cat.52 / 2002) en el generador XML
+        'es_amazonia': bool((getattr(emisor, 'config_json', None) or {}).get('es_amazonia', False)),
     }
 
 
