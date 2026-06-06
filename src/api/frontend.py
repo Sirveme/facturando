@@ -14,6 +14,13 @@ from src.api.auth_utils import obtener_emisor_actual
 templates_path = Path(__file__).parent.parent / "templates"
 templates = Jinja2Templates(directory=str(templates_path))
 
+# Cache-busting centralizado: APP_VERSION disponible como global en TODAS las
+# plantillas (instancia única). En cada deploy basta bumpear settings.APP_VERSION
+# o la variable de entorno APP_VERSION para invalidar el caché de CSS/JS propios.
+import os as _os
+from src.core.config import settings as _settings
+templates.env.globals["APP_VERSION"] = _os.getenv("APP_VERSION") or getattr(_settings, "APP_VERSION", "1")
+
 router = APIRouter()
 
 @router.get("/", response_class=HTMLResponse)
