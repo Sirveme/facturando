@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     debug: bool = Field(True, env='DEBUG')
     log_level: str = Field('INFO', env='LOG_LEVEL')
     environment: str = Field('development', env='ENVIRONMENT')
+    # Busca la clase Settings y AGREGA este campo:
+    APIS_NET_PE_TOKEN: str = Field("", env="APIS_NET_PE_TOKEN")
+    # Cache-busting de estáticos propios: bumpea este valor (o la env APP_VERSION)
+    # en cada deploy para invalidar CSS/JS cacheados por el navegador.
+    APP_VERSION: str = Field("2026.06.13", env="APP_VERSION")
 
     class Config:
         env_file = ".env"
