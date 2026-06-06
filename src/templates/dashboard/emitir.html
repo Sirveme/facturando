@@ -163,9 +163,7 @@
                             <label class="input-label">Número</label>
                             <div class="input-with-button">
                                 <input type="text" id="cliente_numero_doc" name="cliente_numero_doc" class="input" placeholder="20123456789" required>
-                                <button type="button" class="btn btn-ghost btn-sm" id="btn-buscar-cliente" title="Buscar en SUNAT">
-                                    🔍
-                                </button>
+                                <span class="ruc-status" id="cliente-ruc-status"></span>
                             </div>
                         </div>
                         <div class="input-group" style="flex: 1;">
@@ -273,6 +271,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', path='/js/ruc-lookup.js') }}?v=1"></script>
 <script>
 // Fecha actual
 // Fecha actual en zona horaria Perú (UTC-5)
@@ -563,73 +562,29 @@ document.getElementById('tipo_documento').addEventListener('change', (e) => {
 // Poblar al cargar la página según el tipo preseleccionado (Factura por defecto).
 poblarSeries();
 
-// Buscar cliente (placeholder - puedes conectar a API de SUNAT)
-// Buscar cliente en SUNAT/RENIEC
-document.getElementById('btn-buscar-cliente').addEventListener('click', async () => {
-    const tipoDoc = document.getElementById('cliente_tipo_doc').value;
-    const numero = document.getElementById('cliente_numero_doc').value.trim();
-    
-    if (!numero) {
-        toast.warning('Ingresa un número', 'Escribe el RUC o DNI a consultar');
-        return;
-    }
-    
-    // Validar longitud
-    if (tipoDoc === '6' && numero.length !== 11) {
-        toast.warning('RUC inválido', 'El RUC debe tener 11 dígitos');
-        return;
-    }
-    if (tipoDoc === '1' && numero.length !== 8) {
-        toast.warning('DNI inválido', 'El DNI debe tener 8 dígitos');
-        return;
-    }
-    
-    const btn = document.getElementById('btn-buscar-cliente');
-    btn.disabled = true;
-    btn.textContent = '⏳';
-    
-    try {
-        const endpoint = tipoDoc === '6' ? `/api/ruc/${numero}` : `/api/dni/${numero}`;
-        const response = await fetch(endpoint);
-        const result = await response.json();
-
-        if (result.exito && result.datos) {
-            const datos = result.datos;
-
-            // Llenar campos
-            if (tipoDoc === '6') {
-            // RUC
-            document.getElementById('cliente_razon_social').value = datos.razon_social || '';
-            document.getElementById('cliente_direccion').value = datos.direccion || '';
-            document.getElementById('cliente_departamento').value = datos.departamento || '';
-            document.getElementById('cliente_provincia').value = datos.provincia || '';
-            document.getElementById('cliente_distrito').value = datos.distrito || '';
-            document.getElementById('cliente_ubigeo').value = datos.ubigeo || '';
+// Lookup automático del cliente (RUC/DNI) — módulo compartido ruc-lookup.js.
+RucLookup.attach({
+    input: document.getElementById('cliente_numero_doc'),
+    status: document.getElementById('cliente-ruc-status'),
+    getTipo: () => document.getElementById('cliente_tipo_doc').value,
+    tipoSelect: document.getElementById('cliente_tipo_doc'),
+    onResult: (d, meta) => {
+        if (meta.notFound || !d) return;
+        if (meta.tipo === '6') {
+            document.getElementById('cliente_razon_social').value = d.razon_social || '';
+            document.getElementById('cliente_direccion').value = d.direccion || '';
+            document.getElementById('cliente_departamento').value = d.departamento || '';
+            document.getElementById('cliente_provincia').value = d.provincia || '';
+            document.getElementById('cliente_distrito').value = d.distrito || '';
+            document.getElementById('cliente_ubigeo').value = d.ubigeo || '';
         } else {
-            // DNI
-            document.getElementById('cliente_razon_social').value = datos.nombre_completo || '';
-            // DNI no trae dirección, limpiar campos
+            document.getElementById('cliente_razon_social').value = d.nombre_completo || '';
             document.getElementById('cliente_direccion').value = '';
             document.getElementById('cliente_departamento').value = '';
             document.getElementById('cliente_provincia').value = '';
             document.getElementById('cliente_distrito').value = '';
             document.getElementById('cliente_ubigeo').value = '';
         }
-
-            toast.success('Encontrado', datos.razon_social || datos.nombre_completo);
-            // Advertencia si el contribuyente está de baja / no habido
-            if (tipoDoc === '6' && datos.habilitado === false) {
-                toast.warning('Contribuyente observado',
-                    `Estado: ${datos.estado || '—'} · Condición: ${datos.condicion || '—'}`);
-            }
-        } else {
-            toast.error('No encontrado', result.mensaje || 'No se encontró información');
-        }
-    } catch (error) {
-        toast.error('Error de conexión', error.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '🔍';
     }
 });
 
