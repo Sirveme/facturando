@@ -6,30 +6,9 @@
 <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v={{ APP_VERSION }}">
 <link rel="stylesheet" href="{{ url_for('static', path='/css/emitir.css') }}?v={{ APP_VERSION }}">
 <style>
-    .autocomplete-dropdown {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        z-index: 50;
-        background: var(--bg-secondary, #fff);
-        border: 1px solid var(--border-color, #d1d5db);
-        border-radius: var(--radius-md, 6px);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-        max-height: 260px;
-        overflow-y: auto;
-        margin-top: 2px;
-    }
-    .autocomplete-item {
-        padding: 8px 10px;
-        cursor: pointer;
-        font-size: 13px;
-        border-bottom: 1px solid var(--border-color, #eee);
-    }
-    .autocomplete-item:last-child { border-bottom: none; }
-    .autocomplete-item:hover, .autocomplete-item.activo { background: var(--bg-hover, #f0f1ff); }
-    .autocomplete-item .ac-codigo { font-weight: 700; }
-    .autocomplete-item .ac-meta { color: var(--text-secondary, #64748b); font-size: 11px; }
+    /* Estilos de .autocomplete-dropdown/.autocomplete-item unificados en
+       components.css (zDiseno-02): fondo sólido del tema, texto legible,
+       hover diferenciado, z-index alto y card sin recorte. */
     .item-badge {
         margin-top: 4px;
         font-size: 11px;
