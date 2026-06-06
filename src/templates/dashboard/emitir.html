@@ -3,8 +3,8 @@
 {% block title %}Emitir Comprobante - facturalo.pro{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=5">
-<link rel="stylesheet" href="{{ url_for('static', path='/css/emitir.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v={{ APP_VERSION }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/emitir.css') }}?v={{ APP_VERSION }}">
 <style>
     .autocomplete-dropdown {
         position: absolute;
@@ -118,7 +118,7 @@
                     <h3 class="card-title">Tipo de Comprobante</h3>
                 </div>
                 <div class="card-body">
-                    <div class="form-row">
+                    <div class="form-row row-tsf">
                         <div class="input-group">
                             <label class="input-label">Tipo</label>
                             <select id="tipo_documento" name="tipo_documento" class="input" required>
@@ -149,7 +149,7 @@
                     <h3 class="card-title">Datos del Cliente</h3>
                 </div>
                 <div class="card-body">
-                    <div class="form-row">
+                    <div class="form-row row-cliente">
                         <div class="input-group" style="flex: 0 0 150px;">
                             <label class="input-label">Tipo Doc.</label>
                             <select id="cliente_tipo_doc" name="cliente_tipo_doc" class="input" required>
@@ -162,7 +162,7 @@
                         <div class="input-group" style="flex: 0 0 200px;">
                             <label class="input-label">Número</label>
                             <div class="input-with-button">
-                                <input type="text" id="cliente_numero_doc" name="cliente_numero_doc" class="input" placeholder="20123456789" required>
+                                <input type="text" id="cliente_numero_doc" name="cliente_numero_doc" class="input" placeholder="20123456789" inputmode="numeric" required>
                                 <span class="ruc-status" id="cliente-ruc-status"></span>
                             </div>
                         </div>
@@ -171,27 +171,33 @@
                             <input type="text" id="cliente_razon_social" name="cliente_razon_social" class="input" placeholder="EMPRESA SAC" required>
                         </div>
                     </div>
-                    <div class="input-group">
-                        <label class="input-label">Dirección</label>
-                        <input type="text" id="cliente_direccion" name="cliente_direccion" class="input" placeholder="Av. Principal 123">
-                    </div>
 
-                    <div class="form-row">
+                    <!-- Dirección y ubicación — colapsable en móvil (se autollena con el lookup) -->
+                    <input type="checkbox" id="addr-toggle" class="addr-toggle-cb" hidden>
+                    <label for="addr-toggle" class="addr-summary">Dirección y ubicación <span class="addr-summary-hint">(opcional · toca para mostrar)</span></label>
+                    <div class="addr-fields">
                         <div class="input-group">
-                            <label class="input-label">Departamento</label>
-                            <input type="text" id="cliente_departamento" name="cliente_departamento" class="input" placeholder="Lima">
+                            <label class="input-label">Dirección</label>
+                            <input type="text" id="cliente_direccion" name="cliente_direccion" class="input" placeholder="Av. Principal 123">
                         </div>
-                        <div class="input-group">
-                            <label class="input-label">Provincia</label>
-                            <input type="text" id="cliente_provincia" name="cliente_provincia" class="input" placeholder="Lima">
-                        </div>
-                        <div class="input-group">
-                            <label class="input-label">Distrito</label>
-                            <input type="text" id="cliente_distrito" name="cliente_distrito" class="input" placeholder="Miraflores">
-                        </div>
-                        <div class="input-group" style="flex: 0 0 120px;">
-                            <label class="input-label">Ubigeo</label>
-                            <input type="text" id="cliente_ubigeo" name="cliente_ubigeo" class="input" placeholder="150122" maxlength="6">
+
+                        <div class="form-row row-ubigeo">
+                            <div class="input-group">
+                                <label class="input-label">Departamento</label>
+                                <input type="text" id="cliente_departamento" name="cliente_departamento" class="input" placeholder="Lima">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Provincia</label>
+                                <input type="text" id="cliente_provincia" name="cliente_provincia" class="input" placeholder="Lima">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Distrito</label>
+                                <input type="text" id="cliente_distrito" name="cliente_distrito" class="input" placeholder="Miraflores">
+                            </div>
+                            <div class="input-group" style="flex: 0 0 120px;">
+                                <label class="input-label">Ubigeo</label>
+                                <input type="text" id="cliente_ubigeo" name="cliente_ubigeo" class="input" placeholder="150122" maxlength="6" inputmode="numeric">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -225,7 +231,7 @@
             </div>
             
             <!-- Totales -->
-            <div class="card">
+            <div class="card totales-card-wrap">
                 <div class="card-body">
                     <div class="totales-grid">
                         <div></div>
@@ -255,23 +261,53 @@
                 </div>
             </div>
             
-            <!-- Acciones -->
+            <!-- Acciones (en móvil se vuelve barra sticky inferior con totales) -->
             <div class="form-actions">
-                <a href="/comprobantes" class="btn btn-ghost">Cancelar</a>
-                <button type="submit" class="btn btn-primary btn-lg" id="btn-emitir">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Emitir Comprobante
-                </button>
+                <!-- Totales compactos: visibles solo en la barra sticky móvil -->
+                <div class="sticky-totales" aria-hidden="true">
+                    <div class="st-line"><span>Op. gravada</span><span id="st-gravado">S/ 0.00</span></div>
+                    <div class="st-line"><span>IGV (18%)</span><span id="st-igv">S/ 0.00</span></div>
+                    <div class="st-line st-total"><span>TOTAL</span><span id="st-total">S/ 0.00</span></div>
+                </div>
+                <div class="form-actions-btns">
+                    <a href="/comprobantes" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-primary btn-lg" id="btn-emitir">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Emitir Comprobante
+                    </button>
+                </div>
             </div>
         </form>
     </main>
+
+    <!-- FASE 2: pantalla de éxito post-emisión (móvil y escritorio) -->
+    <div class="modal emitir-exito" id="modal-exito">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="exito-check" aria-hidden="true">
+                <svg width="56" height="56" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <p class="exito-label">Comprobante emitido</p>
+            <h2 class="exito-serie" id="exito-serie">—</h2>
+            <p class="exito-sub">Enviado a SUNAT. Comparte el PDF con tu cliente.</p>
+            <div class="exito-actions">
+                <a class="btn btn-primary btn-lg" id="exito-pdf" href="#" target="_blank" rel="noopener">Ver PDF</a>
+                <a class="btn btn-success btn-lg" id="exito-wa" href="#" target="_blank" rel="noopener">
+                    Compartir por WhatsApp
+                </a>
+                <button type="button" class="btn btn-ghost" onclick="window.location.href='/comprobantes/emitir'">Emitir otro</button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', path='/js/ruc-lookup.js') }}?v=1"></script>
+<script src="{{ url_for('static', path='/js/ruc-lookup.js') }}?v={{ APP_VERSION }}"></script>
 <script>
 // Fecha actual
 // Fecha actual en zona horaria Perú (UTC-5)
@@ -645,10 +681,15 @@ document.getElementById('form-emitir').addEventListener('submit', async (e) => {
         toast.remove(toastId);
         
         if (response.ok && result.exito) {
-            toast.success('¡Comprobante emitido!', result.mensaje);
-            setTimeout(() => {
-                window.location.href = '/comprobantes';
-            }, 2000);
+            // FASE 2: pantalla de éxito con acciones (Ver PDF / WhatsApp / Emitir otro)
+            const cid = result.comprobante_id;
+            const label = (result.serie || '') + '-' + String(result.numero || '').padStart(8, '0');
+            const pdfUrl = location.origin + '/api/comprobantes/' + cid + '/pdf';
+            document.getElementById('exito-serie').textContent = label;
+            document.getElementById('exito-pdf').href = pdfUrl;
+            document.getElementById('exito-wa').href = 'https://wa.me/?text=' +
+                encodeURIComponent('Comprobante ' + label + '. Descárgalo aquí: ' + pdfUrl);
+            document.getElementById('modal-exito').classList.add('active');
         } else {
             // Manejar errores de validación (422)
             let errorMsg = 'Error al emitir';
@@ -671,5 +712,20 @@ document.getElementById('form-emitir').addEventListener('submit', async (e) => {
         btn.disabled = false;
     }
 });
+</script>
+<script>
+// Presentación: refleja los totales en la barra sticky móvil (sin tocar calcularTotales).
+(function(){
+    function mirror(srcId, dstId){
+        const s = document.getElementById(srcId), d = document.getElementById(dstId);
+        if (!s || !d) return;
+        const sync = () => { d.textContent = s.textContent; };
+        sync();
+        new MutationObserver(sync).observe(s, { childList: true, characterData: true, subtree: true });
+    }
+    mirror('subtotal-gravado', 'st-gravado');
+    mirror('igv', 'st-igv');
+    mirror('total', 'st-total');
+})();
 </script>
 {% endblock %}

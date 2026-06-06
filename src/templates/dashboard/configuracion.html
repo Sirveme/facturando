@@ -3,7 +3,7 @@
 {% block title %}Configuración - facturalo.pro{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v={{ APP_VERSION }}">
 <style>
     .config-section {
         margin-bottom: var(--space-8);
@@ -447,7 +447,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', path='/js/toast.js') }}"></script>
+<script src="{{ url_for('static', path='/js/toast.js') }}?v={{ APP_VERSION }}"></script>
 <script>
 // Upload area click
 document.getElementById('upload-area').addEventListener('click', () => {

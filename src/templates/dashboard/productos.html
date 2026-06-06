@@ -3,8 +3,8 @@
 {% block title %}Productos - facturalo.pro{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=6">
-<link rel="stylesheet" href="{{ url_for('static', path='/css/productos.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v={{ APP_VERSION }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/productos.css') }}?v={{ APP_VERSION }}">
 {% endblock %}
 
 {% block body %}
@@ -303,5 +303,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', path='/js/productos.js') }}?v=1"></script>
+<script src="{{ url_for('static', path='/js/productos.js') }}?v={{ APP_VERSION }}"></script>
 {% endblock %}
