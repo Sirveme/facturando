@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pathlib import Path
 
 from src.api.routes import router as api_router
@@ -37,6 +38,18 @@ except Exception:
 static_path = Path(__file__).parent / "static"
 if static_path.exists():
     app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+
+    @app.get("/robots.txt", include_in_schema=False)
+    async def serve_robots():
+        return FileResponse(static_path / "robots.txt", media_type="text/plain")
+
+    @app.get("/llms.txt", include_in_schema=False)
+    async def serve_llms():
+        return FileResponse(static_path / "llms.txt", media_type="text/plain")
+
+    @app.get("/llms-full.txt", include_in_schema=False)
+    async def serve_llms_full():
+        return FileResponse(static_path / "llms-full.txt", media_type="text/plain")
 
 # Incluir routers
 #app.include_router(api_router, prefix='/api')
