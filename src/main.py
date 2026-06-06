@@ -51,6 +51,10 @@ if static_path.exists():
     async def serve_llms_full():
         return FileResponse(static_path / "llms-full.txt", media_type="text/plain")
 
+    @app.get("/sitemap.xml", include_in_schema=False)
+    async def serve_sitemap():
+        return FileResponse(static_path / "sitemap.xml", media_type="application/xml")
+
 # Incluir routers
 #app.include_router(api_router, prefix='/api')
 #app.include_router(frontend_router)
