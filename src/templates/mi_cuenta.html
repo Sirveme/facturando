@@ -6,7 +6,7 @@
     <title>Mi cuenta - facturalo.pro</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/modales_mi_cuenta.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modales_mi_cuenta.css') }}?v={{ APP_VERSION }}">
 </head>
 <body>
     <!-- Topbar -->
@@ -516,6 +516,6 @@
         }
     });
     </script>
-    <script src="{{ url_for('static', path='/js/modales_mi_cuenta.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/modales_mi_cuenta.js') }}?v={{ APP_VERSION }}"></script>
 </body>
 </html>

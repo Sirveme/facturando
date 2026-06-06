@@ -6,12 +6,12 @@
     <title>{% block title %}facturalo.pro{% endblock %}</title>
     
     <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/reset.css') }}?v=2">
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/variables.css') }}?v=6">
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/layout.css') }}?v=2">
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/components.css') }}?v=2">
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/toast.css') }}?v=2">
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/modal.css') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/reset.css') }}?v={{ APP_VERSION }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/variables.css') }}?v={{ APP_VERSION }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/layout.css') }}?v={{ APP_VERSION }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/components.css') }}?v={{ APP_VERSION }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/toast.css') }}?v={{ APP_VERSION }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modal.css') }}?v={{ APP_VERSION }}">
     {% block extra_css %}{% endblock %}
     
     <!-- HTMX -->
@@ -21,10 +21,10 @@
     {% block body %}{% endblock %}
     
     <!-- JS -->
-    <script src="{{ url_for('static', path='/js/toast.js') }}?v=5"></script>
-    <script src="{{ url_for('static', path='/js/modal-confirm.js') }}?v=5"></script>
-    <script src="{{ url_for('static', path='/js/app.js') }}?v=5"></script>
-    <script src="{{ url_for('static', path='/js/theme.js') }}?v=5"></script>
+    <script src="{{ url_for('static', path='/js/toast.js') }}?v={{ APP_VERSION }}"></script>
+    <script src="{{ url_for('static', path='/js/modal-confirm.js') }}?v={{ APP_VERSION }}"></script>
+    <script src="{{ url_for('static', path='/js/app.js') }}?v={{ APP_VERSION }}"></script>
+    <script src="{{ url_for('static', path='/js/theme.js') }}?v={{ APP_VERSION }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
