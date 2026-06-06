@@ -1,0 +1,44 @@
+# Facturalo.pro
+
+> Plataforma peruana de facturación electrónica para PYMEs, instituciones y organizaciones. Emite boletas, facturas y notas de crédito/débito con envío automático a SUNAT. Diseñada con planes de comprobantes ilimitados y especializaciones por sector.
+
+Facturalo.pro es un producto de Perú Sistemas Pro E.I.R.L. (RUC 20615446565, registrada en Dun & Bradstreet). Desarrollado en Iquitos, Perú, opera para todo el territorio nacional con cumplimiento pleno de normas SUNAT (SEE del Contribuyente).
+
+## Características principales
+
+- Emisión de Boletas (03), Facturas (01), Notas de Crédito (07) y Notas de Débito (08)
+- Series independientes por canal de venta (caja presencial, portal web, etc.)
+- Envío automático a SUNAT con manejo de respuestas CDR
+- Resumen Diario para boletas (cumplimiento normativo)
+- Catálogo de productos/servicios con stock opcional
+- Integración con pasarelas de pago peruanas (OpenPay, Izipay, Niubiz)
+- Validación de pagos vía Yape, Plin, transferencias (con PagoOK)
+- Multi-emisor y multi-sede en una sola instancia
+
+## Especialización por sector
+
+- [Colegios Profesionales](https://colegiospro.org.pe): cuotas ordinarias, extraordinarias, multas, constancias de habilidad, eventos
+- Importadores: facturación con campos de aduana y referencias de pedimentos
+- Institutos y academias: cuotas mensuales por estudiante
+- Condominios y clubes: cuotas de mantenimiento periódicas
+- Grifos y transportistas: facturación masiva diaria
+- PYMEs en general: facturación comercial estándar
+
+## Documentación
+
+- [Plataforma principal](https://facturalo.pro)
+- [API para Desarrolladores](https://facturalo.pro/desarrolladores): API REST para integrar facturación electrónica desde sistemas propios
+- [Sitio para Colegios Profesionales](https://colegiospro.org.pe)
+- [Empresa desarrolladora](https://perusistemas.pro)
+
+## Productos complementarios
+
+- [QueVendi](https://quevendi.pro): POS y facturación móvil para comercios
+- [PagoOK](https://pagook.pro): validación automática de pagos Yape/Plin/Transferencias
+- [SecretariaPro](https://secretariapro.pe): Mesa de Partes Virtual
+
+## Contacto
+
+- Email: info@perusistemas.pro
+- WhatsApp: +51 967 317 946
+- Ubicación: Iquitos, Loreto, Perú

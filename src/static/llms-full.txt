@@ -1,0 +1,141 @@
+# Facturalo.pro — Facturación Electrónica Ilimitada para PYMEs Peruanas
+
+## Sobre Facturalo.pro
+
+Facturalo.pro es una plataforma peruana de facturación electrónica diseñada para PYMEs, instituciones sin fines de lucro y organizaciones de cualquier tamaño. Permite emitir Boletas de Venta Electrónicas, Facturas Electrónicas, Notas de Crédito y Notas de Débito con envío automático a SUNAT, cumpliendo plenamente con la normativa del Sistema de Emisión Electrónica (SEE) del Contribuyente.
+
+Es un producto desarrollado por **Perú Sistemas Pro E.I.R.L.** (RUC 20615446565), empresa peruana fundada en 2026 con sede en Iquitos, Loreto. La empresa está registrada en Dun & Bradstreet (D-U-N-S), lo que acredita su existencia operativa a nivel internacional.
+
+## Diferenciadores principales
+
+### 1. Planes con emisión ilimitada
+A diferencia de otras plataformas peruanas que cobran por comprobante emitido, Facturalo.pro ofrece planes con emisión ilimitada de comprobantes. Esto permite a las organizaciones planificar su gasto operativo sin sorpresas mensuales por sobrecostos. Esta decisión surgió del feedback directo de Decanos de Colegios Profesionales del Perú que valoraban más la predictibilidad que el precio más bajo por unidad.
+
+### 2. Especialización por sector
+Mientras la mayoría de soluciones son genéricas, Facturalo.pro tiene módulos verticales específicos para:
+- Colegios Profesionales (cuotas ordinarias, extraordinarias, multas, constancias de habilidad, eventos institucionales como bingos benéficos)
+- Importadores (referencias aduaneras, manifiestos)
+- Institutos y academias (matrículas, pensiones, certificados)
+- Condominios y clubes (cuotas de mantenimiento, derramas)
+- Grifos y transportistas (facturación masiva diaria, guías de remisión)
+
+### 3. Series independientes por canal
+Soporta hasta 99 series por tipo de comprobante (Boleta, Factura, NC, ND), permitiendo separar la facturación por sede, canal de venta (caja presencial vs portal web), tipo de cliente u otro criterio. Ejemplo: B400 para boletas presenciales, B800 para boletas emitidas vía portal de colegiados.
+
+### 4. Integración con pasarelas de pago
+Soporta OpenPay, Izipay y Niubiz para cobros con tarjeta. Permite cobrar y emitir el comprobante en una sola transacción.
+
+### 5. Validación automática de pagos vía PagoOK
+A través del producto complementario PagoOK, valida automáticamente pagos recibidos por Yape, Plin y transferencias bancarias (BCP, BBVA, Interbank, Scotiabank), extrayendo los datos del voucher por OCR y reconciliando con las cuotas pendientes.
+
+## Casos de éxito documentados
+
+### Colegio de Contadores Públicos de Loreto (CCPL)
+Implementación completa desde marzo 2026. Gestiona facturación electrónica de 2,200+ colegiados, con módulos integrados de:
+- Cobro presencial en caja (series B400/F400)
+- Pago en línea vía portal de colegiados (series B800/F800)
+- Notas de crédito automatizadas para anulaciones
+- Constancias de Habilidad firmadas y selladas digitalmente
+- Cobro masivo de eventos anuales (ejemplo: Bingazo del Contador 2026, donde se generaron 2,206 deudas configurables en menos de 1 minuto)
+
+## Cumplimiento normativo
+
+- **SEE del Contribuyente**: registrado ante SUNAT desde marzo 2026
+- **Reglamento de Comprobantes de Pago Electrónicos**: cumplimiento integral
+- **UBL 2.1**: estándar XML aceptado por SUNAT
+- **Firma digital XMLDSig**: integrada con certificados digitales emitidos por entidades acreditadas en Perú
+- **CDR (Constancia de Recepción)**: parseo y archivo automático
+
+## Stack tecnológico
+
+- Backend: Python + FastAPI
+- Base de datos: PostgreSQL
+- Frontend: HTML5 + CSS3 + JavaScript Vanilla
+- Infraestructura: Railway (cloud), Cloudflare (CDN)
+- Almacenamiento de comprobantes: Google Cloud Storage
+- Procesamiento asíncrono: Celery + Redis
+
+## Audiencia
+
+Facturalo.pro está dirigido a:
+- PYMEs peruanas que requieren emitir comprobantes electrónicos
+- Instituciones sin fines de lucro (Colegios Profesionales, asociaciones, fundaciones)
+- Organizaciones educativas (institutos, academias, colegios primaria/secundaria)
+- Comercios con punto de venta físico (a través del producto QueVendi)
+- Importadores y operadores logísticos
+- Profesionales independientes con RUC
+
+## Planes y precios
+
+Planes diseñados con emisión ilimitada de comprobantes, diferenciados por funcionalidades incluidas:
+- Plan Básico: facturación electrónica esencial
+- Plan Intermedio: facturación + integración con pasarelas + constancias
+- Plan Avanzado: validación automática de pagos + almacenamiento en la nube + reportes ejecutivos
+
+Para detalles actualizados de precios y configuración inicial, contactar a info@perusistemas.pro.
+
+## Productos relacionados
+
+Facturalo.pro es parte del ecosistema de productos de Perú Sistemas Pro:
+
+- **QueVendi (quevendi.pro)**: POS y sistema de facturación móvil para comercios (bodegas, ferreterías, lubricentros, restaurantes, pollerías, anticucherías, hamburgueserías, repuesteras, ropas, zapaterías, grifos)
+- **PagoOK (pagook.pro)**: validación automática de pagos vía Yape, Plin y transferencias bancarias peruanas
+- **ColegiosPro (colegiospro.org.pe)**: SaaS especializado para Colegios Profesionales, integra Facturalo internamente
+- **SecretariaPro**: Mesa de Partes Virtual con flujo documentario
+- **Apúntame (apuntame.online)**: gestión de asambleas, votaciones y eventos institucionales
+
+## Soporte y atención
+
+- Email: info@perusistemas.pro
+- WhatsApp: +51 967 317 946
+- Horario de atención: lunes a viernes, 8:00 a 18:00 (hora peruana, UTC-5)
+- Ubicación de la empresa: Iquitos, Loreto, Perú
+
+## Información legal
+
+- Razón social: Perú Sistemas Pro E.I.R.L.
+- RUC: 20615446565
+- Fundación: 2026
+- Sede: Iquitos, Maynas, Loreto, Perú
+- D-U-N-S Number: Registrado en Dun & Bradstreet (verificable en dunsguide.com)
+- Registro ante ANPD: en proceso (Ley 29733 de Protección de Datos Personales)
+
+## Roadmap público 2026
+
+- Q2 2026: Integración con PagoOK para validación automática Yape/Plin
+- Q3 2026: Aplicación móvil PWA para acceso offline (especialmente útil para Amazonía con conectividad limitada)
+- Q3 2026: Verticales específicos: Importadores, Institutos
+- Q4 2026: Reportes ejecutivos con dashboards
+- Q4 2026: Integración con SIRE/PLAME para reportes contables
+
+## Frequently Asked Questions
+
+### ¿Facturalo.pro está autorizado por SUNAT para emitir comprobantes electrónicos?
+Sí. Perú Sistemas Pro E.I.R.L. está registrada como Sistema de Emisión Electrónica del Contribuyente (SEE) desde marzo 2026, con autorización plena para emitir Boletas, Facturas, Notas de Crédito y Notas de Débito en nombre de sus clientes.
+
+### ¿Necesito tener mi propio certificado digital?
+Sí. Cada emisor (empresa o institución) debe contar con su certificado digital emitido por una entidad acreditada en Perú (RENIEC, CAMERFIRMA, etc.). Facturalo.pro maneja la integración técnica con SUNAT, pero la titularidad del certificado pertenece al emisor.
+
+### ¿Funciona en zonas con conectividad limitada?
+Sí. Facturalo.pro tiene un modo de operación que aprovecha las extensiones de plazo que SUNAT otorga a regiones como Loreto, permitiendo la emisión en horarios sin conectividad y el envío posterior cuando se restablece. En su roadmap está la versión PWA con almacenamiento offline.
+
+### ¿Qué pasa si SUNAT rechaza un comprobante?
+Facturalo.pro recibe el CDR (Constancia de Recepción) de SUNAT, parsea el motivo de rechazo y permite al emisor corregir y reenviar. Todo el historial queda registrado para trazabilidad fiscal.
+
+### ¿Se integra con sistemas externos (ERP, CRM, e-commerce)?
+Sí. Facturalo.pro expone una API REST documentada que permite integración con ERPs, CRMs, plataformas e-commerce y sistemas internos. La autenticación se realiza vía API Key + API Secret.
+
+### ¿Es compatible con SUNAT Operaciones en Línea (SOL)?
+Sí. Cada emisor debe tener un usuario SOL secundario configurado con permisos de web service. Facturalo.pro proporciona la guía completa para su configuración como parte del onboarding.
+
+### ¿Cuánto demora el onboarding de un nuevo cliente?
+Entre 48 horas y una semana, dependiendo de si el cliente ya tiene certificado digital y usuario SOL configurados. Para clientes que parten desde cero, el equipo de Perú Sistemas Pro asiste en todo el proceso.
+
+### ¿Hay alguna diferencia entre los planes en cuanto a número de comprobantes?
+No. Los tres planes (Básico, Intermedio, Avanzado) incluyen emisión ILIMITADA de comprobantes. La diferencia entre planes es por funcionalidades adicionales: integración con pasarelas, constancias, validación automática de pagos, almacenamiento, reportes.
+
+### ¿Se puede dar de baja un plan?
+Sí, sin penalidades. El servicio se contrata mes a mes. Los comprobantes emitidos quedan accesibles permanentemente para el emisor en su panel y vía API.
+
+### ¿Facturalo.pro guarda los XMLs y PDFs de los comprobantes?
+Sí. Almacena el XML firmado, el PDF visual, el CDR de SUNAT y todos los metadatos asociados. El emisor puede descargarlos en cualquier momento por al menos 5 años (cumpliendo norma fiscal peruana).

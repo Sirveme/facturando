@@ -1,0 +1,71 @@
+# robots.txt — facturalo.pro
+# Política: permitir indexación pública + bots de IA (GEO).
+# Bloquear rutas administrativas y de autenticación.
+
+# ════════════════════════════════════════════════════════════════
+# BOTS TRADICIONALES (Google, Bing, etc.)
+# ════════════════════════════════════════════════════════════════
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /panel/
+Disallow: /static/private/
+
+# ════════════════════════════════════════════════════════════════
+# BOTS DE IA / GEO (Generative Engine Optimization)
+# Permitir explícitamente para que aparezcan en respuestas de IA
+# ════════════════════════════════════════════════════════════════
+
+# Anthropic Claude
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+# OpenAI ChatGPT
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# Google Gemini (Bard)
+User-agent: Google-Extended
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+# Apple Intelligence
+User-agent: Applebot-Extended
+Allow: /
+
+# Common Crawl (usado por muchos modelos)
+User-agent: CCBot
+Allow: /
+
+# Meta AI
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
+
+# ════════════════════════════════════════════════════════════════
+# SITEMAP
+# ════════════════════════════════════════════════════════════════
+Sitemap: https://facturalo.pro/sitemap.xml
