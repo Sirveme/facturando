@@ -1,0 +1,426 @@
+/* ============================================================================
+   _brand.css — SISTEMA VISUAL MAESTRO DE LANDINGS · facturalo.pro
+   ----------------------------------------------------------------------------
+   Identidad fundacional. Heredada por TODAS las landings por nicho (la primera
+   es /importadores), futuros flyers y el próximo rediseño del dashboard.
+
+   ORIGEN DE LA IDENTIDAD — marca madre perusistemas.pro (extraída de su CSS):
+     · Paleta rojo profundo + dorado (peruano, fuerte, "sin letra chica").
+     · Header/nav  = rojo oscuro  #7F1010  con borde inferior dorado.
+     · Footer      = rojo profundo #4A0808  con borde superior dorado.
+     · CTA madre   = degradado dorado (#D4A017 → #F0C843), texto rojo, peso 800.
+     · Tipografía  = Bebas Neue (display) + DM Sans (cuerpo) + Tinos (serif).
+
+   ESTRATEGIA DE COLOR EN LAS LANDINGS:
+     · El ROJO+DORADO ancla la marca en HEADER y FOOTER (y en detalles: labels,
+       subrayados, números de precio).
+     · El CUERPO es limpio: fondos claros, alto contraste, lectura cómoda.
+     · El ÚNICO acento de acción es el VERDE WHATSAPP (#25D366): todos los CTA
+       llevan a WhatsApp, así el verde = "esto es un botón que me lleva a hablar".
+
+   ----------------------------------------------------------------------------
+   CÓMO REUTILIZARLO EN UNA NUEVA LANDING (molde):
+     1. <link rel="stylesheet" href="/static/css/landings/_brand.css?v={{ APP_VERSION }}">
+        (cache-busting con APP_VERSION, igual que el resto del proyecto).
+     2. Carga las fuentes en <head> (ver bloque comentado más abajo).
+     3. Arma la página SOLO con estos componentes (no escribas CSS nuevo salvo
+        ajustes muy puntuales con utilidades .ld-*):
+          .ld-nav   .ld-hero   .ld-section   .ld-card   .ld-btn (+--whatsapp)
+          .ld-checklist   .ld-faq   .ld-pricing   .ld-media-slot   .ld-footer
+     4. Cambia SOLO el copy y las imágenes; la identidad se mantiene sola.
+     5. Para otro nicho: duplica el template, reemplaza copy + slots de imagen,
+        ajusta el ?text= del enlace de WhatsApp. El look NO se toca.
+
+   FUENTES A CARGAR EN EL <head> DE CADA LANDING:
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+
+   Sin frameworks. CSS propio, consistente con el resto del proyecto.
+   ============================================================================ */
+
+:root{
+  /* ── MARCA MADRE (anclaje en header/footer/detalles) ───────────────────── */
+  --ld-red:        #B91C1C;
+  --ld-red-dark:   #7F1010;   /* fondo nav */
+  --ld-red-deep:   #4A0808;   /* fondo footer */
+  --ld-red-light:  #DC2626;
+  --ld-gold:       #D4A017;
+  --ld-gold-light: #F0C843;
+
+  /* ── CUERPO LIMPIO ─────────────────────────────────────────────────────── */
+  --ld-bg:         #FAFAFA;   /* fondo general */
+  --ld-bg-soft:    #F6F1EF;   /* fondo alterno cálido (off-white de la marca) */
+  --ld-surface:    #FFFFFF;   /* tarjetas */
+  --ld-text:       #1A0A0A;   /* texto principal (casi negro cálido) */
+  --ld-text-2:     #5C3030;   /* texto secundario (marrón rojizo) */
+  --ld-text-dim:   #8C7C7C;   /* texto tenue / pies */
+  --ld-border:     rgba(180,28,28,0.14);
+  --ld-border-2:   rgba(180,28,28,0.28);
+
+  /* ── ACENTO DE ACCIÓN = WHATSAPP ───────────────────────────────────────── */
+  --ld-wa:         #25D366;
+  --ld-wa-dark:    #1EAE54;
+
+  /* ── TIPOGRAFÍA ────────────────────────────────────────────────────────── */
+  --ld-font-display: 'Bebas Neue', 'DM Sans', system-ui, sans-serif; /* impacto */
+  --ld-font-body:    'DM Sans', system-ui, -apple-system, sans-serif; /* lectura */
+
+  /* ── FORMA / PROFUNDIDAD ───────────────────────────────────────────────── */
+  --ld-radius:     16px;
+  --ld-radius-sm:  10px;
+  --ld-radius-pill:100px;
+  --ld-shadow:     0 4px 24px rgba(74,8,8,0.07);
+  --ld-shadow-lg:  0 16px 48px rgba(74,8,8,0.13);
+  --ld-shadow-gold:0 8px 28px rgba(212,160,23,0.30);
+  --ld-shadow-wa:  0 8px 24px rgba(37,211,102,0.32);
+  --ld-maxw:       1120px;
+}
+
+/* ── RESET MÍNIMO (scope landing; no pisa el dashboard) ────────────────────── */
+.ld-page *{margin:0;padding:0;box-sizing:border-box}
+.ld-page{
+  font-family:var(--ld-font-body);
+  background:var(--ld-bg);
+  color:var(--ld-text);
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+.ld-page img{max-width:100%;display:block}
+html{scroll-behavior:smooth}
+
+.ld-container{max-width:var(--ld-maxw);margin:0 auto;padding:0 24px}
+
+/* Display / serif helpers --------------------------------------------------- */
+.ld-display{font-family:var(--ld-font-display);font-weight:400;letter-spacing:.5px;line-height:1}
+.ld-eyebrow{
+  font-family:var(--ld-font-display);
+  font-size:clamp(15px,2vw,18px);
+  letter-spacing:2px;
+  color:var(--ld-red);
+  display:inline-block;
+  margin-bottom:10px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-btn — BOTONES  (acción primaria = WhatsApp)
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  padding:15px 30px;border-radius:var(--ld-radius-sm);
+  font-family:var(--ld-font-body);font-size:16px;font-weight:700;
+  text-decoration:none;cursor:pointer;border:none;
+  transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+  line-height:1;text-align:center;
+}
+.ld-btn:active{transform:translateY(1px)}
+.ld-btn--lg{padding:18px 38px;font-size:18px}
+.ld-btn--sm{padding:11px 20px;font-size:14px}
+.ld-btn--block{width:100%}
+
+/* Primario = degradado DORADO de la marca madre (texto rojo profundo) */
+.ld-btn--primary{
+  background:linear-gradient(135deg,var(--ld-gold),var(--ld-gold-light));
+  color:var(--ld-red-deep);font-weight:800;box-shadow:var(--ld-shadow-gold);
+}
+.ld-btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(212,160,23,.40)}
+
+/* Variante WHATSAPP = verde (el acento de acción de TODAS las landings) */
+.ld-btn--whatsapp{
+  background:var(--ld-wa);color:#fff;box-shadow:var(--ld-shadow-wa);
+}
+.ld-btn--whatsapp:hover{background:var(--ld-wa-dark);transform:translateY(-2px);box-shadow:0 12px 30px rgba(37,211,102,.42)}
+.ld-btn--whatsapp .ld-wa-ico{width:22px;height:22px;flex-shrink:0}
+
+/* Variante fantasma (sobre fondos oscuros / secundaria) */
+.ld-btn--ghost{
+  background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.45);
+}
+.ld-btn--ghost:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-nav — BARRA SUPERIOR (anclaje de marca: rojo + dorado)
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-nav{
+  position:sticky;top:0;z-index:50;
+  background:var(--ld-red-dark);
+  border-bottom:2px solid var(--ld-gold);
+}
+.ld-nav-inner{
+  max-width:var(--ld-maxw);margin:0 auto;padding:12px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.ld-logo{font-family:var(--ld-font-display);font-size:26px;letter-spacing:1px;color:#fff;text-decoration:none}
+.ld-logo span{color:var(--ld-gold-light)}
+.ld-nav-right{display:flex;align-items:center;gap:18px}
+.ld-nav-link{color:rgba(255,255,255,.85);text-decoration:none;font-size:14.5px;font-weight:500}
+.ld-nav-link:hover{color:#fff}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-hero — CABECERA PRINCIPAL
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-hero{
+  background:
+    radial-gradient(900px 380px at 80% -10%, rgba(212,160,23,.10), transparent 60%),
+    radial-gradient(700px 360px at 10% 110%, rgba(185,28,28,.06), transparent 60%),
+    var(--ld-bg);
+  padding:64px 0 56px;
+  border-bottom:1px solid var(--ld-border);
+}
+.ld-hero-grid{
+  display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;
+}
+.ld-hero h1{
+  font-family:var(--ld-font-display);font-weight:400;
+  font-size:clamp(40px,5.6vw,68px);line-height:.98;letter-spacing:.5px;
+  color:var(--ld-text);text-transform:uppercase;margin-bottom:18px;
+}
+.ld-hero h1 em{font-style:normal;color:var(--ld-red)}
+.ld-hero-sub{font-size:clamp(16px,1.6vw,18.5px);color:var(--ld-text-2);max-width:560px;margin-bottom:22px;line-height:1.6}
+.ld-hero-sub strong{color:var(--ld-text);font-weight:700}
+.ld-price-line{
+  display:inline-flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+  background:var(--ld-surface);border:1px solid var(--ld-border-2);
+  border-radius:var(--ld-radius-pill);padding:9px 20px;margin-bottom:26px;
+  font-size:15px;color:var(--ld-text-2);
+}
+.ld-price-line strong{font-family:var(--ld-font-display);font-size:24px;color:var(--ld-red);letter-spacing:.5px;line-height:1}
+.ld-hero-cta{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.ld-hero-cta .ld-cta-sub{font-size:13.5px;color:var(--ld-text-dim)}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-section — SECCIÓN GENÉRICA
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-section{padding:72px 0}
+.ld-section--soft{background:var(--ld-bg-soft);border-top:1px solid var(--ld-border);border-bottom:1px solid var(--ld-border)}
+.ld-section--dark{
+  background:linear-gradient(135deg,var(--ld-red-dark),var(--ld-red-deep));
+  color:#fff;
+}
+.ld-section--dark .ld-section-title,
+.ld-section--dark p{color:#fff}
+.ld-section--dark .ld-eyebrow{color:var(--ld-gold-light)}
+.ld-section-head{max-width:720px;margin-bottom:40px}
+.ld-section-head.is-center{margin-left:auto;margin-right:auto;text-align:center}
+.ld-section-title{
+  font-family:var(--ld-font-display);font-weight:400;
+  font-size:clamp(28px,4vw,46px);line-height:1.02;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--ld-text);margin-bottom:12px;
+}
+.ld-section-title em{font-style:normal;color:var(--ld-red)}
+.ld-lead{font-size:17px;color:var(--ld-text-2);line-height:1.7}
+
+/* Rejillas utilitarias */
+.ld-grid{display:grid;gap:22px}
+.ld-grid--2{grid-template-columns:repeat(2,1fr)}
+.ld-grid--3{grid-template-columns:repeat(3,1fr)}
+.ld-grid--split{grid-template-columns:1.1fr .9fr;align-items:center;gap:44px}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-card — TARJETA
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-card{
+  background:var(--ld-surface);border:1px solid var(--ld-border);
+  border-radius:var(--ld-radius);padding:28px;
+  transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.ld-card:hover{transform:translateY(-3px);box-shadow:var(--ld-shadow);border-color:var(--ld-border-2)}
+.ld-card-ico{
+  width:54px;height:54px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  background:linear-gradient(135deg,rgba(212,160,23,.16),rgba(185,28,28,.10));
+  margin-bottom:16px;
+}
+.ld-card h3{font-size:18px;font-weight:700;color:var(--ld-text);margin-bottom:8px;line-height:1.25}
+.ld-card p{font-size:15px;color:var(--ld-text-2);line-height:1.6}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-checklist — LISTA CON ÍCONOS
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-checklist{list-style:none;display:flex;flex-direction:column;gap:14px}
+.ld-checklist li{
+  display:flex;align-items:flex-start;gap:14px;
+  font-size:16px;color:var(--ld-text-2);line-height:1.55;
+}
+.ld-checklist li strong{color:var(--ld-text);font-weight:700}
+.ld-checklist .ld-ck{
+  flex-shrink:0;width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;margin-top:1px;
+}
+/* check verde (positivo) */
+.ld-checklist .ld-ck--ok{background:rgba(37,211,102,.14);color:var(--ld-wa-dark)}
+/* alerta (dolor / riesgo) */
+.ld-checklist .ld-ck--warn{background:rgba(185,28,28,.12);color:var(--ld-red)}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-pricing — BLOQUE DE PRECIO ESCALONADO
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-pricing{
+  background:var(--ld-surface);border:2px solid var(--ld-gold);
+  border-radius:22px;padding:40px;max-width:640px;margin:0 auto;
+  box-shadow:var(--ld-shadow-lg);position:relative;overflow:hidden;
+}
+.ld-pricing::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:6px;
+  background:linear-gradient(90deg,var(--ld-gold),var(--ld-gold-light),var(--ld-gold));
+}
+.ld-price-steps{list-style:none;display:flex;flex-direction:column;gap:0}
+.ld-price-steps li{
+  display:flex;align-items:flex-start;gap:16px;
+  padding:18px 0;border-bottom:1px dashed var(--ld-border-2);
+  font-size:16px;color:var(--ld-text-2);line-height:1.5;
+}
+.ld-price-steps li:last-child{border-bottom:none}
+.ld-price-steps .ld-step-n{
+  flex-shrink:0;width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--ld-gold),var(--ld-gold-light));
+  color:var(--ld-red-deep);font-family:var(--ld-font-display);font-size:20px;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+}
+.ld-price-steps strong{color:var(--ld-text);font-weight:700}
+.ld-price-foot{text-align:center;margin-top:26px}
+.ld-price-note{font-size:14px;color:var(--ld-text-dim);margin-top:14px}
+.ld-price-bonus{
+  display:inline-block;margin:16px auto 0;padding:8px 18px;border-radius:var(--ld-radius-pill);
+  background:rgba(212,160,23,.14);color:var(--ld-red);font-weight:700;font-size:14.5px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-faq — PREGUNTAS FRECUENTES (detalles <details>, sin JS)
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-faq{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.ld-faq details{
+  background:var(--ld-surface);border:1px solid var(--ld-border);
+  border-radius:var(--ld-radius-sm);padding:4px 22px;transition:border-color .2s ease;
+}
+.ld-faq details[open]{border-color:var(--ld-border-2);box-shadow:var(--ld-shadow)}
+.ld-faq summary{
+  list-style:none;cursor:pointer;padding:16px 0;
+  font-size:16.5px;font-weight:700;color:var(--ld-text);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.ld-faq summary::-webkit-details-marker{display:none}
+.ld-faq summary::after{content:"+";font-family:var(--ld-font-display);font-size:26px;color:var(--ld-red);transition:transform .2s ease;line-height:1}
+.ld-faq details[open] summary::after{transform:rotate(45deg)}
+.ld-faq details p{padding:0 0 18px;font-size:15.5px;color:var(--ld-text-2);line-height:1.65}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-media-slot — PLACEHOLDER DE IMAGEN/VIDEO
+   ----------------------------------------------------------------------------
+   El cliente solo tiene que:
+     · IMAGEN → reemplazar el <div class="ld-media-slot"> por
+         <img src="URL_O_RUTA" alt="..." class="ld-media-img">
+       (o poner la imagen como background del mismo div).
+     · VIDEO  → ver el bloque comentado de video en el template: descomentar y
+       pegar la URL del iframe (YouTube/Vimeo) en el src.
+   data-medida = tamaño sugerido para que la foto no se vea pixelada.
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-media-slot{
+  position:relative;width:100%;border-radius:var(--ld-radius);
+  background:
+    repeating-linear-gradient(45deg, rgba(180,28,28,.035) 0 12px, transparent 12px 24px),
+    var(--ld-bg-soft);
+  border:2px dashed var(--ld-border-2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:28px;min-height:220px;color:var(--ld-text-2);gap:6px;
+}
+.ld-media-slot .ld-slot-ico{font-size:34px;opacity:.7}
+.ld-media-slot .ld-slot-label{font-weight:700;font-size:15px;color:var(--ld-text)}
+.ld-media-slot .ld-slot-hint{font-size:13px;color:var(--ld-text-dim)}
+.ld-media-slot[data-medida]::after{
+  content:attr(data-medida);position:absolute;top:10px;right:10px;
+  font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--ld-text-dim);
+  background:var(--ld-surface);border:1px solid var(--ld-border);
+  padding:3px 8px;border-radius:6px;
+}
+.ld-media-slot--tall{min-height:360px}
+.ld-media-slot--wide{min-height:300px}
+.ld-media-img{width:100%;border-radius:var(--ld-radius);box-shadow:var(--ld-shadow-lg)}
+
+/* Video responsive 16:9 (se activa descomentando el bloque del template) */
+.ld-video-embed{position:relative;width:100%;padding-top:56.25%;border-radius:var(--ld-radius);overflow:hidden;box-shadow:var(--ld-shadow-lg)}
+.ld-video-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MOCKUP estilizado de Facturalo (NO captura cruda — dibujo HTML/CSS)
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-mock{
+  background:var(--ld-surface);border:1px solid var(--ld-border);
+  border-radius:18px;box-shadow:var(--ld-shadow-lg);overflow:hidden;
+  transform:perspective(1400px) rotateY(-6deg) rotateX(2deg);
+}
+.ld-mock-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--ld-red-dark);border-bottom:2px solid var(--ld-gold)}
+.ld-mock-bar i{width:11px;height:11px;border-radius:50%;display:inline-block;background:rgba(255,255,255,.35)}
+.ld-mock-bar span{margin-left:8px;color:#fff;font-size:12.5px;font-weight:600;letter-spacing:.3px}
+.ld-mock-body{padding:22px;display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start}
+.ld-mock-doc h4{font-family:var(--ld-font-display);font-size:22px;letter-spacing:.5px;color:var(--ld-red);line-height:1}
+.ld-mock-doc .ld-mock-serie{font-size:12px;color:var(--ld-text-dim);margin-bottom:14px}
+.ld-mock-row{height:9px;border-radius:5px;background:var(--ld-bg-soft);margin-bottom:9px}
+.ld-mock-row.w90{width:90%}.ld-mock-row.w70{width:70%}.ld-mock-row.w55{width:55%}.ld-mock-row.w40{width:40%}
+.ld-mock-total{margin-top:14px;display:inline-flex;gap:8px;align-items:baseline;background:rgba(37,211,102,.1);color:var(--ld-wa-dark);font-weight:800;padding:7px 14px;border-radius:9px;font-size:14px}
+.ld-mock-qr{width:78px;height:78px;border-radius:10px;background:
+  conic-gradient(from 0deg,#1A0A0A 0 25%,transparent 0 50%,#1A0A0A 0 75%,transparent 0) 0 0/26px 26px,
+  #fff;border:5px solid #fff;box-shadow:0 0 0 1px var(--ld-border)}
+.ld-mock-stamp{margin-top:8px;font-size:10.5px;text-align:center;color:var(--ld-wa-dark);font-weight:700}
+.ld-mock-tabs{display:flex;gap:6px;margin-bottom:16px}
+.ld-mock-tab{font-size:11px;font-weight:700;padding:5px 11px;border-radius:7px;background:var(--ld-bg-soft);color:var(--ld-text-dim)}
+.ld-mock-tab.is-on{background:linear-gradient(135deg,var(--ld-gold),var(--ld-gold-light));color:var(--ld-red-deep)}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CTA STICKY MÓVIL (los anuncios caen en móvil → WhatsApp siempre a la vista)
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-sticky-cta{display:none}
+@media(max-width:760px){
+  .ld-sticky-cta{
+    display:block;position:fixed;left:0;right:0;bottom:0;z-index:60;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(250,250,250,.94);backdrop-filter:blur(10px);
+    border-top:1px solid var(--ld-border);
+  }
+  .ld-sticky-cta .ld-btn{width:100%}
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   .ld-footer — PIE (anclaje de marca: rojo profundo + dorado)
+   ════════════════════════════════════════════════════════════════════════════ */
+.ld-footer{background:var(--ld-red-deep);border-top:2px solid var(--ld-gold);color:rgba(255,255,255,.78);padding:48px 0 40px}
+.ld-footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:32px}
+.ld-footer-logo{font-family:var(--ld-font-display);font-size:28px;letter-spacing:1px;color:#fff}
+.ld-footer-logo span{color:var(--ld-gold-light)}
+.ld-footer p{font-size:14px;line-height:1.7;margin-top:10px}
+.ld-footer h5{font-family:var(--ld-font-display);font-size:17px;letter-spacing:1px;color:var(--ld-gold-light);margin-bottom:12px}
+.ld-footer a{color:rgba(255,255,255,.78);text-decoration:none;font-size:14px;display:block;padding:4px 0}
+.ld-footer a:hover{color:#fff}
+.ld-footer-bottom{border-top:1px solid rgba(255,255,255,.12);margin-top:34px;padding-top:20px;font-size:13px;color:rgba(255,255,255,.6);text-align:center}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE  (mobile-first: los anuncios caen en móvil)
+   ════════════════════════════════════════════════════════════════════════════ */
+@media(max-width:900px){
+  .ld-hero-grid{grid-template-columns:1fr;gap:34px}
+  .ld-grid--3{grid-template-columns:repeat(2,1fr)}
+  .ld-grid--split{grid-template-columns:1fr;gap:30px}
+  .ld-mock{transform:none}
+  .ld-footer-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:640px){
+  .ld-section{padding:52px 0}
+  .ld-hero{padding:44px 0 40px}
+  .ld-grid--2,.ld-grid--3{grid-template-columns:1fr}
+  .ld-nav-right .ld-nav-link{display:none}
+  .ld-hero-cta{align-items:stretch}
+  .ld-hero-cta .ld-btn{width:100%}
+  .ld-pricing{padding:26px 20px}
+  .ld-footer-grid{grid-template-columns:1fr;gap:24px}
+  /* deja aire para el CTA sticky */
+  .ld-footer{padding-bottom:96px}
+}
+
+/* Animación de entrada suave (respeta reduce-motion) */
+@keyframes ldFadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:no-preference){
+  .ld-hero-grid>*{animation:ldFadeUp .5s ease both}
+  .ld-hero-grid>:nth-child(2){animation-delay:.12s}
+}
