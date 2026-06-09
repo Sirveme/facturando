@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facturas y Guías de Remisión sin errores para Importadores | facturalo.pro</title>
+<meta name="description" content="El sistema peruano que conecta tus facturas, guías de remisión e inventario. Cero errores de cálculo, cero guías mal emitidas, cero multas. Todo incluido por S/1 al día. Pruébalo gratis 3 días.">
+<link rel="canonical" href="https://facturalo.pro/importadores">
+
+<!-- Fuentes de la marca madre (Bebas Neue display + DM Sans cuerpo) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+
+<!-- Sistema visual maestro reutilizable (cache-busting con APP_VERSION) -->
+<link rel="stylesheet" href="/static/css/landings/_brand.css?v={{ APP_VERSION }}">
+</head>
+
+<!--
+  ============================================================================
+  LANDING /importadores — derivada del molde _brand.css
+  Para crear la próxima landing por nicho: duplica este archivo, reemplaza el
+  COPY y los slots de imagen, y cambia el ?text= del enlace de WhatsApp. El
+  look (rojo+dorado en header/footer, verde WhatsApp en CTAs) se hereda solo.
+
+  Enlace único de WhatsApp para TODOS los CTA de esta página:
+    https://wa.me/51938246208?text=Hola,%20vengo%20de%20la%20página%20de%20Importadores%20y%20quiero%20probar%20Facturalo
+  ============================================================================
+-->
+<body class="ld-page">
+
+<!-- ═══════════════════════════ NAV (anclaje de marca) ═══════════════════════ -->
+<nav class="ld-nav">
+  <div class="ld-nav-inner">
+    <a href="/" class="ld-logo">facturalo<span>.pro</span></a>
+    <div class="ld-nav-right">
+      <a href="#funciones" class="ld-nav-link">Funciones</a>
+      <a href="#precio" class="ld-nav-link">Precio</a>
+      <a href="https://wa.me/51938246208?text=Hola,%20vengo%20de%20la%20página%20de%20Importadores%20y%20quiero%20probar%20Facturalo"
+         class="ld-btn ld-btn--primary ld-btn--sm" target="_blank" rel="noopener">Probar gratis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════ HERO ═════════════════════════════════════ -->
+<header class="ld-hero">
+  <div class="ld-container">
+    <div class="ld-hero-grid">
+
+      <!-- Texto -->
+      <div>
+        <span class="ld-eyebrow">Para importadores y comercio</span>
+        <h1>Importa tranquilo. <em>Facturas y Guías</em> sin errores. Cumple con SUNAT en todo.</h1>
+        <p class="ld-hero-sub">El sistema peruano que conecta tus facturas, guías de remisión e inventario en un solo lugar — <strong>NINGÚN error de cálculo NI guías mal emitidas</strong>. CERO MULTAS y SIN mercadería detenida.</p>
+
+        <div class="ld-price-line">
+          Todo incluido por <strong>S/1 al día</strong>. Comprobantes ilimitados.
+        </div>
+
+        <div class="ld-hero-cta">
+          <a href="https://wa.me/51938246208?text=Hola,%20vengo%20de%20la%20página%20de%20Importadores%20y%20quiero%20probar%20Facturalo"
+             class="ld-btn ld-btn--whatsapp ld-btn--lg" target="_blank" rel="noopener">
+            <svg class="ld-wa-ico" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 3C9.4 3 4 8.3 4 14.9c0 2.4.7 4.6 1.9 6.5L4 29l7.9-1.8c1.8 1 3.9 1.5 6.1 1.5 6.6 0 12-5.3 12-11.9C30 8.3 24.6 3 18 3h-2zm0 2.2h2c5.4 0 9.8 4.3 9.8 9.7s-4.4 9.7-9.8 9.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4.1.9.9-3.9-.3-.4c-1.1-1.7-1.7-3.6-1.7-5.5 0-5.4 4.4-9.7 9.1-9.7zm-4 4.8c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.4 5.3 4.6 2.6 1 3.2.8 3.8.8.6-.1 1.9-.8 2.1-1.5.3-.8.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.6-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.4.5-.6.1-.2.2-.3.3-.6.1-.2 0-.4 0-.6-.1-.2-.7-1.7-1-2.3-.2-.5-.5-.5-.7-.5h-.6z"/></svg>
+            Pruébalo gratis 3 días
+          </a>
+          <span class="ld-cta-sub">Luego S/10/mes los primeros 3 meses</span>
+        </div>
+      </div>
+
+      <!-- Visual: mockup estilizado de Facturalo + slot de imagen stock -->
+      <div>
+        <!-- MOCKUP dibujado en HTML/CSS (pantalla de emisión + PDF con QR). NO captura cruda. -->
+        <div class="ld-mock" role="img" aria-label="Pantalla de Facturalo emitiendo una factura con su guía de remisión y código QR">
+          <div class="ld-mock-bar"><i></i><i></i><i></i><span>facturalo.pro · Emisión</span></div>
+          <div class="ld-mock-body">
+            <div class="ld-mock-doc">
+              <div class="ld-mock-tabs">
+                <span class="ld-mock-tab is-on">Factura</span>
+                <span class="ld-mock-tab">Guía de Remisión</span>
+                <span class="ld-mock-tab">Inventario</span>
+              </div>
+              <h4>FACTURA ELECTRÓNICA</h4>
+              <div class="ld-mock-serie">F001 — Aceptada por SUNAT ✓</div>
+              <div class="ld-mock-row w90"></div>
+              <div class="ld-mock-row w70"></div>
+              <div class="ld-mock-row w55"></div>
+              <div class="ld-mock-row w40"></div>
+              <div class="ld-mock-total">TOTAL S/ 12,480.00 · IGV calculado ✓</div>
+            </div>
+            <div>
+              <div class="ld-mock-qr"></div>
+              <div class="ld-mock-stamp">QR válido<br>vinculado a tu guía</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SLOT IMAGEN STOCK (hero) -->
+        <!-- FOTO SUGERIDA: avión carguero / contenedores en puerto / transporte de carga.
+             Reemplazar este <div> por: <img src="URL_O_RUTA" alt="..." class="ld-media-img"> -->
+        <div class="ld-media-slot ld-media-slot--wide" data-medida="1000×600px" style="margin-top:18px">
+          <div class="ld-slot-ico">✈️📦</div>
+          <div class="ld-slot-label">Imagen: avión carguero / contenedores / puerto</div>
+          <div class="ld-slot-hint">Suelta aquí tu foto stock o pega una URL · 1000×600px</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</header>
+
+<!--
+  ═══════════════════ SLOT VIDEO (PREPARADO PERO OCULTO) ════════════════════════
+  No se muestra hasta que el cliente lo active.
+  CÓMO ACTIVARLO:
+    1) Descomenta TODO el bloque <section> de abajo (quita estas líneas <!- - / - ->).
+    2) Pega la URL embed de tu video en el src del iframe
+       (YouTube: https://www.youtube.com/embed/ID  ·  Vimeo: https://player.vimeo.com/video/ID).
+    3) Listo: el video sale responsive 16:9 gracias a .ld-video-embed.
+
+<section class="ld-section ld-section--soft">
+  <div class="ld-container">
+    <div class="ld-section-head is-center">
+      <span class="ld-eyebrow">Míralo en 90 segundos</span>
+      <h2 class="ld-section-title">Así emites factura y guía <em>sin errores</em></h2>
+    </div>
+    <div style="max-width:820px;margin:0 auto">
+      <div class="ld-video-embed">
+        <iframe src="PEGA_AQUI_LA_URL_EMBED_DEL_VIDEO"
+                title="Demostración de Facturalo para importadores"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen loading="lazy"></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+  ═══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- ═══════════════════════ SUB-HERO (prueba social) ═════════════════════════ -->
+<section class="ld-section ld-section--soft" style="padding-top:38px;padding-bottom:38px">
+  <div class="ld-container">
+    <div class="ld-section-head is-center" style="margin-bottom:0">
+      <p class="ld-lead" style="font-size:18px;color:var(--ld-text)">
+        Empresas de comercio e importación ya emiten en producción con Facturalo.
+        Facturas, boletas, notas y guías de remisión <strong>aceptadas por SUNAT, todos los días</strong>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ BLOQUE DOLOR ═════════════════════════════════ -->
+<section class="ld-section">
+  <div class="ld-container">
+    <div class="ld-grid ld-grid--split">
+
+      <div>
+        <span class="ld-eyebrow">El costo de equivocarte</span>
+        <h2 class="ld-section-title">Si eres importador, todo error cuesta <em>muchos dólares</em>. ¿Sí o no?</h2>
+        <ul class="ld-checklist" style="margin:24px 0">
+          <li><span class="ld-ck ld-ck--warn">!</span><span>Una <strong>guía de remisión mal emitida</strong> DETIENE tu mercadería en carretera.</span></li>
+          <li><span class="ld-ck ld-ck--warn">!</span><span>Un dato mal calculado en tu factura es una <strong>observación de SUNAT</strong>.</span></li>
+          <li><span class="ld-ck ld-ck--warn">!</span><span>Si tu factura y tu <strong>DAM no coinciden</strong>, vas a fiscalización.</span></li>
+        </ul>
+        <p class="ld-lead" style="margin-bottom:24px">No uses un sistema "barato" que te deje a medias. Necesitas uno que <strong style="color:var(--ld-text)">no te deje equivocarte</strong>.</p>
+        <a href="https://wa.me/51938246208?text=Hola,%20vengo%20de%20la%20página%20de%20Importadores%20y%20quiero%20probar%20Facturalo"
+           class="ld-btn ld-btn--whatsapp ld-btn--lg" target="_blank" rel="noopener">
+          <svg class="ld-wa-ico" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 3C9.4 3 4 8.3 4 14.9c0 2.4.7 4.6 1.9 6.5L4 29l7.9-1.8c1.8 1 3.9 1.5 6.1 1.5 6.6 0 12-5.3 12-11.9C30 8.3 24.6 3 18 3h-2zm0 2.2h2c5.4 0 9.8 4.3 9.8 9.7s-4.4 9.7-9.8 9.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4.1.9.9-3.9-.3-.4c-1.1-1.7-1.7-3.6-1.7-5.5 0-5.4 4.4-9.7 9.1-9.7zm-4 4.8c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.4 5.3 4.6 2.6 1 3.2.8 3.8.8.6-.1 1.9-.8 2.1-1.5.3-.8.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.6-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.4.5-.6.1-.2.2-.3.3-.6.1-.2 0-.4 0-.6-.1-.2-.7-1.7-1-2.3-.2-.5-.5-.5-.7-.5h-.6z"/></svg>
+          PROBAR FACTURALO
+        </a>
+      </div>
+
+      <!-- SLOT IMAGEN lateral: aduana / fiscalizador -->
+      <!-- FOTO SUGERIDA: control aduanero, fiscalizador revisando carga, grúa o camión detenido.
+           Reemplazar por <img src="URL_O_RUTA" alt="..." class="ld-media-img">. -->
+      <div class="ld-media-slot ld-media-slot--tall" data-medida="720×860px">
+        <div class="ld-slot-ico">🛃🚛</div>
+        <div class="ld-slot-label">Imagen: aduana / fiscalizador / mercadería detenida</div>
+        <div class="ld-slot-hint">Suelta aquí tu foto o pega una URL · vertical 720×860px</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ BLOQUE SOLUCIÓN ══════════════════════════════ -->
+<section class="ld-section ld-section--soft" id="solucion">
+  <div class="ld-container">
+    <div class="ld-section-head is-center">
+      <span class="ld-eyebrow">La solución</span>
+      <h2 class="ld-section-title">Facturalo trabaja para que <em>no falles</em></h2>
+    </div>
+    <div class="ld-grid ld-grid--3">
+
+      <div class="ld-card">
+        <div class="ld-card-ico">🔎</div>
+        <h3>Consulta RUC automática</h3>
+        <p>Razón Social y Dirección al instante. Cero errores de tipeo en los datos de tu cliente.</p>
+      </div>
+
+      <div class="ld-card">
+        <div class="ld-card-ico">📄</div>
+        <h3>Guías que sí cumplen</h3>
+        <p>Guías de remisión que cumplen con TODAS las exigencias de SUNAT: código QR válido, vinculadas a tu factura y a tus documentos de importación.</p>
+      </div>
+
+      <div class="ld-card">
+        <div class="ld-card-ico">🧮</div>
+        <h3>Cálculos exactos</h3>
+        <p>IGV, exoneraciones, totales — calculados automáticamente. Lo que SUNAT espera, sin que tengas que revisarlo con lupa.</p>
+      </div>
+
+      <div class="ld-card">
+        <div class="ld-card-ico">🔗</div>
+        <h3>Todo conectado</h3>
+        <p>Factura, guía, inventario y documentos relacionados en un solo lugar. Trazabilidad completa de cada operación.</p>
+      </div>
+
+      <div class="ld-card">
+        <div class="ld-card-ico">🔄</div>
+        <h3>Siempre al día con SUNAT</h3>
+        <p>Sistema actualizado con cada cambio de SUNAT. Cuando la norma cambia, el sistema ya está listo. Tú no haces nada.</p>
+      </div>
+
+      <!-- SLOT IMAGEN de apoyo dentro de la grilla -->
+      <!-- FOTO SUGERIDA: contenedor abierto / grúa cargando / almacén logístico. -->
+      <div class="ld-media-slot" data-medida="520×360px">
+        <div class="ld-slot-ico">🏗️📦</div>
+        <div class="ld-slot-label">Imagen: grúa / contenedor / almacén</div>
+        <div class="ld-slot-hint">Suelta una foto o pega URL · 520×360px</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ BLOQUE FUNCIONES ═════════════════════════════ -->
+<section class="ld-section" id="funciones">
+  <div class="ld-container">
+    <div class="ld-grid ld-grid--split">
+
+      <!-- Mockup secundario: dashboard / inventario -->
+      <div>
+        <div class="ld-mock" role="img" aria-label="Panel de Facturalo con catálogo de productos, control de stock y Kardex" style="transform:perspective(1400px) rotateY(6deg) rotateX(2deg)">
+          <div class="ld-mock-bar"><i></i><i></i><i></i><span>facturalo.pro · Inventario</span></div>
+          <div class="ld-mock-body" style="grid-template-columns:1fr">
+            <div class="ld-mock-doc">
+              <div class="ld-mock-tabs">
+                <span class="ld-mock-tab">Comprobantes</span>
+                <span class="ld-mock-tab is-on">Stock &amp; Kardex</span>
+              </div>
+              <div class="ld-mock-row w90"></div>
+              <div class="ld-mock-row w70"></div>
+              <div class="ld-mock-row w90"></div>
+              <div class="ld-mock-row w55"></div>
+              <div class="ld-mock-total">Stock y comprobantes conectados ✓</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <span class="ld-eyebrow">Todo incluido</span>
+        <h2 class="ld-section-title">Todo lo que otros te cobran aparte, aquí <em>viene incluido</em></h2>
+        <ul class="ld-checklist" style="margin-top:24px">
+          <li><span class="ld-ck ld-ck--ok">✓</span><span>Facturas, boletas, notas de crédito y débito — <strong>ilimitadas</strong></span></li>
+          <li><span class="ld-ck ld-ck--ok">✓</span><span>Guías de Remisión Electrónica</span></li>
+          <li><span class="ld-ck ld-ck--ok">✓</span><span>Catálogo de productos con control de stock y Kardex</span></li>
+          <li><span class="ld-ck ld-ck--ok">✓</span><span>Consulta RUC y DNI automática</span></li>
+          <li><span class="ld-ck ld-ck--ok">✓</span><span>Comprobantes con tu logo y diseño</span></li>
+          <li><span class="ld-ck ld-ck--ok">✓</span><span>Acceso desde tu PC y tu celular</span></li>
+          <li><span class="ld-ck ld-ck--ok">✓</span><span>Actualizaciones gratuitas ante cambios de SUNAT</span></li>
+        </ul>
+        <p class="ld-lead" style="margin-top:22px">
+          Un solo plan. <strong style="color:var(--ld-red)">S/29.90 al mes</strong>. Sin sorpresas.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ BLOQUE PRECIO ════════════════════════════════ -->
+<section class="ld-section ld-section--soft" id="precio">
+  <div class="ld-container">
+    <div class="ld-section-head is-center">
+      <span class="ld-eyebrow">Precio</span>
+      <h2 class="ld-section-title">Un precio justo. <em>Un sol al día.</em></h2>
+    </div>
+
+    <div class="ld-pricing">
+      <ul class="ld-price-steps">
+        <li><span class="ld-step-n">1</span><span><strong>Pruébalo gratis 3 días.</strong> Sin tarjeta, sin compromiso.</span></li>
+        <li><span class="ld-step-n">2</span><span>Luego, <strong>S/10 al mes</strong> durante tus primeros 3 meses mientras lo haces tuyo.</span></li>
+        <li><span class="ld-step-n">3</span><span>Después, <strong>S/29.90 al mes</strong> — plan único, todo incluido, comprobantes ilimitados.</span></li>
+      </ul>
+
+      <div class="ld-price-foot">
+        <span class="ld-price-bonus">¿Pagas el año completo? Te llevas 2 meses gratis.</span>
+        <p class="ld-price-note">Sin contratos. Cancela cuando quieras.</p>
+        <div style="margin-top:20px">
+          <a href="https://wa.me/51938246208?text=Hola,%20vengo%20de%20la%20página%20de%20Importadores%20y%20quiero%20probar%20Facturalo"
+             class="ld-btn ld-btn--whatsapp ld-btn--lg ld-btn--block" target="_blank" rel="noopener">
+            <svg class="ld-wa-ico" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 3C9.4 3 4 8.3 4 14.9c0 2.4.7 4.6 1.9 6.5L4 29l7.9-1.8c1.8 1 3.9 1.5 6.1 1.5 6.6 0 12-5.3 12-11.9C30 8.3 24.6 3 18 3h-2zm0 2.2h2c5.4 0 9.8 4.3 9.8 9.7s-4.4 9.7-9.8 9.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4.1.9.9-3.9-.3-.4c-1.1-1.7-1.7-3.6-1.7-5.5 0-5.4 4.4-9.7 9.1-9.7zm-4 4.8c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.4 5.3 4.6 2.6 1 3.2.8 3.8.8.6-.1 1.9-.8 2.1-1.5.3-.8.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.6-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.4.5-.6.1-.2.2-.3.3-.6.1-.2 0-.4 0-.6-.1-.2-.7-1.7-1-2.3-.2-.5-.5-.5-.7-.5h-.6z"/></svg>
+            Empieza gratis ahora
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ POR QUÉ NOSOTROS (sin ubicación) ═════════════════ -->
+<section class="ld-section ld-section--dark">
+  <div class="ld-container">
+    <div class="ld-section-head is-center">
+      <span class="ld-eyebrow">Por qué nosotros</span>
+      <h2 class="ld-section-title">Detrás de Facturalo hay <em style="color:var(--ld-gold-light)">personas</em>, no un call center</h2>
+      <p class="ld-lead" style="margin-top:8px">
+        Empresa peruana. Cuando escribes, te responde el equipo que construye el sistema — no un ticket que nadie lee.
+        Te acompañamos en la configuración inicial para que emitas tu primera factura o guía sin trabarte.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════ FAQ ═════════════════════════════════════ -->
+<section class="ld-section">
+  <div class="ld-container">
+    <div class="ld-section-head is-center">
+      <span class="ld-eyebrow">Preguntas frecuentes</span>
+      <h2 class="ld-section-title">Lo que más nos preguntan</h2>
+    </div>
+    <div class="ld-faq">
+      <details>
+        <summary>¿Necesito tener RUC?</summary>
+        <p>Sí, para emitir comprobantes electrónicos SUNAT necesitas RUC activo.</p>
+      </details>
+      <details>
+        <summary>¿Funciona en mi celular?</summary>
+        <p>Sí, desde PC, laptop y celular.</p>
+      </details>
+      <details>
+        <summary>¿Qué pasa cuando SUNAT cambia algo?</summary>
+        <p>El sistema se actualiza solo, sin costo. Tú sigues facturando.</p>
+      </details>
+      <details>
+        <summary>¿Hay permanencia o contrato?</summary>
+        <p>Ninguno. Pagas mes a mes y cancelas cuando quieras.</p>
+      </details>
+      <details>
+        <summary>¿Los comprobantes son ilimitados?</summary>
+        <p>Sí. Emite los que necesites, sin topes ni cobros por volumen.</p>
+      </details>
+      <details>
+        <summary>¿Me ayudan a empezar?</summary>
+        <p>Sí. Te guiamos en la configuración para que emitas desde el primer día.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ CTA FINAL ════════════════════════════════ -->
+<section class="ld-section ld-section--soft">
+  <div class="ld-container">
+    <div class="ld-section-head is-center" style="margin-bottom:0">
+      <h2 class="ld-section-title">Emite facturas y guías <em>sin errores</em> y olvídate de las observaciones de SUNAT.</h2>
+      <p class="ld-lead" style="margin:6px 0 28px">Empieza gratis hoy. En minutos estarás facturando.</p>
+      <a href="https://wa.me/51938246208?text=Hola,%20vengo%20de%20la%20página%20de%20Importadores%20y%20quiero%20probar%20Facturalo"
+         class="ld-btn ld-btn--whatsapp ld-btn--lg" target="_blank" rel="noopener">
+        <svg class="ld-wa-ico" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 3C9.4 3 4 8.3 4 14.9c0 2.4.7 4.6 1.9 6.5L4 29l7.9-1.8c1.8 1 3.9 1.5 6.1 1.5 6.6 0 12-5.3 12-11.9C30 8.3 24.6 3 18 3h-2zm0 2.2h2c5.4 0 9.8 4.3 9.8 9.7s-4.4 9.7-9.8 9.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4.1.9.9-3.9-.3-.4c-1.1-1.7-1.7-3.6-1.7-5.5 0-5.4 4.4-9.7 9.1-9.7zm-4 4.8c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.4 5.3 4.6 2.6 1 3.2.8 3.8.8.6-.1 1.9-.8 2.1-1.5.3-.8.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.6-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.4.5-.6.1-.2.2-.3.3-.6.1-.2 0-.4 0-.6-.1-.2-.7-1.7-1-2.3-.2-.5-.5-.5-.7-.5h-.6z"/></svg>
+        Pruébalo gratis 3 días
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════ FOOTER ══════════════════════════════════ -->
+<footer class="ld-footer">
+  <div class="ld-container">
+    <div class="ld-footer-grid">
+      <div>
+        <div class="ld-footer-logo">facturalo<span>.pro</span></div>
+        <p>Sistema peruano de facturación electrónica SUNAT. Facturas, boletas, notas y guías de remisión aceptadas por SUNAT, todos los días.</p>
+        <p style="margin-top:14px;color:rgba(255,255,255,.6)">Perú Sistemas Pro E.I.R.L.</p>
+      </div>
+      <div>
+        <h5>Productos</h5>
+        <a href="/empresas">Para empresas</a>
+        <a href="/importadores">Para importadores</a>
+        <a href="/contadores">Para contadores</a>
+        <a href="/desarrolladores">API para desarrolladores</a>
+      </div>
+      <div>
+        <h5>Contacto</h5>
+        <a href="https://wa.me/51938246208?text=Hola,%20vengo%20de%20la%20página%20de%20Importadores%20y%20quiero%20probar%20Facturalo" target="_blank" rel="noopener">WhatsApp: +51 938 246 208</a>
+        <a href="/login">Iniciar sesión</a>
+        <a href="/">Inicio</a>
+      </div>
+    </div>
+    <div class="ld-footer-bottom">
+      © 2026 facturalo.pro — Perú Sistemas Pro E.I.R.L. · Hecho en Perú con soporte humano real.
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════ CTA STICKY MÓVIL (solo en pantallas chicas) ══════════ -->
+<div class="ld-sticky-cta">
+  <a href="https://wa.me/51938246208?text=Hola,%20vengo%20de%20la%20página%20de%20Importadores%20y%20quiero%20probar%20Facturalo"
+     class="ld-btn ld-btn--whatsapp" target="_blank" rel="noopener">
+    <svg class="ld-wa-ico" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 3C9.4 3 4 8.3 4 14.9c0 2.4.7 4.6 1.9 6.5L4 29l7.9-1.8c1.8 1 3.9 1.5 6.1 1.5 6.6 0 12-5.3 12-11.9C30 8.3 24.6 3 18 3h-2zm0 2.2h2c5.4 0 9.8 4.3 9.8 9.7s-4.4 9.7-9.8 9.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4.1.9.9-3.9-.3-.4c-1.1-1.7-1.7-3.6-1.7-5.5 0-5.4 4.4-9.7 9.1-9.7zm-4 4.8c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.4 5.3 4.6 2.6 1 3.2.8 3.8.8.6-.1 1.9-.8 2.1-1.5.3-.8.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.6-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.4.5-.6.1-.2.2-.3.3-.6.1-.2 0-.4 0-.6-.1-.2-.7-1.7-1-2.3-.2-.5-.5-.5-.7-.5h-.6z"/></svg>
+    Pruébalo gratis 3 días por WhatsApp
+  </a>
+</div>
+
+</body>
+</html>
