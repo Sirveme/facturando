@@ -48,6 +48,13 @@ async def sector_publico(request: Request):
     return templates.TemplateResponse("sector-publico.html", {"request": request})
 
 
+@router.get("/importadores", response_class=HTMLResponse)
+async def importadores(request: Request):
+    # Landing comercial por nicho (importadores/comercio). Página nueva aislada,
+    # hereda el sistema visual maestro src/static/css/landings/_brand.css.
+    return templates.TemplateResponse("landings/importadores.html", {"request": request})
+
+
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     """Página de login"""
