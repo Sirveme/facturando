@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     APIS_NET_PE_TOKEN: str = Field("", env="APIS_NET_PE_TOKEN")
     # Cache-busting de estáticos propios: bumpea este valor (o la env APP_VERSION)
     # en cada deploy para invalidar CSS/JS cacheados por el navegador.
-    APP_VERSION: str = Field("2026.06.15", env="APP_VERSION")
+    APP_VERSION: str = Field("2026.06.16", env="APP_VERSION")
 
     class Config:
         env_file = ".env"
