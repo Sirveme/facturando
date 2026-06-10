@@ -74,7 +74,9 @@
   --ld-shadow-lg:  0 16px 48px rgba(74,8,8,0.13);
   --ld-shadow-gold:0 8px 28px rgba(212,160,23,0.30);
   --ld-shadow-wa:  0 8px 24px rgba(37,211,102,0.32);
-  --ld-maxw:       1120px;
+  --ld-maxw:       1140px;
+  --ld-pad:        24px;   /* padding lateral desktop */
+  --ld-pad-m:      20px;   /* padding lateral móvil (uniforme en TODO) */
 }
 
 /* ── RESET MÍNIMO (scope landing; no pisa el dashboard) ────────────────────── */
@@ -90,7 +92,8 @@
 .ld-page img{max-width:100%;display:block}
 html{scroll-behavior:smooth}
 
-.ld-container{max-width:var(--ld-maxw);margin:0 auto;padding:0 24px}
+.ld-container{max-width:var(--ld-maxw);margin:0 auto;padding:0 var(--ld-pad)}
+@media(max-width:640px){.ld-container{padding:0 var(--ld-pad-m)}}
 
 /* Display / serif helpers --------------------------------------------------- */
 .ld-display{font-family:var(--ld-font-display);font-weight:400;letter-spacing:.5px;line-height:1}
@@ -424,3 +427,193 @@ html{scroll-behavior:smooth}
   .ld-hero-grid>*{animation:ldFadeUp .5s ease both}
   .ld-hero-grid>:nth-child(2){animation-delay:.12s}
 }
+
+/* ████████████████████████████████████████████████████████████████████████████
+   zLanding-02 · CAPA DE REDISEÑO (dirección de arte)
+   Aditiva: NO altera los componentes previos, solo agrega/afina. Sigue siendo
+   reutilizable por futuras landings. Principios: contenedor centrado, cuerpo
+   claro, mucho aire, color de marca SOLO en acentos, sombras suaves, jerarquía.
+   ████████████████████████████████████████████████████████████████████████████ */
+
+/* ── Aire y ritmo: secciones más espaciadas y siempre centradas ────────────── */
+.ld-section{padding:88px 0}
+@media(max-width:640px){.ld-section{padding:56px 0}}
+.ld-section--tight{padding:56px 0}
+.ld-divider-soft{border:none;border-top:1px solid var(--ld-border);margin:0}
+
+/* ── REVEAL AL SCROLL (IntersectionObserver añade .is-visible) ──────────────── */
+/* Solo se oculta si hay JS (.js en <html>): sin JS, el contenido se ve igual. */
+.js .ld-reveal{opacity:0;transform:translateY(26px);transition:opacity .55s ease, transform .55s ease}
+.js .ld-reveal.is-visible{opacity:1;transform:none}
+.js .ld-reveal.d1{transition-delay:.08s}
+.js .ld-reveal.d2{transition-delay:.16s}
+.js .ld-reveal.d3{transition-delay:.24s}
+@media(prefers-reduced-motion:reduce){
+  .js .ld-reveal{opacity:1 !important;transform:none !important;transition:none !important}
+}
+
+/* ── GLOW sutil (UN solo brillo: precio o CTA principal) ────────────────────── */
+.ld-glow{box-shadow:0 0 0 1px rgba(212,160,23,.35), 0 10px 36px rgba(212,160,23,.28)}
+.ld-glow-text{text-shadow:0 2px 18px rgba(212,160,23,.45)}
+
+/* ── HERO afinado: dos columnas, visual = celular con tarjetas flotantes ────── */
+.ld-hero{position:relative;overflow:hidden}
+.ld-hero-visual{position:relative;display:flex;justify-content:center;align-items:center;min-height:480px}
+
+/* Celular estilizado */
+.ld-phone{
+  position:relative;width:268px;aspect-ratio:9/19;background:#1A0A0A;
+  border-radius:38px;padding:11px;box-shadow:var(--ld-shadow-lg), 0 0 0 2px rgba(212,160,23,.25);
+  z-index:2;
+}
+.ld-phone::before{content:"";position:absolute;top:14px;left:50%;transform:translateX(-50%);width:96px;height:20px;background:#1A0A0A;border-radius:0 0 14px 14px;z-index:3}
+.ld-phone-screen{width:100%;height:100%;background:var(--ld-surface);border-radius:28px;overflow:hidden;display:flex;flex-direction:column}
+.ld-phone-top{background:var(--ld-red-dark);border-bottom:2px solid var(--ld-gold);padding:26px 16px 12px;text-align:center}
+.ld-phone-top .ld-pt-logo{font-family:var(--ld-font-display);color:#fff;font-size:19px;letter-spacing:.5px}
+.ld-phone-top .ld-pt-logo span{color:var(--ld-gold-light)}
+.ld-phone-body{padding:16px 14px;display:flex;flex-direction:column;gap:10px;flex:1}
+.ld-phone-doc{border:1px solid var(--ld-border);border-radius:12px;padding:12px}
+.ld-phone-doc h5{font-family:var(--ld-font-display);font-size:16px;letter-spacing:.5px;color:var(--ld-red);line-height:1}
+.ld-phone-doc .ld-pd-serie{font-size:10.5px;color:var(--ld-wa-dark);font-weight:700;margin-bottom:9px}
+.ld-phone .ld-mock-row{height:7px;margin-bottom:7px}
+.ld-phone-foot{display:flex;align-items:center;gap:10px;margin-top:auto;background:rgba(37,211,102,.1);border-radius:12px;padding:10px 12px}
+.ld-phone-foot .ld-mock-qr{width:44px;height:44px;border:3px solid #fff}
+.ld-phone-foot b{font-size:12px;color:var(--ld-wa-dark);line-height:1.25}
+
+/* Tarjetas flotantes alrededor (ligero ángulo) */
+.ld-float-card{
+  position:absolute;z-index:3;background:var(--ld-surface);
+  border:1px solid var(--ld-border);border-radius:14px;box-shadow:var(--ld-shadow-lg);
+  padding:11px 15px;display:flex;align-items:center;gap:10px;
+  font-size:13.5px;font-weight:700;color:var(--ld-text);white-space:nowrap;
+}
+.ld-float-card .fc-ico{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:linear-gradient(135deg,rgba(212,160,23,.18),rgba(185,28,28,.10))}
+.ld-float-card.fc-1{top:8%;left:-4%;transform:rotate(-5deg)}
+.ld-float-card.fc-2{top:40%;right:-8%;transform:rotate(4deg)}
+.ld-float-card.fc-3{bottom:8%;left:0%;transform:rotate(3deg)}
+@media(prefers-reduced-motion:no-preference){
+  .ld-float-card{animation:ldFloat 5s ease-in-out infinite}
+  .ld-float-card.fc-2{animation-delay:.8s}
+  .ld-float-card.fc-3{animation-delay:1.6s}
+}
+@keyframes ldFloat{0%,100%{translate:0 0}50%{translate:0 -8px}}
+@media(max-width:520px){
+  .ld-hero-visual{min-height:430px}
+  .ld-float-card{font-size:12px;padding:9px 12px}
+  .ld-float-card.fc-1{left:-2%}.ld-float-card.fc-2{right:-2%}
+}
+
+/* ── SECCIÓN "QUÉ ES" — features con ícono ──────────────────────────────────── */
+.ld-feature{display:flex;gap:16px;align-items:flex-start}
+.ld-feature .ld-feat-ico{flex-shrink:0;width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:23px;background:linear-gradient(135deg,rgba(212,160,23,.16),rgba(185,28,28,.09))}
+.ld-feature h3{font-size:17px;font-weight:700;color:var(--ld-text);margin-bottom:4px}
+.ld-feature p{font-size:14.5px;color:var(--ld-text-2);line-height:1.55}
+
+/* ── VIDEOS VERTICALES (reels 9:16) ─────────────────────────────────────────── */
+.ld-reels{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.ld-reel{
+  position:relative;aspect-ratio:9/16;border-radius:18px;overflow:hidden;
+  background:repeating-linear-gradient(45deg,rgba(180,28,28,.04) 0 12px,transparent 12px 24px),var(--ld-bg-soft);
+  border:2px dashed var(--ld-border-2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;padding:18px;
+}
+.ld-reel .ld-reel-play{width:54px;height:54px;border-radius:50%;background:var(--ld-surface);box-shadow:var(--ld-shadow);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--ld-red)}
+.ld-reel .ld-reel-label{font-weight:700;font-size:14px;color:var(--ld-text)}
+.ld-reel .ld-reel-soon{font-size:12px;color:var(--ld-text-dim);background:var(--ld-surface);border:1px solid var(--ld-border);border-radius:100px;padding:3px 11px}
+.ld-reel-embed{position:absolute;inset:0;width:100%;height:100%;border:0}
+@media(max-width:760px){
+  .ld-reels{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:62%;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:8px;margin:0 calc(-1*var(--ld-pad-m));padding-left:var(--ld-pad-m);padding-right:var(--ld-pad-m)}
+  .ld-reel{scroll-snap-align:center}
+}
+
+/* ── TIMELINE vertical "etapas que controlamos" ─────────────────────────────── */
+.ld-timeline{position:relative;max-width:760px;margin:0 auto;padding-left:38px}
+.ld-timeline::before{content:"";position:absolute;left:15px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--ld-gold),var(--ld-red),var(--ld-border-2))}
+.ld-tl-item{position:relative;padding:0 0 26px 12px}
+.ld-tl-item:last-child{padding-bottom:0}
+.ld-tl-dot{position:absolute;left:-38px;top:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;background:var(--ld-surface);box-shadow:0 0 0 4px var(--ld-bg), var(--ld-shadow);z-index:1}
+.ld-tl-dot.ok{color:var(--ld-wa-dark)}
+.ld-tl-dot.warn{color:var(--ld-red);box-shadow:0 0 0 4px var(--ld-bg), 0 0 0 6px rgba(185,28,28,.18)}
+.ld-tl-card{background:var(--ld-surface);border:1px solid var(--ld-border);border-radius:14px;box-shadow:var(--ld-shadow);padding:16px 18px}
+.ld-tl-card h4{font-size:16px;font-weight:700;color:var(--ld-text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ld-tl-card .ld-tl-tag{font-size:11px;font-weight:800;letter-spacing:.4px;padding:2px 9px;border-radius:100px;text-transform:uppercase}
+.ld-tl-card .ld-tl-tag.ok{background:rgba(37,211,102,.13);color:var(--ld-wa-dark)}
+.ld-tl-card .ld-tl-tag.warn{background:rgba(185,28,28,.12);color:var(--ld-red)}
+.ld-tl-card p{font-size:14px;color:var(--ld-text-2);line-height:1.5;margin-top:5px}
+
+/* ── BLOQUE DOLOR: tarjetas con borde-acento (no mar rojo) ──────────────────── */
+.ld-pain-card{
+  background:var(--ld-surface);border:1px solid var(--ld-border);
+  border-left:4px solid var(--ld-red);border-radius:14px;
+  box-shadow:var(--ld-shadow);padding:24px;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.ld-pain-card:hover{transform:translateY(-3px);box-shadow:var(--ld-shadow-lg)}
+.ld-pain-card .ld-pain-ico{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(185,28,28,.10);color:var(--ld-red);margin-bottom:13px}
+.ld-pain-card p{font-size:15px;color:var(--ld-text-2);line-height:1.55}
+.ld-pain-card strong{color:var(--ld-text);font-weight:700}
+
+/* ── BENEFICIOS: checklist 2 columnas ───────────────────────────────────────── */
+.ld-benefits-2{columns:2;column-gap:40px}
+.ld-benefits-2 li{break-inside:avoid;margin-bottom:14px}
+@media(max-width:680px){.ld-benefits-2{columns:1}}
+
+/* ── PRUEBA SOCIAL (honesta / anonimizada) ──────────────────────────────────── */
+.ld-social-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.ld-social-item{background:var(--ld-surface);border:1px solid var(--ld-border);border-radius:16px;box-shadow:var(--ld-shadow);padding:24px}
+.ld-social-item .ld-soc-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.ld-social-item .ld-soc-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;background:linear-gradient(135deg,rgba(212,160,23,.18),rgba(185,28,28,.10));flex-shrink:0}
+.ld-social-item .ld-soc-meta b{display:block;font-size:14.5px;color:var(--ld-text)}
+.ld-social-item .ld-soc-meta span{font-size:12.5px;color:var(--ld-text-dim)}
+.ld-social-item p{font-size:14.5px;color:var(--ld-text-2);line-height:1.55}
+.ld-social-note{text-align:center;margin-top:24px;font-size:13.5px;color:var(--ld-text-dim)}
+@media(max-width:880px){.ld-social-grid{grid-template-columns:1fr}}
+
+/* ── PREMIUM: posicionamiento + modal en flujo normal (no position:fixed) ───── */
+.ld-premium-card{
+  background:linear-gradient(135deg, #fff, var(--ld-bg-soft));
+  border:1px solid var(--ld-border-2);border-radius:22px;box-shadow:var(--ld-shadow-lg);
+  padding:44px;position:relative;overflow:hidden;
+}
+.ld-premium-card::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--ld-red),var(--ld-gold))}
+.ld-premium-badge{display:inline-block;font-family:var(--ld-font-display);letter-spacing:1.5px;font-size:14px;color:var(--ld-red);background:rgba(185,28,28,.08);border:1px solid var(--ld-border-2);border-radius:100px;padding:5px 16px;margin-bottom:14px}
+
+/* Modal inline: vive en el flujo del documento, se expande (display) y hace
+   scrollIntoView. NO usa position:fixed → cero problemas de z-index/scroll. */
+.ld-modal-inline{display:none;margin-top:28px}
+.ld-modal-inline.is-open{display:block;animation:ldFadeUp .4s ease both}
+.ld-modal-panel{
+  background:var(--ld-surface);border:1px solid var(--ld-border-2);border-radius:20px;
+  box-shadow:var(--ld-shadow-lg);padding:32px;position:relative;
+}
+.ld-modal-close{
+  position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;
+  border:1px solid var(--ld-border);background:var(--ld-bg);color:var(--ld-text-2);
+  font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.ld-modal-close:hover{background:var(--ld-bg-soft);color:var(--ld-red)}
+
+/* ── FOMO: notificaciones flotantes (transversal) ───────────────────────────── */
+.ld-fomo{
+  position:fixed;left:20px;bottom:20px;z-index:55;max-width:330px;
+  background:var(--ld-surface);border:1px solid var(--ld-border-2);border-radius:14px;
+  box-shadow:var(--ld-shadow-lg);padding:14px 40px 14px 14px;
+  display:none;align-items:center;gap:12px;
+}
+.ld-fomo.is-show{display:flex;animation:ldFomoIn .45s ease both}
+@keyframes ldFomoIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.ld-fomo .ld-fomo-av{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:19px;background:linear-gradient(135deg,rgba(37,211,102,.18),rgba(212,160,23,.14))}
+.ld-fomo .ld-fomo-txt{font-size:13.5px;line-height:1.4;color:var(--ld-text)}
+.ld-fomo .ld-fomo-txt b{color:var(--ld-red)}
+.ld-fomo .ld-fomo-x{position:absolute;top:8px;right:10px;border:none;background:none;color:var(--ld-text-dim);font-size:17px;line-height:1;cursor:pointer}
+.ld-fomo .ld-fomo-x:hover{color:var(--ld-red)}
+@media(max-width:640px){
+  .ld-fomo{left:12px;right:12px;bottom:84px;max-width:none;padding:11px 36px 11px 11px}
+  .ld-fomo .ld-fomo-av{width:34px;height:34px;font-size:16px}
+  .ld-fomo .ld-fomo-txt{font-size:12.5px}
+}
+
+/* ── Onda decorativa (separador sutil) ──────────────────────────────────────── */
+.ld-wave{display:block;width:100%;height:auto;line-height:0}
+.ld-wave svg{display:block;width:100%;height:60px}
+@media(max-width:640px){.ld-wave svg{height:38px}}
