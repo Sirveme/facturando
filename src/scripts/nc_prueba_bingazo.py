@@ -7,32 +7,25 @@ Caso "Bingazo 18/07/2026": anular boletas B400 duplicadas con NC (catálogo 09, 
 Este script emite EXCLUSIVAMENTE la NC de PRUEBA que anula la boleta B400-1680 (PINEDO),
 y se DETIENE. No procesa el lote. No reintenta. No toca las boletas válidas 1691/1692.
 
-Debe ejecutarse EN RAILWAY (donde vive la ENCRYPTION_KEY de producción y la BD real).
-No corre desde una máquina local: el certificado está cifrado con la key de producción.
+Debe ejecutarse EN RAILWAY (donde vive la ENCRYPTION_KEY de producción, la BD real y
+cacert.pem). No corre desde una máquina local.
 
-USO
----
-1) Validación sin enviar nada (recomendado primero) — NO escribe en BD, NO transmite a SUNAT:
-       python -m scripts.nc_prueba_bingazo
-   Valida la boleta, verifica que no exista NC previa, construye y FIRMA el XML,
-   y muestra un resumen + preview del XML. Hace rollback.
+FIX (hash_cpe): tras firmar, se extrae el DigestValue del XML firmado y se guarda en
+comprobante.hash_cpe, replicando EXACTAMENTE el mecanismo del flujo estándar
+(src/tasks/envio_sunat.py). El hash NO sale del CDR de SUNAT, sino del CPE firmado.
 
-2) Envío real de la NC de prueba a SUNAT (un solo disparo, luego se detiene):
-       python -m scripts.nc_prueba_bingazo --send
-
-Reglas incorporadas (no configurables por diseño):
-- Objetivo fijo y único: boleta B400-1680, cliente DNI 45817384 (PINEDO). Cualquier
-  discrepancia aborta.
-- Idempotencia: si ya existe una NC que referencia esa boleta, aborta y reporta.
-- Serie NC fija: BC40. Motivo fijo: '01' (Anulación de la operación, catálogo 09).
-- Sin reintentos automáticos: si SUNAT rechaza/observa o hay fallo técnico, se reporta y
-  se detiene. La decisión de qué hacer la toma el humano.
+USO (en Railway)
+----------------
+1) Validación sin enviar nada — NO escribe en BD, NO transmite a SUNAT:
+       python -m src.scripts.nc_prueba_bingazo
+2) Envío real de la NC de prueba (un solo disparo, luego se detiene):
+       python -m src.scripts.nc_prueba_bingazo --send
 """
 
 import sys
 from datetime import datetime, timezone, timedelta
+from uuid import uuid4
 
-# --- Dependencias del sistema Facturalo (solo lectura de servicios; NO se modifican) ---
 from cryptography.fernet import Fernet, InvalidToken
 
 from src.api.dependencies import SessionLocal
@@ -59,9 +52,24 @@ PERU_TZ = timezone(timedelta(hours=-5))
 
 
 # ---------------------------------------------------------------------
-# Helpers de forma para el generador XML (copiados de src/tasks para no
-# importar Celery/Redis; son funciones puras sin efectos secundarios).
+# Helpers compartidos (usados también por el script de lote).
 # ---------------------------------------------------------------------
+def _extraer_hash_cpe(signed_xml):
+    """Extrae el DigestValue del XML firmado (= RESUMEN/hash del CPE).
+
+    Réplica EXACTA del mecanismo de src/tasks/envio_sunat.py. Devuelve str o None.
+    """
+    try:
+        from lxml import etree
+        doc = etree.fromstring(signed_xml)
+        digest_els = doc.xpath("//*[local-name()='DigestValue']")
+        if digest_els and digest_els[0].text:
+            return digest_els[0].text.strip()
+    except Exception as e:
+        print(f"   [HASH] No se pudo extraer DigestValue: {e}")
+    return None
+
+
 def _build_emisor_dict(emisor) -> dict:
     return {
         'ruc': emisor.ruc,
@@ -125,6 +133,31 @@ def _desencriptar_sol_password(emisor):
         return emisor.sol_password
 
 
+def cargar_cert(db, emisor):
+    """Descifra el certificado activo del emisor. Aborta con mensaje claro si la key no corresponde."""
+    certificado = (
+        db.query(Certificado)
+        .filter_by(emisor_id=emisor.id, activo=True)
+        .order_by(Certificado.creado_en.desc())
+        .first()
+    )
+    if not certificado:
+        _abort(f"Emisor {emisor.ruc} no tiene certificado activo.")
+    try:
+        f = Fernet(settings.encryption_key.encode())
+        pfx_bytes = f.decrypt(certificado.pfx_encriptado)
+        password = f.decrypt(certificado.password_encriptado).decode()
+        return pfx_bytes, password
+    except InvalidToken:
+        _abort(
+            "InvalidToken al descifrar el certificado: la ENCRYPTION_KEY del entorno NO "
+            "corresponde al certificado. ¿Estás en Railway con la key de producción "
+            "(huella 408917...)? En local con la key de desarrollo esto SIEMPRE falla."
+        )
+    except Exception as e:
+        _abort(f"Error descifrando el certificado: {e}")
+
+
 def _abort(msg: str):
     print(f"\n🛑 ABORTADO: {msg}\n")
     sys.exit(1)
@@ -140,9 +173,7 @@ def main():
 
     db = SessionLocal()
     try:
-        # -------------------------------------------------------------
         # 1) Cargar y validar la boleta objetivo (única y fija)
-        # -------------------------------------------------------------
         boleta = (
             db.query(Comprobante)
             .filter(
@@ -155,31 +186,20 @@ def main():
         if not boleta:
             _abort(f"No se encontró la boleta {BOLETA_SERIE}-{BOLETA_NUMERO} (tipo {BOLETA_TIPO}).")
 
-        print(f"\n[1] Boleta encontrada: {boleta.numero_formato}")
-        print(f"    id={boleta.id}")
-        print(f"    estado={boleta.estado}  monto_total={boleta.monto_total}  moneda={boleta.moneda}")
-        print(f"    cliente={boleta.cliente_razon_social} (doc {boleta.cliente_numero_documento})")
-        print(f"    emisor_id={boleta.emisor_id}")
+        print(f"\n[1] Boleta: {boleta.numero_formato}  estado={boleta.estado}  "
+              f"total={boleta.monto_total}  cliente={boleta.cliente_razon_social} "
+              f"(doc {boleta.cliente_numero_documento})")
 
-        # Guardas de seguridad
         if (boleta.cliente_numero_documento or '') != DNI_ESPERADO:
-            _abort(
-                f"El cliente de la boleta ({boleta.cliente_numero_documento}) no coincide con "
-                f"el esperado ({DNI_ESPERADO}). NO se continúa por seguridad."
-            )
+            _abort(f"Cliente de la boleta ({boleta.cliente_numero_documento}) != esperado ({DNI_ESPERADO}).")
         if boleta.estado != 'aceptado':
-            _abort(
-                f"La boleta no está 'aceptado' (estado actual: {boleta.estado}). "
-                f"Solo se anula una boleta aceptada por SUNAT."
-            )
+            _abort(f"La boleta no está 'aceptado' (estado: {boleta.estado}).")
         if not boleta.numero_formato:
-            _abort("La boleta no tiene numero_formato; no se puede construir la referencia de la NC.")
+            _abort("La boleta no tiene numero_formato; no se puede referenciar.")
         if not boleta.lineas:
-            _abort("La boleta no tiene líneas de detalle; no se puede replicar en la NC.")
+            _abort("La boleta no tiene líneas de detalle.")
 
-        # -------------------------------------------------------------
-        # 2) Idempotencia: ¿ya existe una NC que referencia esta boleta?
-        # -------------------------------------------------------------
+        # 2) Idempotencia
         nc_previa = (
             db.query(Comprobante)
             .filter(
@@ -190,49 +210,20 @@ def main():
             .first()
         )
         if nc_previa:
-            _abort(
-                f"Ya existe una NC ({nc_previa.numero_formato}, estado={nc_previa.estado}) que "
-                f"referencia {boleta.numero_formato}. NO se emite otra (evita duplicar)."
-            )
-        print("[2] OK: no existe NC previa que referencie esta boleta.")
+            _abort(f"Ya existe NC {nc_previa.numero_formato} (estado={nc_previa.estado}) para {boleta.numero_formato}.")
+        print("[2] OK: no existe NC previa para esta boleta.")
 
-        # -------------------------------------------------------------
-        # 3) Emisor + certificado (descifrado con ENCRYPTION_KEY de prod)
-        # -------------------------------------------------------------
+        # 3) Emisor + certificado
         emisor = db.query(Emisor).filter(Emisor.id == boleta.emisor_id).first()
         if not emisor:
             _abort("Emisor de la boleta no encontrado.")
+        pfx_bytes, password = cargar_cert(db, emisor)
+        print(f"[3] OK: emisor {emisor.ruc} produccion={getattr(emisor, 'produccion', False)} cert OK.")
 
-        certificado = (
-            db.query(Certificado)
-            .filter_by(emisor_id=emisor.id, activo=True)
-            .order_by(Certificado.creado_en.desc())
-            .first()
-        )
-        if not certificado:
-            _abort(f"Emisor {emisor.ruc} no tiene certificado activo.")
-
-        try:
-            f = Fernet(settings.encryption_key.encode())
-            pfx_bytes = f.decrypt(certificado.pfx_encriptado)
-            password = f.decrypt(certificado.password_encriptado).decode()
-        except InvalidToken:
-            _abort(
-                "InvalidToken al descifrar el certificado: la ENCRYPTION_KEY del entorno NO "
-                "corresponde al certificado. ¿Estás corriendo esto en Railway con la key de "
-                "producción (huella 408917...)? En local con la key de desarrollo esto SIEMPRE falla."
-            )
-        except Exception as e:
-            _abort(f"Error descifrando el certificado: {e}")
-
-        print(f"[3] OK: emisor {emisor.ruc} ({emisor.razon_social}) — "
-              f"produccion={getattr(emisor, 'produccion', False)} — certificado descifrado.")
-
-        # -------------------------------------------------------------
-        # 4) Construir la NC (serie BC40) replicando la boleta
-        # -------------------------------------------------------------
+        # 4) Construir NC BC40 replicando la boleta
+        from sqlalchemy import func
         max_numero = (
-            db.query(__import__('sqlalchemy').func.max(Comprobante.numero))
+            db.query(func.max(Comprobante.numero))
             .filter(
                 Comprobante.emisor_id == emisor.id,
                 Comprobante.serie == NC_SERIE,
@@ -244,7 +235,6 @@ def main():
         numero_formato = f"{NC_SERIE}-{str(siguiente_numero).zfill(8)}"
         fecha_peru = datetime.now(PERU_TZ).date()
 
-        from uuid import uuid4
         nc = Comprobante(
             id=str(uuid4()),
             emisor_id=emisor.id,
@@ -264,99 +254,66 @@ def main():
             op_gravada=boleta.op_gravada,
             estado='pendiente',
             observaciones=f"Anulación por duplicidad (Bingazo 18/07/2026). Ref {boleta.numero_formato}.",
-            doc_referencia_tipo=boleta.tipo_documento,       # '03'
-            doc_referencia_numero=boleta.numero_formato,     # p.ej. 'B400-00001680'
-            motivo_nota=MOTIVO_NC,                           # '01'
+            doc_referencia_tipo=boleta.tipo_documento,
+            doc_referencia_numero=boleta.numero_formato,
+            motivo_nota=MOTIVO_NC,
         )
-
-        # Replicar líneas EXACTAS de la boleta original
         lineas_nc = []
         for ln in sorted(boleta.lineas, key=lambda x: x.orden or 0):
             lineas_nc.append(LineaDetalle(
-                id=str(uuid4()),
-                comprobante_id=nc.id,
-                orden=ln.orden,
-                descripcion=ln.descripcion,
-                cantidad=ln.cantidad,
-                unidad=ln.unidad or 'NIU',
-                precio_unitario=ln.precio_unitario,
-                monto_linea=ln.monto_linea,
+                id=str(uuid4()), comprobante_id=nc.id, orden=ln.orden,
+                descripcion=ln.descripcion, cantidad=ln.cantidad, unidad=ln.unidad or 'NIU',
+                precio_unitario=ln.precio_unitario, monto_linea=ln.monto_linea,
                 tipo_afectacion_igv=getattr(ln, 'tipo_afectacion_igv', '10') or '10',
                 es_bonificacion=False,
             ))
-        # Adjuntar en memoria para que el generador XML las vea
         nc.lineas = lineas_nc
+        print(f"[4] NC a emitir: {numero_formato}  ref->{nc.doc_referencia_tipo} {nc.doc_referencia_numero}  "
+              f"líneas={len(lineas_nc)}")
 
-        print(f"[4] NC a emitir: {numero_formato}  (motivo {MOTIVO_NC} — Anulación de la operación)")
-        print(f"    referencia -> {nc.doc_referencia_tipo} {nc.doc_referencia_numero}")
-        print(f"    líneas replicadas: {len(lineas_nc)}")
-        for ln in lineas_nc:
-            print(f"      · orden={ln.orden} cant={ln.cantidad} pu={ln.precio_unitario} "
-                  f"afect={ln.tipo_afectacion_igv} desc={ (ln.descripcion or '')[:40] }")
-
-        # -------------------------------------------------------------
-        # 5) Generar + firmar XML (se hace en ambos modos)
-        # -------------------------------------------------------------
+        # 5) Generar + firmar + extraer hash (FIX)
         comp_xml = _build_comprobante_xml_obj(nc)
-        emisor_dict = _build_emisor_dict(emisor)
-        xml_bytes = build_invoice_xml(comp_xml, emisor_dict)
+        xml_bytes = build_invoice_xml(comp_xml, _build_emisor_dict(emisor))
         signed_xml = firmar_xml(xml_bytes, pfx_bytes, password)
-        print(f"[5] XML NC generado y firmado OK ({len(signed_xml)} bytes).")
+        nc.hash_cpe = _extraer_hash_cpe(signed_xml)      # <-- FIX: guardar DigestValue
+        print(f"[5] XML firmado OK ({len(signed_xml)} bytes). hash_cpe={nc.hash_cpe}")
+        if not nc.hash_cpe:
+            _abort("No se pudo extraer hash_cpe del XML firmado. Se detiene (no emitir sin hash).")
 
         if not send_mode:
-            preview = signed_xml.decode('utf-8', errors='replace')[:1200]
-            print("\n----- PREVIEW XML FIRMADO (primeros 1200 chars) -----")
-            print(preview)
-            print("----- FIN PREVIEW -----")
             db.rollback()
-            print("\n🧪 DRY-RUN completado. NADA se guardó en BD ni se envió a SUNAT.")
-            print("   Para enviar la NC de prueba real:  python -m scripts.nc_prueba_bingazo --send")
+            print("\n🧪 DRY-RUN completado. NADA en BD ni SUNAT.")
+            print("   Envío real:  python -m src.scripts.nc_prueba_bingazo --send")
             return
 
-        # -------------------------------------------------------------
-        # 6) MODO ENVÍO: persistir NC, transmitir a SUNAT, guardar CDR
-        # -------------------------------------------------------------
+        # 6) Envío real
         nc.xml = signed_xml
         db.add(nc)
         for ln in lineas_nc:
             db.add(ln)
         nc.estado = 'enviando'
         db.commit()
-        print(f"[6] NC {numero_formato} persistida (estado=enviando). Transmitiendo a SUNAT...")
-
-        sol_password_plain = _desencriptar_sol_password(emisor)
+        print(f"[6] NC {numero_formato} persistida (hash guardado). Transmitiendo a SUNAT...")
 
         try:
             cdr = enviar_comprobante(
-                signed_xml,
-                emisor.ruc,
+                signed_xml, emisor.ruc,
                 sol_usuario=emisor.sol_usuario,
-                sol_password=sol_password_plain,
+                sol_password=_desencriptar_sol_password(emisor),
                 use_production=getattr(emisor, 'produccion', False),
             )
         except Exception as e:
-            # Fallo técnico (red/timeout/excepción) ANTES de tener CDR:
-            # reportar y DETENERSE. NO reintentar (un reintento a ciegas causó la duplicación).
             nc.estado = 'error'
             db.commit()
-            print("\n" + "!" * 72)
-            print(f"❌ FALLO TÉCNICO al transmitir (sin CDR): {e}")
-            print("   NC quedó en estado 'error'. NO se reintenta. Reportar a Duilio.")
-            print("!" * 72)
+            print(f"\n❌ FALLO TÉCNICO (sin CDR): {e}\n   NC en 'error'. NO se reintenta.")
             sys.exit(2)
 
         codigo = str(cdr.get('codigo') or '')
         descripcion = cdr.get('descripcion') or ''
         cdr_xml = cdr.get('cdr_xml')
 
-        # Guardar CDR
-        db.add(RespuestaSunat(
-            comprobante_id=nc.id,
-            codigo_cdr=codigo,
-            descripcion=descripcion,
-            cdr_xml=cdr_xml,
-        ))
-
+        db.add(RespuestaSunat(comprobante_id=nc.id, codigo_cdr=codigo,
+                              descripcion=descripcion, cdr_xml=cdr_xml))
         if codigo == '0':
             nc.estado = 'aceptado'
         elif codigo.startswith('2'):
@@ -365,34 +322,15 @@ def main():
             nc.estado = 'rechazado'
         db.commit()
 
-        # -------------------------------------------------------------
-        # 7) Reporte final (hard stop pase lo que pase)
-        # -------------------------------------------------------------
         print("\n" + "=" * 72)
-        print("RESULTADO NC DE PRUEBA — SUNAT")
-        print("=" * 72)
-        print(f"NC:              {numero_formato}")
-        print(f"Referencia:      {nc.doc_referencia_numero}")
-        print(f"ResponseCode:    {codigo!r}")
-        print(f"Descripción:     {descripcion}")
-        print(f"Estado final NC: {nc.estado}")
+        print(f"NC {numero_formato}  ResponseCode={codigo!r}  estado={nc.estado}  hash_cpe={nc.hash_cpe}")
+        print(f"Descripción: {descripcion}")
         if cdr_xml:
-            try:
-                raw = cdr_xml.decode('utf-8', errors='replace') if isinstance(cdr_xml, (bytes, bytearray)) else str(cdr_xml)
-                print("\n--- CDR / respuesta cruda de SUNAT (literal) ---")
-                print(raw[:4000])
-                print("--- fin CDR ---")
-            except Exception:
-                pass
-
-        print("\n🛑 DETENIDO POR DISEÑO tras la NC de prueba.")
-        if nc.estado == 'aceptado':
-            print("   → Prueba ACEPTADA. Reportar a Duilio y ESPERAR visto bueno antes del lote.")
-        elif nc.estado == 'aceptado_con_observaciones':
-            print("   → ACEPTADA CON OBSERVACIONES. Transcribir observaciones y esperar decisión humana.")
-        else:
-            print("   → RECHAZADA/OBSERVADA. NO reintentar, NO probar otra boleta. Reportar código y "
-                  "mensaje exacto a Duilio (posible extemporaneidad/plazo).")
+            raw = cdr_xml.decode('utf-8', errors='replace') if isinstance(cdr_xml, (bytes, bytearray)) else str(cdr_xml)
+            print("--- CDR literal ---")
+            print(raw[:4000])
+            print("--- fin CDR ---")
+        print("🛑 DETENIDO POR DISEÑO tras la NC de prueba. Reportar a Duilio.")
         print("=" * 72)
 
     finally:
