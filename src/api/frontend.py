@@ -317,9 +317,11 @@ async def emitir_comprobante_page(request: Request, db: Session = Depends(get_db
 
     cfg_series = (emisor.config_json or {}).get("series") or {}
     for tipo, info in cfg_series.items():
-        s = info.get("serie") if isinstance(info, dict) else info
-        if s:
-            series_por_tipo.setdefault(tipo, set()).add(s)
+        entradas = info if isinstance(info, list) else [info]
+        for item in entradas:
+            s = item.get("serie") if isinstance(item, dict) else item
+            if s:
+                series_por_tipo.setdefault(tipo, set()).add(s)
 
     # Fallback solo cuando el emisor aún no tiene ninguna serie real para ese tipo
     # (emisor nuevo): así puede emitir su primer comprobante. No se inyecta sobre
