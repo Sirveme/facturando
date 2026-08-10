@@ -705,6 +705,17 @@ async def emitir_comprobante(
     peru_tz = timezone(timedelta(hours=-5))
     fecha_peru = datetime.now(peru_tz).replace(tzinfo=None)
 
+    # Detracción (SPOT): solo factura (01), emisor con detracción activa y checkbox marcado.
+    # Si no aplica -> columnas None -> XML/PDF normales (comportamiento actual intacto).
+    from decimal import Decimal as _Dec, ROUND_HALF_UP as _RHU
+    _det_cfg = (getattr(emisor, 'config_json', None) or {}).get('detraccion') or {}
+    _det_cod = _det_pct = _det_monto = None
+    if tipo_documento == '01' and _det_cfg.get('activa') and bool(data.get('detraccion')):
+        _det_cod = str(_det_cfg.get('codigo_bien', '') or '')
+        _det_pct = _Dec(str(_det_cfg.get('porcentaje', 0) or 0))
+        # Monto SPOT: porcentaje × total, redondeado al ENTERO más cercano (regla SUNAT).
+        _det_monto = (_Dec(str(total)) * _det_pct / _Dec('100')).quantize(_Dec('1'), rounding=_RHU)
+
     # Crear comprobante
     comprobante = Comprobante(
         id=str(uuid4()),
@@ -726,6 +737,9 @@ async def emitir_comprobante(
         monto_base=subtotal,
         monto_igv=igv,
         monto_total=total,
+        detraccion_codigo_bien=_det_cod,
+        detraccion_porcentaje=_det_pct,
+        detraccion_monto=_det_monto,
         estado='pendiente',
         observaciones=observaciones
     )

@@ -335,6 +335,14 @@ async def emitir_comprobante_page(request: Request, db: Session = Depends(get_db
         for tipo, defs in defaults.items()
     }
 
+    # Detracción (SPOT): config para mostrar el checkbox en el form de factura.
+    # None si el emisor no la tiene activa -> el checkbox no se renderiza.
+    _det = (emisor.config_json or {}).get('detraccion') or {}
+    detraccion_cfg = ({
+        'porcentaje': float(_det.get('porcentaje', 0) or 0),
+        'umbral': float(_det.get('umbral', 700) or 700),
+    } if _det.get('activa') else None)
+
     return templates.TemplateResponse(
         "dashboard/emitir.html",
         {
@@ -342,6 +350,7 @@ async def emitir_comprobante_page(request: Request, db: Session = Depends(get_db
             "emisor": emisor,
             "user_ruc": emisor.ruc,
             "series_emisor": series_emisor,
+            "detraccion_cfg": detraccion_cfg,
         }
     )
 
