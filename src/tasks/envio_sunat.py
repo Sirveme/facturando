@@ -117,6 +117,11 @@ def _build_comprobante_xml_obj(comp):
     obj.doc_referencia_tipo = getattr(comp, 'doc_referencia_tipo', '01')
     obj.doc_referencia_numero = getattr(comp, 'doc_referencia_numero', '')
 
+    # Detracción (SPOT): columnas del comprobante -> el generador respeta la decisión guardada
+    obj.detraccion_codigo_bien = getattr(comp, 'detraccion_codigo_bien', None)
+    obj.detraccion_porcentaje = getattr(comp, 'detraccion_porcentaje', None)
+    obj.detraccion_monto = getattr(comp, 'detraccion_monto', None)
+
     # Items con tipo de afectación IGV
     class ItemXML:
         pass
