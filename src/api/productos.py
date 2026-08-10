@@ -70,7 +70,7 @@ async def buscar_productos(request: FastAPIRequest, q: str = "", db: Session = D
 # =============================================
 
 @router.get("")
-def listar_productos(
+async def listar_productos(
     request: FastAPIRequest,
     db: Session = Depends(get_db),
     q: str = None,
@@ -81,13 +81,7 @@ def listar_productos(
     limit: int = 50
 ):
     """Lista productos del emisor con filtros y paginación"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     query = db.query(Producto).filter(Producto.emisor_id == emisor.id)
     
@@ -161,19 +155,13 @@ def listar_productos(
 # =============================================
 
 @router.get("/{producto_id}")
-def obtener_producto(
+async def obtener_producto(
     producto_id: str,
     request: FastAPIRequest,
     db: Session = Depends(get_db)
 ):
     """Obtiene un producto por ID"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     producto = db.query(Producto).filter(
         Producto.id == producto_id,
@@ -222,13 +210,7 @@ async def crear_producto(
     db: Session = Depends(get_db)
 ):
     """Crea un nuevo producto"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     data = await request.json()
     
@@ -304,13 +286,7 @@ async def actualizar_producto(
     db: Session = Depends(get_db)
 ):
     """Actualiza un producto"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     producto = db.query(Producto).filter(
         Producto.id == producto_id,
@@ -376,19 +352,13 @@ async def actualizar_producto(
 # =============================================
 
 @router.delete("/{producto_id}")
-def eliminar_producto(
+async def eliminar_producto(
     producto_id: str,
     request: FastAPIRequest,
     db: Session = Depends(get_db)
 ):
     """Elimina (desactiva) un producto"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     producto = db.query(Producto).filter(
         Producto.id == producto_id,
@@ -412,19 +382,13 @@ def eliminar_producto(
 # =============================================
 
 @router.post("/{producto_id}/favorito")
-def toggle_favorito(
+async def toggle_favorito(
     producto_id: str,
     request: FastAPIRequest,
     db: Session = Depends(get_db)
 ):
     """Marca/desmarca producto como favorito"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     producto = db.query(Producto).filter(
         Producto.id == producto_id,
@@ -455,13 +419,7 @@ async def importar_productos(
     db: Session = Depends(get_db)
 ):
     """Importa productos desde CSV/Excel"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     contenido = await archivo.read()
     filename = archivo.filename.lower()
@@ -591,18 +549,12 @@ PROD003,Producto exonerado IGV,45.50,30.00,100,NIU,General,MarcaY
 # =============================================
 
 @router.get("/categorias/lista")
-def listar_categorias(
+async def listar_categorias(
     request: FastAPIRequest,
     db: Session = Depends(get_db)
 ):
     """Lista categorías únicas de los productos"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     categorias = db.query(distinct(Producto.categoria)).filter(
         Producto.emisor_id == emisor.id,

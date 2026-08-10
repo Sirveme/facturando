@@ -11,13 +11,14 @@ import csv
 import io
 
 from src.api.dependencies import get_db
+from src.api.auth_utils import obtener_emisor_actual
 from src.models.models import Emisor, Cliente
 
 router = APIRouter(prefix="/api/clientes", tags=["clientes"])
 
 
 @router.get("")
-def listar_clientes(
+async def listar_clientes(
     request: FastAPIRequest,
     db: Session = Depends(get_db),
     q: str = None,
@@ -25,13 +26,7 @@ def listar_clientes(
     limit: int = 50
 ):
     """Lista clientes del emisor"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     query = db.query(Cliente).filter(Cliente.emisor_id == emisor.id)
     
@@ -68,19 +63,13 @@ def listar_clientes(
 
 
 @router.get("/buscar")
-def buscar_clientes(
+async def buscar_clientes(
     request: FastAPIRequest,
     q: str,
     db: Session = Depends(get_db)
 ):
     """Búsqueda rápida para formulario de emisión"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     clientes = db.query(Cliente).filter(
         Cliente.emisor_id == emisor.id,
@@ -106,19 +95,13 @@ def buscar_clientes(
 
 
 @router.get("/{cliente_id}")
-def obtener_cliente(
+async def obtener_cliente(
     cliente_id: str,
     request: FastAPIRequest,
     db: Session = Depends(get_db)
 ):
     """Obtiene un cliente por ID"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     cliente = db.query(Cliente).filter(
         Cliente.id == cliente_id,
@@ -149,13 +132,7 @@ async def crear_cliente(
     db: Session = Depends(get_db)
 ):
     """Crea un nuevo cliente"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     data = await request.json()
     
@@ -203,13 +180,7 @@ async def actualizar_cliente(
     db: Session = Depends(get_db)
 ):
     """Actualiza un cliente"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     cliente = db.query(Cliente).filter(
         Cliente.id == cliente_id,
@@ -235,19 +206,13 @@ async def actualizar_cliente(
 
 
 @router.delete("/{cliente_id}")
-def eliminar_cliente(
+async def eliminar_cliente(
     cliente_id: str,
     request: FastAPIRequest,
     db: Session = Depends(get_db)
 ):
     """Elimina un cliente"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     cliente = db.query(Cliente).filter(
         Cliente.id == cliente_id,
@@ -273,13 +238,7 @@ async def importar_clientes(
     db: Session = Depends(get_db)
 ):
     """Importa clientes desde CSV/Excel"""
-    session_ruc = request.cookies.get("session")
-    if not session_ruc:
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
-    emisor = db.query(Emisor).filter(Emisor.ruc == session_ruc).first()
-    if not emisor:
-        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+    emisor = await obtener_emisor_actual(request, db)
     
     contenido = await archivo.read()
     filename = archivo.filename.lower()
