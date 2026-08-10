@@ -45,6 +45,7 @@ class Emisor(Base):
     formato_ticket = Column(String(10), default='TICKET')
     formato_nc_nd = Column(String(10), default='A4')
     produccion = Column(Boolean, default=False, nullable=False)
+    cuenta_detraccion = Column(String(20), nullable=True)  # cuenta Banco de la Nación (detracción/SPOT)
 
     # GRE - Guía de Remisión Electrónica (API REST OAuth2)
     gre_client_id = Column(String, nullable=True)
@@ -144,6 +145,10 @@ class Comprobante(Base):
     tipo_documento = Column(String(2), nullable=False)
     tipo_operacion = Column(String(4), default='0101')  # 0101=Venta interna
     hash_cpe = Column(String(100), nullable=True)
+    # Detracción (SPOT) — aditivo, nullable. Registro/PDF; el XML deriva de config del emisor.
+    detraccion_codigo_bien = Column(String(4), nullable=True)     # catálogo 54, ej '020'
+    detraccion_porcentaje = Column(Numeric(5, 2), nullable=True)  # ej 12.00
+    detraccion_monto = Column(Numeric(14, 2), nullable=True)      # monto detraído (entero SPOT)
 
     emisor = relationship('Emisor', back_populates='comprobantes')
     lineas = relationship('LineaDetalle', back_populates='comprobante', cascade='all, delete-orphan')
