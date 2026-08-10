@@ -121,7 +121,19 @@
                     </div>
                 </div>
             </div>
-            
+            {% if detraccion_cfg %}
+            <!-- Detracción (SPOT): solo se renderiza para emisores con detracción activa -->
+            <div class="card" id="card-detraccion" style="display:none;">
+                <div class="card-body">
+                    <label class="input-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <input type="checkbox" id="detraccion_chk">
+                        Operación sujeta a detracción (SPOT {{ '%.2f'|format(detraccion_cfg.porcentaje) }}%)
+                    </label>
+                    <small class="text-secondary">Se marca sola en facturas cuyo total supere S/ {{ '%.2f'|format(detraccion_cfg.umbral) }}. Desmárcala si la operación no detrae (p. ej. venta de solo repuestos).</small>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Datos del Cliente -->
             <div class="card">
                 <div class="card-header">
@@ -549,6 +561,34 @@ actualizarEventosItems();
 // Series REALES del emisor por tipo de comprobante (desde BD, inyectadas por el backend).
 const SERIES_EMISOR = {{ series_emisor | tojson }};
 
+// Detracción (SPOT): checkbox condicional. null si el emisor no la tiene activa.
+const DETRACCION_CFG = {{ detraccion_cfg | tojson }};
+let _detraccionManual = false;
+function _totalActualNum() {
+    const t = (document.getElementById('total').textContent || '').replace(/[^0-9.]/g, '');
+    return parseFloat(t) || 0;
+}
+function actualizarDetraccion() {
+    if (!DETRACCION_CFG) return;
+    const card = document.getElementById('card-detraccion');
+    const chk = document.getElementById('detraccion_chk');
+    const esFactura = document.getElementById('tipo_documento').value === '01';
+    if (card) card.style.display = esFactura ? 'block' : 'none';
+    if (!esFactura) { if (chk) chk.checked = false; return; }
+    if (!_detraccionManual && chk) {
+        chk.checked = _totalActualNum() >= DETRACCION_CFG.umbral;
+    }
+}
+(function () {
+    if (!DETRACCION_CFG) return;
+    const chk = document.getElementById('detraccion_chk');
+    if (chk) chk.addEventListener('change', function () { _detraccionManual = true; });
+    // Recalcular al cambiar items (bubbling: corre después de calcularTotales) y tipo de doc.
+    document.addEventListener('input', actualizarDetraccion);
+    document.addEventListener('change', actualizarDetraccion);
+    actualizarDetraccion();
+})();
+
 // Poblar el select de serie SOLO con las series reales del emisor para el tipo dado.
 function poblarSeries() {
     const tipo = document.getElementById('tipo_documento').value;
@@ -643,7 +683,11 @@ document.getElementById('form-emitir').addEventListener('submit', async (e) => {
         cliente_ubigeo: document.getElementById('cliente_ubigeo').value,
         items: items,
         moneda: 'PEN',
-        observaciones: document.getElementById('observaciones').value
+        observaciones: document.getElementById('observaciones').value,
+        detraccion: !!(DETRACCION_CFG
+            && document.getElementById('tipo_documento').value === '01'
+            && document.getElementById('detraccion_chk')
+            && document.getElementById('detraccion_chk').checked)
     };
     
     const toastId = toast.loading('Emitiendo comprobante...');
