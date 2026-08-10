@@ -646,6 +646,45 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     y -= letras_h
 
     # =============================================
+    # INFORMACIÓN DE LA DETRACCIÓN (SPOT)
+    # Aditivo y gateado: SOLO se dibuja si el comprobante tiene detracción.
+    # Sin detracción -> este bloque no se ejecuta y el PDF es idéntico al actual.
+    # =============================================
+    _det_monto = _safe_float(getattr(comprobante, 'detraccion_monto', None), 0)
+    if _det_monto > 0:
+        _det_cod = getattr(comprobante, 'detraccion_codigo_bien', None) or ""
+        _det_pct = _safe_float(getattr(comprobante, 'detraccion_porcentaje', None), 0)
+        _det_cuenta = getattr(emisor, 'cuenta_detraccion', None) or ""
+        _BIENES_DET = {'020': 'Mantenimiento y reparación de bienes muebles'}
+        _det_desc = _BIENES_DET.get(_det_cod, "")
+
+        det_h = 20 * mm
+        y -= 2 * mm
+        _rounded_rect(c, ml, y - det_h, content_w, det_h, r=2 * mm,
+                      stroke_color=COLOR_BORDE, line_width=0.75)
+
+        c.setFont("Helvetica-Bold", 7.5)
+        c.setFillColor(black)
+        c.drawString(ml + 4 * mm, y - 5 * mm, "INFORMACIÓN DE LA DETRACCIÓN (SPOT)")
+
+        c.setFont("Helvetica", 7)
+        c.setFillColor(COLOR_GRIS_TEXTO)
+        c.drawString(ml + 4 * mm, y - 9 * mm, "Operación sujeta a detracción")
+
+        bien_txt = f"Bien/Servicio: {_det_cod}" + (f" - {_det_desc}" if _det_desc else "")
+        c.setFillColor(black)
+        c.drawString(ml + 4 * mm, y - 13 * mm, bien_txt[:90])
+        c.drawString(ml + 4 * mm, y - 17 * mm,
+                     f"Medio de pago: 003 - Transferencia de fondos    "
+                     f"Cta. Banco de la Nación: {_det_cuenta}")
+
+        c.setFont("Helvetica-Bold", 8)
+        c.drawRightString(mr - 4 * mm, y - 13 * mm, f"Detracción {_det_pct:.2f}%")
+        c.drawRightString(mr - 4 * mm, y - 17 * mm, f"S/ {_det_monto:,.2f}")
+
+        y -= det_h
+
+    # =============================================
     # OBSERVACIONES (método de pago, crédito, notas)
     # =============================================
     obs_text = getattr(comprobante, 'observaciones', None) or ""
