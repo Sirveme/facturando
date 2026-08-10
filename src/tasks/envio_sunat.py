@@ -149,6 +149,9 @@ def _build_emisor_dict(emisor) -> dict:
         'distrito': getattr(emisor, 'distrito', '') or '',
         # Para leyenda Amazonía (cat.52 / 2002) en el generador XML
         'es_amazonia': bool((getattr(emisor, 'config_json', None) or {}).get('es_amazonia', False)),
+        # Detracción (SPOT): claves aditivas; None si el emisor no la usa -> XML sin cambios
+        'detraccion': (getattr(emisor, 'config_json', None) or {}).get('detraccion'),
+        'cuenta_detraccion': getattr(emisor, 'cuenta_detraccion', None),
     }
 
 
