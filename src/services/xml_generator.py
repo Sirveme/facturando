@@ -370,41 +370,32 @@ def _build_payment_terms(comprobante, moneda='PEN', forma_pago='Contado'):
 # =============================================
 
 def _detraccion_info(comprobante, emisor, totales):
-    """Devuelve dict con datos de detracción si aplica; si no, None.
+    """Devuelve dict de detracción si el COMPROBANTE la tiene registrada; si no, None.
 
-    Aplica SOLO cuando: es factura (tipo 01), el emisor trae `detraccion.activa`,
-    hay `cuenta_detraccion`, y el total (con IGV) alcanza el umbral SPOT.
-    Si no aplica, el llamador no inserta nada -> XML idéntico al flujo actual.
+    Fuente de verdad: las columnas del comprobante (detraccion_monto / _codigo_bien /
+    _porcentaje), que el endpoint de emisión setea según la decisión del usuario (checkbox).
+    Así el XML respeta esa decisión (si el usuario la desmarca, no se inserta). La cuenta del
+    Banco de la Nación y el medio de pago vienen de la config del emisor.
 
-    Monto SPOT: porcentaje × total, redondeado al ENTERO más cercano (regla SUNAT).
-    Ej. E001-950: 12% × 708.16 = 84.9792 -> 85 -> '85.00'.
+    Solo facturas (01). Sin `detraccion_monto` en el comprobante -> None (XML sin cambios).
+    El monto ya viene calculado y redondeado (entero SPOT) desde la emisión; no se recalcula.
     """
     tipo_doc = str(getattr(comprobante, 'tipo_documento', '01') or '01')
     if tipo_doc != '01':
         return None
-    det = (emisor or {}).get('detraccion') or {}
-    if not det.get('activa'):
+    monto = getattr(comprobante, 'detraccion_monto', None)
+    if not monto:
         return None
     cuenta = (emisor or {}).get('cuenta_detraccion')
     if not cuenta:
         return None
-
-    total = _d(totales.get('total', 0))
-    umbral = _d(det.get('umbral', 700))
-    if total < umbral:
-        return None
-
-    pct = _d(det.get('porcentaje', 0))
-    if pct <= 0:
-        return None
-    monto = (total * pct / Decimal('100')).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-
+    medio = ((emisor or {}).get('detraccion') or {}).get('medio_pago') or '003'
     return {
-        'codigo_bien': str(det.get('codigo_bien', '')),
-        'porcentaje': pct,
-        'monto': monto,
+        'codigo_bien': str(getattr(comprobante, 'detraccion_codigo_bien', '') or ''),
+        'porcentaje': _d(getattr(comprobante, 'detraccion_porcentaje', 0) or 0),
+        'monto': _d(monto),
         'cuenta': str(cuenta),
-        'medio_pago': str(det.get('medio_pago', '003')),
+        'medio_pago': str(medio),
     }
 
 
