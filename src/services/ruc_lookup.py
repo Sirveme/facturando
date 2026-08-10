@@ -54,6 +54,28 @@ def _get(path: str, numero: str) -> Optional[dict]:
     try:
         resp = requests.get(f"{_API_URL}{path}", headers=headers,
                             params={"numero": numero}, timeout=_TIMEOUT)
+
+        # === LOGGING TEMPORAL (no-fatal) — QUITAR tras el diagnóstico ===
+        # Muestra la respuesta CRUDA de apis.net.pe (status + body + claves) para saber
+        # si es (a) plan del token, (b) claves distintas, o (c) endpoint/versión.
+        # No registra el token. Buscar en logs de Railway el tag [RUC_LOOKUP][RAW].
+        try:
+            _raw = (resp.text or "")[:2000]
+            print(f"[RUC_LOOKUP][RAW] {path} numero={numero} HTTP={resp.status_code} "
+                  f"CT={resp.headers.get('Content-Type', '')} BODY={_raw}")
+            logger.warning("[RUC_LOOKUP][RAW] %s numero=%s HTTP=%s BODY=%s",
+                           path, numero, resp.status_code, _raw)
+            if resp.status_code == 200:
+                try:
+                    _keys = sorted((resp.json() or {}).keys())
+                    print(f"[RUC_LOOKUP][RAW-KEYS] {path} claves={_keys}")
+                    logger.warning("[RUC_LOOKUP][RAW-KEYS] %s claves=%s", path, _keys)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        # === FIN LOGGING TEMPORAL ===
+
         if resp.status_code == 200:
             return resp.json()
         logger.warning("[RUC_LOOKUP] %s numero=%s -> HTTP %s", path, numero, resp.status_code)
