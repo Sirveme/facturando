@@ -173,6 +173,11 @@ def _build_factura_boleta_xml(comprobante, emisor: dict) -> bytes:
     #     2002=Amazonía bienes (solo emisor es_amazonia con op. exonerada).
     totales = _calcular_totales(items, moneda)
     _build_leyendas(invoice, totales, emisor, moneda)
+    # Detracción (SPOT): leyenda cat.52 código 2006 si aplica (factura + emisor con
+    # detracción configurada + total >= umbral). Gateado: si no aplica, XML idéntico al actual.
+    detraccion = _detraccion_info(comprobante, emisor, totales)
+    if detraccion:
+        invoice.append(_build_note_leyenda('2006', 'Operación sujeta a detracción'))
     logger.info("[XML_GEN] ✓ Leyendas (Note cat.52)")
 
     invoice.append(_cbc('DocumentCurrencyCode', moneda))
@@ -189,7 +194,15 @@ def _build_factura_boleta_xml(comprobante, emisor: dict) -> bytes:
     invoice.append(_build_customer(comprobante))
     logger.info("[XML_GEN] ✓ AccountingCustomerParty")
 
-    # 7. PaymentTerms - OBLIGATORIO desde RS 000193-2020/SUNAT
+    # 7. Detracción (SPOT): PaymentMeans + PaymentTerms van ANTES del PaymentTerms
+    #    de forma de pago (orden exacto validado vs. plantilla de oro E001-950).
+    if detraccion:
+        invoice.append(_build_detraccion_payment_means(detraccion))
+        invoice.append(_build_detraccion_payment_terms(detraccion, moneda))
+        logger.info(f"[XML_GEN] ✓ Detracción cod={detraccion['codigo_bien']} "
+                    f"pct={detraccion['porcentaje']} monto={detraccion['monto']}")
+
+    # 8. PaymentTerms - OBLIGATORIO desde RS 000193-2020/SUNAT
     #    Sin esto: error 3244 "tipo de transaccion"
     forma_pago = getattr(comprobante, 'forma_pago', 'Contado') or 'Contado'
     invoice.append(_build_payment_terms(comprobante, moneda, forma_pago))
@@ -348,6 +361,71 @@ def _build_payment_terms(comprobante, moneda='PEN', forma_pago='Contado'):
         totales = _calcular_totales(getattr(comprobante, 'items', []), moneda)
         pt.append(_amount('Amount', totales['total'], moneda))
 
+    return pt
+
+
+# =============================================
+# DETRACCIÓN (SPOT) — aditivo, gateado por config del emisor
+# Estructura calzada a plantilla de oro E001-950 (aceptada por SUNAT).
+# =============================================
+
+def _detraccion_info(comprobante, emisor, totales):
+    """Devuelve dict con datos de detracción si aplica; si no, None.
+
+    Aplica SOLO cuando: es factura (tipo 01), el emisor trae `detraccion.activa`,
+    hay `cuenta_detraccion`, y el total (con IGV) alcanza el umbral SPOT.
+    Si no aplica, el llamador no inserta nada -> XML idéntico al flujo actual.
+
+    Monto SPOT: porcentaje × total, redondeado al ENTERO más cercano (regla SUNAT).
+    Ej. E001-950: 12% × 708.16 = 84.9792 -> 85 -> '85.00'.
+    """
+    tipo_doc = str(getattr(comprobante, 'tipo_documento', '01') or '01')
+    if tipo_doc != '01':
+        return None
+    det = (emisor or {}).get('detraccion') or {}
+    if not det.get('activa'):
+        return None
+    cuenta = (emisor or {}).get('cuenta_detraccion')
+    if not cuenta:
+        return None
+
+    total = _d(totales.get('total', 0))
+    umbral = _d(det.get('umbral', 700))
+    if total < umbral:
+        return None
+
+    pct = _d(det.get('porcentaje', 0))
+    if pct <= 0:
+        return None
+    monto = (total * pct / Decimal('100')).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+
+    return {
+        'codigo_bien': str(det.get('codigo_bien', '')),
+        'porcentaje': pct,
+        'monto': monto,
+        'cuenta': str(cuenta),
+        'medio_pago': str(det.get('medio_pago', '003')),
+    }
+
+
+def _build_detraccion_payment_means(detr):
+    """cac:PaymentMeans de detracción (medio de pago + cuenta del Banco de la Nación)."""
+    pm = _cac('PaymentMeans')
+    pm.append(_cbc('ID', 'Detraccion'))
+    pm.append(_cbc('PaymentMeansCode', detr['medio_pago']))
+    pfa = _cac('PayeeFinancialAccount')
+    pfa.append(_cbc('ID', detr['cuenta']))
+    pm.append(pfa)
+    return pm
+
+
+def _build_detraccion_payment_terms(detr, moneda='PEN'):
+    """cac:PaymentTerms de detracción (código de bien cat.54, porcentaje y monto)."""
+    pt = _cac('PaymentTerms')
+    pt.append(_cbc('ID', 'Detraccion'))
+    pt.append(_cbc('PaymentMeansID', detr['codigo_bien']))
+    pt.append(_cbc('PaymentPercent', f"{detr['porcentaje']:.2f}"))
+    pt.append(_amount('Amount', detr['monto'], moneda))
     return pt
 
 
