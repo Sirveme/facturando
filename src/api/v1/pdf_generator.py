@@ -489,73 +489,94 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     col_desc = content_w - col_cant - col_valor - col_igv - col_importe
     col_widths = [col_cant, col_desc, col_valor, col_igv, col_importe]
 
-    style_desc = ParagraphStyle(
-        'ItemDesc',
-        fontName='Helvetica',
-        fontSize=7.5,
-        leading=9.5,
-    )
+    def _construir_tabla_items(desc_fs, desc_leading, header_fs, body_fs):
+        """Construye la Table de ítems a los tamaños dados. La descripción va SIEMPRE como
+        Paragraph -> word-wrap dentro de la columna (90mm) y alto de fila dinámico."""
+        style_desc = ParagraphStyle(
+            'ItemDesc',
+            fontName='Helvetica',
+            fontSize=desc_fs,
+            leading=desc_leading,
+        )
 
-    table_data = [["Cant.", "Descripcion", "Valor Venta", "IGV", "Importe"]]
+        def _esc(s):
+            # Escapar markup para Paragraph (& primero). Solo presentación.
+            return (s or "").replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
-    for item in items:
-        cantidad_num = _safe_float(item.cantidad, 1)
-        precio_num = _safe_float(getattr(item, 'precio_unitario', None) or
-                                 getattr(item, 'valor_unitario', None), 0)
-        cantidad = f"{cantidad_num:.0f}"
-        desc = item.descripcion or ""
+        table_data = [["Cant.", "Descripcion", "Valor Venta", "IGV", "Importe"]]
 
-        # [FIX PUNTO 1] Calcular valor venta e IGV
-        valor_venta = _safe_float(item.subtotal, 0) or _safe_float(item.monto_linea, 0)
-        if valor_venta == 0 and precio_num > 0:
-            valor_venta = round(cantidad_num * precio_num, 2)
+        for item in items:
+            cantidad_num = _safe_float(item.cantidad, 1)
+            precio_num = _safe_float(getattr(item, 'precio_unitario', None) or
+                                     getattr(item, 'valor_unitario', None), 0)
+            cantidad = f"{cantidad_num:.0f}"
+            desc = item.descripcion or ""
 
-        tipo_afectacion = str(getattr(item, 'tipo_afectacion_igv', '10') or '10')
-        igv_calculado = _safe_float(item.igv, 0)
-        if igv_calculado == 0 and tipo_afectacion == '10' and valor_venta > 0:
-            igv_calculado = round(valor_venta * 0.18, 2)
+            # [FIX PUNTO 1] Calcular valor venta e IGV
+            valor_venta = _safe_float(item.subtotal, 0) or _safe_float(item.monto_linea, 0)
+            if valor_venta == 0 and precio_num > 0:
+                valor_venta = round(cantidad_num * precio_num, 2)
 
-        importe_total = round(valor_venta + igv_calculado, 2)
+            tipo_afectacion = str(getattr(item, 'tipo_afectacion_igv', '10') or '10')
+            igv_calculado = _safe_float(item.igv, 0)
+            if igv_calculado == 0 and tipo_afectacion == '10' and valor_venta > 0:
+                igv_calculado = round(valor_venta * 0.18, 2)
 
-        valor_str = f"{valor_venta:,.2f}"
-        igv_str = f"{igv_calculado:,.2f}"
-        importe_str = f"{importe_total:,.2f}"
+            importe_total = round(valor_venta + igv_calculado, 2)
 
-        if '\n' in desc:
-            lineas = desc.split('\n')
-            html_parts = [f'<font size="7.5"><b>{lineas[0]}</b></font>']
-            for extra_line in lineas[1:]:
-                html_parts.append(f'<br/><font size="6.5" color="#64748b">{extra_line}</font>')
-            desc_cell = Paragraph(''.join(html_parts), style_desc)
-        else:
-            desc_cell = desc
+            valor_str = f"{valor_venta:,.2f}"
+            igv_str = f"{igv_calculado:,.2f}"
+            importe_str = f"{importe_total:,.2f}"
 
-        table_data.append([cantidad, desc_cell, valor_str, igv_str, importe_str])
+            # Descripción SIEMPRE como Paragraph (antes: str plano en el caso sin '\n',
+            # que NO envolvía y desbordaba la columna). Escape de & < > para no romper el markup.
+            if '\n' in desc:
+                lineas = desc.split('\n')
+                html_parts = [f'<font size="{desc_fs}"><b>{_esc(lineas[0])}</b></font>']
+                for extra_line in lineas[1:]:
+                    html_parts.append(f'<br/><font size="{desc_fs - 1}" color="#64748b">{_esc(extra_line)}</font>')
+                desc_cell = Paragraph(''.join(html_parts), style_desc)
+            else:
+                desc_cell = Paragraph(_esc(desc), style_desc)
 
-    table = Table(table_data, colWidths=col_widths)
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), COLOR_GRIS_OSCURO),
-        ('TEXTCOLOR', (0, 0), (-1, 0), white),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8),
-        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 7.5),
-        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
-        ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
-        ('ALIGN', (3, 1), (3, -1), 'RIGHT'),
-        ('ALIGN', (4, 1), (4, -1), 'RIGHT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (-1, -1), 0.75, COLOR_BORDE),
-        ('LINEBELOW', (0, 0), (-1, 0), 1, COLOR_BORDE),
-        ('INNERGRID', (0, 0), (-1, 0), 0.5, COLOR_GRIS_OSCURO),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-        ('LEFTPADDING', (0, 0), (-1, -1), 5),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-    ]))
+            table_data.append([cantidad, desc_cell, valor_str, igv_str, importe_str])
 
+        t = Table(table_data, colWidths=col_widths)
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), COLOR_GRIS_OSCURO),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), header_fs),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), body_fs),
+            ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+            ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
+            ('ALIGN', (3, 1), (3, -1), 'RIGHT'),
+            ('ALIGN', (4, 1), (4, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOX', (0, 0), (-1, -1), 0.75, COLOR_BORDE),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, COLOR_BORDE),
+            ('INNERGRID', (0, 0), (-1, 0), 0.5, COLOR_GRIS_OSCURO),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        return t
+
+    # Tamaño normal (idéntico al actual). Si no cabe antes del pie -> reducir font (Opción A,
+    # SIN paginación; la paginación real queda para Opción B).
+    table = _construir_tabla_items(7.5, 9.5, 8, 7.5)
     table_w, table_h = table.wrap(content_w, y)
+    _reserva_pie = (95 + (22 if getattr(comprobante, 'detraccion_monto', None) else 0)) * mm
+    if table_h > (y - _reserva_pie):
+        print(f"[PDF] tabla de items alta ({table_h/mm:.0f}mm, {len(items)} items) -> reduzco font a 6.5 (sin paginar)")
+        table = _construir_tabla_items(6.5, 8, 7, 6.5)
+        table_w, table_h = table.wrap(content_w, y)
+        if table_h > (y - _reserva_pie):
+            print(f"[PDF] AVISO: la tabla ({table_h/mm:.0f}mm) puede encimar el pie con {len(items)} items; "
+                  f"considerar paginacion (Opcion B).")
     table.drawOn(c, ml, y - table_h)
     y = y - table_h
 
