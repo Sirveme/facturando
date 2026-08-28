@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from src.models.models import Comprobante, Emisor, LineaDetalle
 from src.api.dependencies import get_db
 from src.api.auth_utils import obtener_emisor_actual
+from src.api.referencias_ui import COMP_ACEPTADOS  # ("aceptado", "aceptado_con_observaciones")
 
 # Configurar templates
 templates_path = Path(__file__).parent.parent / "templates"
@@ -402,7 +403,7 @@ async def nota_credito_page(request: Request, db: Session = Depends(get_db)):
     comprobantes_disponibles = db.query(Comprobante).filter(
         Comprobante.emisor_id == emisor.id,
         Comprobante.tipo_documento.in_(['01', '03']),  # Solo Facturas y Boletas
-        Comprobante.estado == 'aceptado'
+        Comprobante.estado.in_(COMP_ACEPTADOS)  # aceptado + aceptado_con_observaciones
     ).order_by(Comprobante.fecha_emision.desc()).limit(50).all()
 
     print(f"DEBUG NC: Emisor {emisor.id}, Comprobantes encontrados: {len(comprobantes_disponibles)}")
