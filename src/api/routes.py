@@ -1037,7 +1037,11 @@ def get_comprobante_detalle(comprobante_id: str, db: Session = Depends(get_db)):
             for item in items
         ]
     }
-    
+
+    # Referencia NC/ND: documento que anula/modifica (solo presentación). None si no es NC/ND.
+    from src.services.referencia_nc import resumen_referencia
+    datos['referencia'] = resumen_referencia(db, comp)
+
     return {"exito": True, "datos": datos}
 
 
