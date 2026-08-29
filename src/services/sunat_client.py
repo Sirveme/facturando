@@ -223,6 +223,28 @@ def _parse_cdr(cdr_bytes: bytes) -> dict:
     codigo = find_text(["ResponseCode", "responseCode", "Code", "codigo", "Codigo"])
     descripcion = find_text(["Description", "description", "Descripcion", "descripcion", "Mensaje", "Message"])
 
+    # --- SOAP Fault (A3) ---------------------------------------------------------------
+    # Un ApplicationResponse normal (aceptado / con observaciones) trae ResponseCode +
+    # Description y ya salió arriba SIN tocar nada. Solo si NO hay código ni descripción y
+    # existe un nodo Fault, exponemos su causa en los MISMOS campos codigo/descripcion, para
+    # que UI, logs y estado del comprobante muestren el motivo real (ej. Client.0111) en vez
+    # de None. No altera el envío ni reintenta (eso es A2): solo lee mejor la respuesta.
+    if codigo is None and descripcion is None and doc.xpath(".//*[local-name()='Fault']"):
+        fcode = find_text(["faultcode"]) or find_text(["Value"])       # SOAP 1.1 / 1.2
+        fstring = find_text(["faultstring"]) or find_text(["Text"])    # SOAP 1.1 / 1.2
+        if fcode:
+            # Quitar el prefijo de namespace de forma robusta (soap-env:Client.0111 -> Client.0111)
+            fcode = fcode.split(':', 1)[-1].strip()
+        codigo = fcode or None
+        descripcion = fstring or None
+        if codigo is None and descripcion is None:
+            descripcion = "SUNAT devolvió un error sin detalle"
+        elif descripcion is None:
+            descripcion = f"SUNAT rechazó el comprobante ({codigo})"
+        logger.warning("[CDR_PARSE] SOAP Fault: codigo=%s, descripcion=%s", codigo, descripcion)
+        print(f"[CDR_PARSE] ⚠️ SOAP Fault detectado: codigo={codigo}, descripcion={descripcion}")
+    # -----------------------------------------------------------------------------------
+
     logger.info("[CDR_PARSE] Resultado: codigo=%s, descripcion=%s", codigo, descripcion)
     print(f"[CDR_PARSE] Resultado: codigo={codigo}, descripcion={descripcion}")
     return {"codigo": codigo, "descripcion": descripcion, "cdr_xml": cdr_bytes}
