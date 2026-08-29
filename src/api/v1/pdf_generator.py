@@ -177,6 +177,43 @@ def _safe_float(val, default=0.0):
 # GENERADOR PRINCIPAL (A4/A5)
 # =============================================
 
+def _dibujar_bloque_referencia_nc(c, ml, y, content_w, ref):
+    """Recuadro 'DOCUMENTO QUE MODIFICA' para NC/ND. Devuelve la nueva y (debajo del bloque).
+    Solo presentación. Se dibuja únicamente cuando el comprobante es NC(07)/ND(08)."""
+    orig = ref.get('original') or {}
+    h = 19 * mm
+    _rounded_rect(c, ml, y - h, content_w, h, r=2 * mm, stroke_color=COLOR_BORDE, line_width=0.75)
+
+    c.setFillColor(black)
+    c.setFont("Helvetica-Bold", 7.5)
+    c.drawString(ml + 4 * mm, y - 5 * mm, "DOCUMENTO QUE MODIFICA")
+
+    c.setFont("Helvetica", 7.5)
+    fila1 = (f"{ref.get('nota_label', 'Nota')} → {ref.get('verbo', 'anula')} "
+             f"{ref.get('ref_tipo_label', 'Documento')} {ref.get('ref_numero') or '-'} "
+             f"— {ref.get('motivo_texto', '')}")
+    c.drawString(ml + 4 * mm, y - 9.5 * mm, fila1[:108])
+
+    c.setFillColor(COLOR_GRIS_TEXTO)
+    cli = (f"{ref.get('cliente_tipo_label', 'Doc')} {orig.get('cliente_doc') or '-'} "
+           f"· {orig.get('cliente_nombre') or '-'}")
+    c.drawString(ml + 4 * mm, y - 13.5 * mm, cli[:100])
+
+    c.setFillColor(black)
+    if orig.get('encontrado'):
+        fh = orig.get('fecha') or '-'
+        if orig.get('hora'):
+            fh += f" {orig['hora']}"
+        mon = orig.get('moneda') or 'PEN'
+        simbolo = 'S/' if mon == 'PEN' else mon
+        linea = f"Emitido: {fh}   ·   Monto: {simbolo} {float(orig.get('monto') or 0):,.2f}"
+    else:
+        linea = "Emitido / Monto: (documento original no localizado)"
+    c.drawString(ml + 4 * mm, y - 17 * mm, linea)
+
+    return y - h
+
+
 def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
                             codigo_matricula=None, estado_colegiado=None,
                             habil_hasta=None, url_consulta=None):
@@ -481,6 +518,18 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     # [PUNTO 1] Valor Venta e IGV calculados
     # =============================================
     y = y - cliente_box_h - 5 * mm
+
+    # --- Bloque de referencia para NC/ND (gateado, solo presentación). Resuelve el documento
+    #     original con una sesión propia de solo lectura que se CIERRA siempre. No-fatal. ---
+    if comprobante.tipo_documento in ('07', '08'):
+        try:
+            from src.services.referencia_nc import resumen_referencia_autonomo
+            _ref = resumen_referencia_autonomo(comprobante)
+            if _ref:
+                y = _dibujar_bloque_referencia_nc(c, ml, y, content_w, _ref)
+                y -= 4 * mm
+        except Exception:
+            pass  # si algo falla, el PDF sale sin el bloque (no se rompe la emisión)
 
     col_cant = 18 * mm
     col_igv = 22 * mm
