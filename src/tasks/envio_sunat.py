@@ -8,9 +8,12 @@ from src.models.models import Comprobante, Emisor, Certificado, RespuestaSunat, 
 from src.core.config import settings
 from src.services.xml_generator import build_invoice_xml
 from src.services.firma_digital import firmar_xml
-from src.services.sunat_client import enviar_comprobante, consultar_ticket_resumen
+from src.services.sunat_client import enviar_comprobante, consultar_ticket_resumen, consultar_estado_cdr
 from src.services.notificaciones_sunat import (
     clasificar_error_sunat,
+    clasificar_error_a2,
+    decidir_reintento,
+    gate_reenvio,
     notificar_reintento_temporal,
     notificar_resuelto,
     notificar_fallo_definitivo,
@@ -23,65 +26,172 @@ from datetime import datetime, timezone, timedelta
 logger = logging.getLogger(__name__)
 PERU_TZ = timezone(timedelta(hours=-5))
 
-# Política de reintentos manuales (gestionada con apply_async(eta=...))
-BACKOFF_MINUTOS = [30, 60, 120]      # 30 min → 1 h → 2 h
-MAX_REINTENTOS_TEMPORALES = 3
-MAX_REINTENTOS_PERMANENTES = 0       # los permanentes no se reintentan automáticamente
+# A2 — Reintento automático en SEGUNDO PLANO (Celery). Backoff en SEGUNDOS (30s → 2min → 5min),
+# máximo MAX_REINTENTOS. La verificación anti-duplicado (getStatusCdr) se hace al inicio del task
+# antes de cada reenvío. NO bloquea al usuario.
+BACKOFF_SEGUNDOS = [30, 120, 300]
+MAX_REINTENTOS = 3
+
+# A2 — Gate anti-duplicado por getStatusCdr: PAUSADO. getStatusCdr (billConsultService) NO existe
+# en SUNAT beta y NO cubre boletas (solo facturas/NC/ND), así que no se puede validar ni sirve para
+# boletas. El reintento sigue siendo seguro sin él: reusa el MISMO correlativo y SUNAT deduplica
+# (reenviar algo ya registrado devuelve 1033 → se marca aceptado; NUNCA crea otro documento).
+# PENDIENTE: rediseñar (getStatusCdr solo-prod + alternativa para boletas) y reactivar con True.
+A2_ANTIDUP_GETSTATUSCDR_ACTIVO = False
+
+
+def _sol_plain(emisor):
+    """Desencripta la clave SOL (para getStatusCdr). None si el emisor no la tiene."""
+    if not getattr(emisor, 'sol_password', None):
+        return None
+    try:
+        f = Fernet(settings.encryption_key.encode())
+        return f.decrypt(emisor.sol_password.encode()).decode()
+    except Exception:
+        return emisor.sol_password
+
+
+def _emisor_tiene_aceptados(db, emisor_id, excluir_id=None):
+    """True si el emisor ya tiene algún comprobante aceptado (historial ⇒ el permiso SOL existe).
+    Usado para desambiguar los faults de perfil (Client.01xx)."""
+    q = db.query(Comprobante).filter(
+        Comprobante.emisor_id == emisor_id,
+        Comprobante.estado.in_(('aceptado', 'aceptado_con_observaciones')),
+    )
+    if excluir_id:
+        q = q.filter(Comprobante.id != excluir_id)
+    return bool(db.query(q.exists()).scalar())
+
+
+def _guardar_cdr_desde_getstatus(comp, db, est, aceptado):
+    """Guarda el CDR real obtenido por getStatusCdr y fija el estado del comprobante."""
+    try:
+        db.add(RespuestaSunat(
+            comprobante_id=comp.id,
+            codigo_cdr=str(est.get('codigo') or ''),
+            descripcion=est.get('descripcion') or '',
+            cdr_xml=est.get('cdr_xml'),
+        ))
+    except Exception:
+        pass
+    cod = str(est.get('codigo') or '')
+    if aceptado:
+        comp.estado = 'aceptado_con_observaciones' if cod.startswith('2') else 'aceptado'
+    else:
+        comp.estado = 'rechazado'
+    comp.procesando_desde = None
+    comp.descripcion_respuesta = (est.get('descripcion') or 'Estado obtenido de SUNAT (getStatusCdr)')[:500]
+    db.commit()
+
+
+def _anti_duplicado_detener(comp, emisor, db):
+    """GARANTÍA ANTI-DUPLICADO. A partir del 2º intento consulta getStatusCdr ANTES de reenviar.
+    Devuelve True = DETENER (ya resuelto en SUNAT, o incierto → no reenviar).
+    Devuelve False = seguro (re)enviar. Solo reenvía cuando SUNAT confirma 'no_existe'."""
+    if (comp.intentos_envio or 0) < 1:
+        return False  # 1er intento: nunca se envió → no hay riesgo de duplicar
+
+    est = consultar_estado_cdr(
+        emisor.ruc, comp.tipo_documento, comp.serie, comp.numero,
+        sol_usuario=emisor.sol_usuario, sol_password=_sol_plain(emisor),
+        use_production=getattr(emisor, 'produccion', False),
+    )
+    decision = gate_reenvio(est.get('estado'), comp.intentos_envio or 0)
+    logger.info("A2 anti-dup %s-%s estado_sunat=%s decision=%s",
+                comp.serie, comp.numero, est.get('estado'), decision)
+
+    if decision == 'detenido_aceptado':
+        _guardar_cdr_desde_getstatus(comp, db, est, aceptado=True)
+        print(f"🛡️ ANTI-DUP {comp.serie}-{comp.numero}: SUNAT YA lo tiene ACEPTADO — NO se reenvía")
+        return True
+    if decision == 'detenido_rechazado':
+        _guardar_cdr_desde_getstatus(comp, db, est, aceptado=False)
+        print(f"🛡️ ANTI-DUP {comp.serie}-{comp.numero}: SUNAT lo tiene RECHAZADO — NO se reenvía")
+        return True
+    if decision == 'incierto':
+        # No se pudo verificar → NO reenviar (conservador). Reprogramar acotado; si se agota, revisión.
+        comp.intentos_envio = (comp.intentos_envio or 0) + 1
+        if comp.intentos_envio < MAX_REINTENTOS:
+            seg = BACKOFF_SEGUNDOS[min(comp.intentos_envio, len(BACKOFF_SEGUNDOS) - 1)]
+            comp.estado = 'reintentando'
+            comp.descripcion_respuesta = f"No se pudo verificar estado en SUNAT; reintentando en {seg}s"[:500]
+            db.commit()
+            try:
+                celery_app.send_task('enviar_comprobante_sunat', args=[str(comp.id)], countdown=seg)
+            except Exception as e:
+                logger.exception("No se pudo encolar reintento (incierto): %s", e)
+        else:
+            comp.estado = 'error'
+            comp.descripcion_respuesta = ("No se pudo verificar el estado en SUNAT tras varios "
+                                          "intentos; revisar manualmente")[:500]
+            db.commit()
+        print(f"🛡️ ANTI-DUP {comp.serie}-{comp.numero}: estado INCIERTO — NO se reenvía")
+        return True
+
+    return False  # 'proceder': SUNAT confirma que NO lo tiene → seguro reenviar
 
 
 def _programar_reintento_o_fallo(comp, emisor, db, codigo: str, mensaje: str):
-    """
-    Clasifica el error y, según política, reencola con ETA o marca como rechazado.
-    Llamar SIEMPRE después de incrementar comp.intentos_envio.
-    """
-    categoria = clasificar_error_sunat(codigo, mensaje)
+    """A2: clasifica la causa (clasificar_error_a2) y decide (decidir_reintento). Reintenta con
+    backoff corto en segundo plano, o marca rechazado con motivo claro. El anti-duplicado se hace
+    al inicio del task (getStatusCdr) antes de cada reenvío. Llamar tras incrementar intentos_envio."""
+    categoria = clasificar_error_a2(codigo, mensaje)
     intentos = comp.intentos_envio or 0
+    # getStatusCdr PAUSADO → perfil no usa historial; se pasa False (reservado para el rediseño).
+    accion = decidir_reintento(categoria, intentos, False, MAX_REINTENTOS)
 
-    if categoria == 'temporal' and intentos <= MAX_REINTENTOS_TEMPORALES:
-        idx = min(intentos - 1, len(BACKOFF_MINUTOS) - 1)
-        minutos = BACKOFF_MINUTOS[max(idx, 0)]
-        eta = datetime.now(timezone.utc) + timedelta(minutes=minutos)
+    logger.info("A2 %s-%s cat=%s accion=%s intentos=%d codigo=%s",
+                comp.serie, comp.numero, categoria, accion, intentos, codigo)
+    print(f"[A2] {comp.serie}-{comp.numero} cat={categoria} accion={accion} intentos={intentos} codigo={codigo}")
 
-        comp.estado = 'pendiente'
+    # 1033 "registrado previamente": SUNAT YA lo tiene registrado → marcar ACEPTADO, NO reenviar.
+    # (getStatusCdr PAUSADO: no recuperamos el CDR real todavía; queda pendiente para el rediseño.)
+    if accion == 'marcar_aceptado':
+        comp.estado = 'aceptado'
         comp.procesando_desde = None
-        comp.descripcion_respuesta = f"[temporal {codigo or '?'}] {mensaje}"[:500]
+        comp.descripcion_respuesta = ("SUNAT reporta que el comprobante ya estaba registrado "
+                                      "(código 1033) — se marca aceptado. CDR pendiente de recuperar.")[:500]
         db.commit()
-
-        logger.info(
-            "REINTENTO %s-%s codigo=%s eta=%dmin (%d/%d)",
-            comp.serie, comp.numero, codigo, minutos, intentos, MAX_REINTENTOS_TEMPORALES,
-        )
-        print(f"⏳ REINTENTO {comp.serie}-{comp.numero} en {minutos}min "
-              f"({intentos}/{MAX_REINTENTOS_TEMPORALES}) — {codigo}")
-
+        # Hook de stock idempotente (no-fatal), igual que en la aceptación normal.
         try:
-            celery_app.send_task(
-                'enviar_comprobante_sunat',
-                args=[str(comp.id)],
-                eta=eta,
-            )
+            from src.services.stock_service import descontar_por_comprobante
+            descontar_por_comprobante(db, comp.id)
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        logger.info("A2 %s-%s 1033 → aceptado (ya registrado en SUNAT, sin CDR)", comp.serie, comp.numero)
+        print(f"✅ A2 {comp.serie}-{comp.numero}: SUNAT ya lo tenía registrado (1033) → ACEPTADO")
+        return 'aceptado_1033'
+
+    if accion == 'reintentar':
+        seg = BACKOFF_SEGUNDOS[min(intentos, len(BACKOFF_SEGUNDOS) - 1)]
+        comp.estado = 'reintentando'
+        comp.procesando_desde = None
+        comp.descripcion_respuesta = (f"[{categoria} {codigo or '?'}] reintento {intentos + 1}/"
+                                      f"{MAX_REINTENTOS} en {seg}s — {mensaje}")[:500]
+        db.commit()
+        try:
+            celery_app.send_task('enviar_comprobante_sunat', args=[str(comp.id)], countdown=seg)
         except Exception as e:
             logger.exception("No se pudo encolar reintento: %s", e)
-
-        notificar_reintento_temporal(
-            comp, emisor, codigo, intentos,
-            MAX_REINTENTOS_TEMPORALES, minutos,
-        )
+        notificar_reintento_temporal(comp, emisor, codigo, intentos, MAX_REINTENTOS, max(seg // 60, 1))
         return 'retry_scheduled'
 
-    # Fallo definitivo
+    # Rechazos: 'rechazar' | 'rechazar_perfil' | 'rechazar_revision'
     comp.estado = 'rechazado'
     comp.procesando_desde = None
-    comp.descripcion_respuesta = (mensaje or '')[:500]
+    if accion == 'rechazar_perfil':
+        comp.descripcion_respuesta = (f"{mensaje} — verificar permisos SOL del usuario secundario")[:500]
+    elif accion == 'rechazar_revision':
+        comp.descripcion_respuesta = (f"[revisar] {mensaje}")[:500]
+    else:
+        comp.descripcion_respuesta = (mensaje or '')[:500]
     db.commit()
 
-    logger.info(
-        "FALLO DEFINITIVO %s-%s categoria=%s codigo=%s intentos=%d",
-        comp.serie, comp.numero, categoria, codigo, intentos,
-    )
-    print(f"🛑 FALLO DEFINITIVO {comp.serie}-{comp.numero} "
-          f"tipo={categoria} codigo={codigo} intentos={intentos}")
-
+    logger.info("A2 FALLO %s-%s cat=%s accion=%s codigo=%s", comp.serie, comp.numero, categoria, accion, codigo)
+    print(f"🛑 A2 RECHAZADO {comp.serie}-{comp.numero} accion={accion} codigo={codigo}")
     notificar_fallo_definitivo(comp, emisor, categoria, codigo)
     return 'terminal'
 
@@ -191,6 +301,18 @@ def enviar_comprobante_task(self, comprobante_id: str):
 
         comp.estado = 'enviando'
         db.commit()
+
+        # ============================
+        # A2 — ANTI-DUPLICADO por getStatusCdr: PAUSADO (A2_ANTIDUP_GETSTATUSCDR_ACTIVO=False).
+        # getStatusCdr no existe en beta y no cubre boletas → se reactiva tras el rediseño.
+        # (El código de _anti_duplicado_detener queda intacto para retomarlo.)
+        # ============================
+        if A2_ANTIDUP_GETSTATUSCDR_ACTIVO and _anti_duplicado_detener(comp, emisor, db):
+            return {
+                "exito": comp.estado in ('aceptado', 'aceptado_con_observaciones'),
+                "estado": comp.estado,
+                "id": comprobante_id,
+            }
 
         # ============================
         # OBTENER CERTIFICADO
