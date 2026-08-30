@@ -149,6 +149,7 @@
                                 <option value="4">C. Extranjería</option>
                                 <option value="0">Otros</option>
                             </select>
+                            <input id="cliente_tipo_doc_ruc" class="input" value="RUC" readonly hidden>  <!-- A4.2: visual para factura (RUC fijo) -->
                         </div>
                         <div class="input-group" style="flex: 0 0 200px;">
                             <label class="input-label">Número</label>
@@ -597,6 +598,33 @@ function poblarSeries() {
     serieSelect.innerHTML = opciones.map(s => `<option value="${s}">${s}</option>`).join('');
 }
 
+// A4.2 — Adapta el tipo de documento del RECEPTOR al tipo de comprobante (solo navegador).
+// Factura (01) → RUC fijo (input readonly). Boleta/Ticket/otros → DNI / C. Extranjería / Otros (sin RUC).
+// (El "12/Ticket" es un formato mal modelado como tipo; aquí se trata como boleta. El mis-modelado
+//  tipo↔formato se resuelve en otra tarea, no aquí.)
+function ajustarTipoDocReceptor() {
+    const tipo = document.getElementById('tipo_documento').value;
+    const sel  = document.getElementById('cliente_tipo_doc');
+    const ruc  = document.getElementById('cliente_tipo_doc_ruc');
+    const num  = document.getElementById('cliente_numero_doc');
+    if (!sel || !ruc) return;
+    const optRUC = sel.querySelector('option[value="6"]');
+
+    if (tipo === '01') {                                    // FACTURA → RUC fijo
+        if (num && sel.value !== '6') num.value = '';       // venía de no-RUC → limpiar número stale
+        if (optRUC) { optRUC.hidden = false; optRUC.disabled = false; }
+        sel.value = '6';
+        sel.hidden = true;                                  // se oculta el select…
+        ruc.hidden = false;                                 // …y se muestra el input readonly "RUC"
+    } else {                                                // BOLETA / Ticket / otros → sin RUC
+        if (optRUC) { optRUC.hidden = true; optRUC.disabled = true; }
+        if (sel.value === '6') { sel.value = '1'; if (num) num.value = ''; }  // RUC→DNI + limpiar
+        sel.hidden = false;
+        ruc.hidden = true;
+    }
+    sel.dispatchEvent(new Event('change'));                 // avisa a ruc-lookup.js (revalida el largo)
+}
+
 // Cambiar serie según tipo de documento
 document.getElementById('tipo_documento').addEventListener('change', (e) => {
     const tipo = e.target.value;
@@ -612,10 +640,12 @@ document.getElementById('tipo_documento').addEventListener('change', (e) => {
     }
 
     poblarSeries();
+    ajustarTipoDocReceptor();   // A4.2: adapta el tipo de doc del receptor al comprobante elegido
 });
 
 // Poblar al cargar la página según el tipo preseleccionado (Factura por defecto).
 poblarSeries();
+ajustarTipoDocReceptor();       // A4.2: estado inicial coherente (Factura por defecto → RUC readonly)
 
 // Lookup automático del cliente (RUC/DNI) — módulo compartido ruc-lookup.js.
 RucLookup.attach({
@@ -643,6 +673,21 @@ RucLookup.attach({
     }
 });
 
+// A4 — Validación del receptor (navegador). El servidor la repite como red de seguridad.
+function validarReceptor() {
+    const tipo = document.getElementById('tipo_documento').value;
+    const td = document.getElementById('cliente_tipo_doc').value;
+    const num = (document.getElementById('cliente_numero_doc').value || '').trim();
+    // FACTURA (01) exige RUC de 11 dígitos numéricos → BLOQUEA
+    if (tipo === '01' && (td !== '6' || !/^\d{11}$/.test(num))) {
+        return { bloquea: true, msg: 'Una factura requiere RUC (11 dígitos). Si el cliente solo tiene DNI, emita una boleta.' };
+    }
+    // Advertencias de longitud (no bloquean)
+    if (td === '6' && num && !/^\d{11}$/.test(num)) return { bloquea: false, msg: 'El RUC debe tener 11 dígitos numéricos.' };
+    if (td === '1' && num && !/^\d{8}$/.test(num)) return { bloquea: false, msg: 'El DNI debe tener 8 dígitos numéricos.' };
+    return { bloquea: false };
+}
+
 // Enviar formulario
 document.getElementById('form-emitir').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -669,7 +714,12 @@ document.getElementById('form-emitir').addEventListener('submit', async (e) => {
         btn.disabled = false;
         return;
     }
-    
+
+    // A4 — Validación del receptor: bloquea factura sin RUC; avisa longitudes incorrectas.
+    const _rv = validarReceptor();
+    if (_rv.bloquea) { toast.error('No se puede emitir', _rv.msg); btn.disabled = false; return; }
+    if (_rv.msg) { toast.warning('Revisa el documento', _rv.msg); }
+
     const data = {
         tipo_documento: document.getElementById('tipo_documento').value,
         serie: document.getElementById('serie').value,
