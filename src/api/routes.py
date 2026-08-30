@@ -639,7 +639,15 @@ async def emitir_comprobante(
         raise HTTPException(status_code=400, detail="Razón social del cliente es requerida")
     if not items:
         raise HTTPException(status_code=400, detail="Debe incluir al menos un item")
-    
+
+    # A4 — Validación del receptor (solo entrada; no toca XML ni el flujo SOAP).
+    # FACTURA (01) exige RUC de 11 dígitos numéricos. Boletas NO se tocan (regla actual intacta).
+    _num_doc = (cliente_numero_doc or '').strip()
+    if tipo_documento == '01' and (cliente_tipo_doc != '6' or not (_num_doc.isdigit() and len(_num_doc) == 11)):
+        raise HTTPException(status_code=400, detail=(
+            "Una factura requiere RUC (11 dígitos). "
+            "Si el cliente solo tiene DNI, emita una boleta."))
+
     emisor = await obtener_emisor_actual(request, db)
 
     if not emisor:
