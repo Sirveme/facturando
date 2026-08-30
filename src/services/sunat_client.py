@@ -291,7 +291,10 @@ def enviar_comprobante(
         print(f"[PROD] Enviando SOAP raw a {SUNAT_PROD_URL}")
 
         last_error = None
-        for attempt in range(3):
+        # A2 (bug #3): UN SOLO envío en producción. NO reenviar aquí — si SUNAT ya recibió y
+        # el timeout fue en la respuesta, reenviar duplicaría. El reintento controlado, con la
+        # verificación anti-duplicado (getStatusCdr), vive EXCLUSIVAMENTE en el task de Celery.
+        for attempt in range(1):
             try:
                 resp_bytes = _send_raw_soap(
                     SUNAT_PROD_URL, username, sol_password,
@@ -304,11 +307,7 @@ def enviar_comprobante(
 
             except Exception as e:
                 last_error = e
-                logger.warning("[PROD] Intento %d/3 falló: %s", attempt + 1, str(e))
-                if attempt < 2:
-                    wait = 3 * (attempt + 1)
-                    logger.info("Esperando %ds antes de reintentar...", wait)
-                    time.sleep(wait)
+                logger.warning("[PROD] Envío falló (sin reintento interno, lo maneja el task): %s", str(e))
 
         return {
             "codigo": None,
@@ -631,6 +630,113 @@ def _send_raw_get_status(endpoint_url: str, username: str, password: str,
         raise Exception(f"SUNAT SOAP Fault en getStatus: {fault_strs[0].text.strip()}")
 
     raise Exception(f"getStatus sin <content>; statusCode={status_code}; body={body_preview[:500]}")
+
+
+# =====================================================================
+# A2 — getStatusCdr: consulta el estado/CDR de un comprobante YA enviado
+# (por RUC + tipo + serie + numero). Red ANTI-DUPLICADOS antes de reenviar.
+# Aditivo, SOLO LECTURA. No toca el envío ni el XML/firma.
+#
+# 🚧 PAUSADO / NO ACTIVO EN EL FLUJO (a la espera de rediseño):
+#    - billConsultService/getStatusCdr NO existe en SUNAT BETA (solo producción) → no validable.
+#    - NO cubre BOLETAS (solo facturas y NC/ND).
+#    El gate anti-duplicado del task está apagado (A2_ANTIDUP_GETSTATUSCDR_ACTIVO=False).
+#    Este código queda intacto para retomarlo. NO se llama desde el flujo activo.
+# =====================================================================
+SUNAT_CONSULT_PROD_URL = "https://e-factura.sunat.gob.pe/ol-it-wsconscpegem/billConsultService"
+SUNAT_CONSULT_BETA_URL = "https://e-beta.sunat.gob.pe/ol-it-wsconscpegem-beta/billConsultService"
+
+# statusCode de getStatusCdr que indican "el comprobante NO existe" (seguro reenviar).
+# Se confirma/afina con la prueba en BETA. La detección primaria es por MENSAJE (más robusta).
+_GETSTATUSCDR_NO_EXISTE = {"0100", "0101", "0102", "0103", "0104"}
+
+
+def _interpretar_getstatuscdr(response_content: bytes) -> dict:
+    """Interpreta la respuesta SOAP de getStatusCdr. PURA (testeable sin red).
+
+    Retorna estado ∈ {'aceptado','rechazado','no_existe','incierto'}. Regla de oro anti-dup:
+    SOLO 'no_existe' habilita reenviar; 'incierto' NUNCA reenvía.
+    """
+    res = {'estado': 'incierto', 'status_code': None, 'status_msg': None,
+           'cdr_xml': None, 'codigo': None, 'descripcion': None}
+    try:
+        doc = etree.fromstring(response_content)
+    except Exception:
+        return res
+
+    def _t(name):
+        els = doc.xpath(".//*[local-name()='%s']" % name)
+        return els[0].text.strip() if els and els[0].text else None
+
+    res['status_code'] = _t('statusCode')
+    res['status_msg'] = _t('statusMessage') or _t('faultstring')
+    content = _t('content')
+
+    # Si SUNAT devuelve un CDR, el comprobante EXISTE: su propio CDR dice aceptado/rechazado.
+    if content:
+        try:
+            cdr_bytes = _try_unzip(base64.b64decode(content))
+            parsed = _parse_cdr(cdr_bytes)
+            res['cdr_xml'] = cdr_bytes
+            res['codigo'] = parsed.get('codigo')
+            res['descripcion'] = parsed.get('descripcion')
+            cod = str(parsed.get('codigo') or '')
+            res['estado'] = 'aceptado' if (cod == '0' or cod.startswith('2')) else 'rechazado'
+        except Exception:
+            res['estado'] = 'incierto'
+        return res
+
+    # Sin CDR: decidir por statusCode / mensaje. Conservador: si no es claramente
+    # "no existe", queda 'incierto' (y NO se reenvía).
+    sc = res['status_code'] or ''
+    msg = (res['status_msg'] or '').lower()
+    if sc in _GETSTATUSCDR_NO_EXISTE or 'no existe' in msg or 'no se encuentra' in msg \
+            or 'no ha sido' in msg or 'no fue' in msg:
+        res['estado'] = 'no_existe'
+    return res
+
+
+def consultar_estado_cdr(emisor_ruc, tipo, serie, numero,
+                         sol_usuario=None, sol_password=None, use_production=False):
+    """getStatusCdr(RUC, tipo, serie, numero). Devuelve el dict de _interpretar_getstatuscdr.
+    NO-FATAL: ante cualquier error de red/parseo → estado='incierto' (jamás habilita reenviar)."""
+    import requests
+
+    username = f"{emisor_ruc}{sol_usuario}" if sol_usuario else str(emisor_ruc)
+    endpoint = SUNAT_CONSULT_PROD_URL if use_production else SUNAT_CONSULT_BETA_URL
+    numero_str = str(numero)
+
+    envelope = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:ser="http://service.sunat.gob.pe"
+                  xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+  <soapenv:Header><wsse:Security><wsse:UsernameToken>
+    <wsse:Username>{username}</wsse:Username>
+    <wsse:Password>{sol_password or ''}</wsse:Password>
+  </wsse:UsernameToken></wsse:Security></soapenv:Header>
+  <soapenv:Body>
+    <ser:getStatusCdr>
+      <rucComprobante>{emisor_ruc}</rucComprobante>
+      <tipoComprobante>{tipo}</tipoComprobante>
+      <serieComprobante>{serie}</serieComprobante>
+      <numeroComprobante>{numero_str}</numeroComprobante>
+    </ser:getStatusCdr>
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+    headers = {'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '"urn:getStatusCdr"'}
+    try:
+        resp = requests.post(endpoint, data=envelope.encode('utf-8'), headers=headers, timeout=45)
+        out = _interpretar_getstatuscdr(resp.content)
+        logger.info("[GETSTATUSCDR] %s-%s-%s ruc=%s http=%s estado=%s statusCode=%s",
+                    tipo, serie, numero_str, emisor_ruc, resp.status_code, out['estado'], out['status_code'])
+        print(f"[GETSTATUSCDR] {serie}-{numero_str} -> estado={out['estado']} statusCode={out['status_code']}")
+        return out
+    except Exception as e:
+        logger.warning("[GETSTATUSCDR] error (incierto): %s", e)
+        print(f"[GETSTATUSCDR] ⚠️ error -> incierto: {e}")
+        return {'estado': 'incierto', 'status_code': None, 'status_msg': str(e),
+                'cdr_xml': None, 'codigo': None, 'descripcion': None}
 
 
 def enviar_resumen_diario(
