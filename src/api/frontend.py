@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Request, Form, HTTPException, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request, Form, HTTPException, Depends, UploadFile, File
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from pathlib import Path
 
 from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 
-from src.models.models import Comprobante, Emisor, LineaDetalle
+from src.models.models import Comprobante, Emisor, LineaDetalle, PagoVoucher
 from src.api.dependencies import get_db
 from src.api.auth_utils import obtener_emisor_actual
 from src.api.referencias_ui import COMP_ACEPTADOS  # ("aceptado", "aceptado_con_observaciones")
@@ -27,6 +28,100 @@ router = APIRouter()
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# PAGAR (Fase 1) — página pública simple: elegir plan + datos de pago +
+# subir voucher. El pago NO es restrictivo: la cuenta se activa igual.
+# NO toca facturación (routers/flujo de emisión intactos).
+#
+# HOOK (fase futura — NO implementado aquí): motor de pagos con cascada
+# pagoOK (3s) → email banco (10s) → voucher (3s). Cuando exista, este POST
+# encolaría la validación; por ahora solo persiste el voucher.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Precios oficiales (soles) — fuente única para validar el monto declarado.
+_PLANES_PRECIOS = {
+    "emprendedor": {"mensual": 29, "anual": 290},
+    "negocio":     {"mensual": 55, "anual": 550},
+}
+
+
+@router.get("/pagar", response_class=HTMLResponse)
+async def pagar_page(request: Request):
+    """Página pública de pago (Fase 1)."""
+    return templates.TemplateResponse("pagar.html", {"request": request})
+
+
+@router.post("/pagar/voucher")
+async def pagar_voucher(
+    request: Request,
+    plan: str = Form(""),
+    periodicidad: str = Form(""),
+    monto: str = Form(""),
+    titular: str = Form(""),
+    ruc: str = Form(""),
+    telefono: str = Form(""),
+    metodo: str = Form(""),
+    voucher: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Recibe el comprobante de pago (imagen) y lo guarda como BLOB.
+
+    Responde con la confirmación de ACTIVACIÓN INMEDIATA. No depende de
+    autenticación: el titular se indica manualmente en el formulario.
+    """
+    # Normalizar/validar entradas suaves (nunca bloquean la activación por
+    # datos secundarios; solo se validan la imagen y su tamaño).
+    plan = (plan or "").strip().lower()
+    periodicidad = (periodicidad or "").strip().lower()
+    if plan not in _PLANES_PRECIOS:
+        plan = None
+    if periodicidad not in ("mensual", "anual"):
+        periodicidad = None
+
+    # Monto: preferimos el precio oficial si plan+periodicidad son válidos;
+    # el 'monto' del form es informativo (lo calcula el JS).
+    monto_val = None
+    if plan and periodicidad:
+        monto_val = Decimal(str(_PLANES_PRECIOS[plan][periodicidad]))
+    else:
+        try:
+            monto_val = Decimal((monto or "").replace("S/", "").replace(",", "").strip())
+        except (InvalidOperation, ValueError):
+            monto_val = None
+
+    # Validar imagen (mismo criterio que el logo del emisor)
+    allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
+    if voucher.content_type not in allowed:
+        raise HTTPException(400, detail="Sube una imagen PNG, JPG o WebP del voucher.")
+    data = await voucher.read()
+    if not data:
+        raise HTTPException(400, detail="El archivo del voucher está vacío.")
+    if len(data) > 5_000_000:  # 5 MB, holgado para fotos de celular
+        raise HTTPException(400, detail="La imagen no debe superar 5 MB.")
+
+    registro = PagoVoucher(
+        plan=plan,
+        periodicidad=periodicidad,
+        monto=monto_val,
+        titular=(titular or "").strip()[:160] or None,
+        ruc=(ruc or "").strip()[:15] or None,
+        telefono=(telefono or "").strip()[:30] or None,
+        metodo=(metodo or "").strip().lower()[:20] or None,
+        imagen=data,
+        imagen_content_type=voucher.content_type,
+        imagen_filename=(voucher.filename or "")[:200] or None,
+        estado="pendiente",
+    )
+    db.add(registro)
+    db.commit()
+
+    return JSONResponse({
+        "exito": True,
+        "mensaje": "Validaremos tu pago, pero TU CUENTA YA ESTÁ ACTIVA.",
+        "id": registro.id,
+    })
 
 @router.get("/desarrolladores", response_class=HTMLResponse)
 async def desarrolladores(request: Request):
