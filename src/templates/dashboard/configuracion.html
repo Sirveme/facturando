@@ -5,168 +5,103 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v={{ APP_VERSION }}">
 <style>
-    .config-section {
-        margin-bottom: var(--space-8);
-    }
-    .config-section .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .status-badge {
-        padding: var(--space-2) var(--space-4);
-        border-radius: var(--radius-full);
-        font-size: var(--text-sm);
-        font-weight: var(--weight-medium);
-    }
-    .status-success {
-        background: var(--success-light);
-        color: var(--success-text);
-    }
-    .status-error {
-        background: var(--danger-light);
-        color: var(--danger-text);
-    }
-    .status-warning {
-        background: var(--warning-light);
-        color: var(--warning-text);
-    }
-    .cert-info {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: var(--space-2) var(--space-4);
-        font-size: var(--text-sm);
-    }
-    .cert-info dt {
-        color: var(--text-secondary);
-    }
-    .cert-info dd {
-        color: var(--text-primary);
-        font-weight: var(--weight-medium);
-    }
-    .upload-area {
-        border: 2px dashed var(--border-color);
-        border-radius: var(--radius-lg);
-        padding: var(--space-8);
-        text-align: center;
-        transition: all var(--transition-base);
-    }
-    .upload-area:hover {
-        border-color: var(--primary);
-        background: var(--bg-tertiary);
-    }
-    .upload-area input[type="file"] {
-        display: none;
-    }
-    .upload-icon {
-        font-size: 48px;
-        margin-bottom: var(--space-4);
-    }
+  /* ===== Excel Perú Sistemas Pro — SCOPEADO bajo .cfg-xls (cero impacto global) ===== */
+  .cfg-xls{
+    --xls-bg:#0A1410; --xls-panel:#0E1B15; --xls-row:#0C1712; --xls-row-alt:#101E18; --xls-input:#13241C;
+    --xls-border:#217346; --xls-border-strong:#2E9C5E; --xls-verde:#2ECC71; --xls-verde-excel:#217346;
+    --xls-text:#E6EDE9; --xls-dim:#94A69C; --xls-faint:#61756B; --xls-dorado:#F4B400; --xls-rojo:#D42020; --xls-label:#3DBB73;
+    color:var(--xls-text); font-size:13.5px; line-height:1.5;
+  }
+  .cfg-xls *{ box-sizing:border-box; }
 
-    /* Formato Options */
-    .formato-options {
-        display: flex;
-        gap: var(--space-4);
-        flex-wrap: wrap;
-    }
+  .xls-book{ border:1px solid var(--xls-border); background:var(--xls-bg); max-width:920px; }
+  .xls-titlebar{ background:var(--xls-verde-excel); color:#fff; padding:11px 16px; font-weight:700; letter-spacing:1px;
+    display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .xls-titlebar .sub{ font-weight:400; font-size:12px; opacity:.9; }
 
-    .formato-option {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        padding: var(--space-4);
-        background: var(--bg-tertiary);
-        border: 2px solid var(--border-color);
-        border-radius: var(--radius-lg);
-        cursor: pointer;
-        transition: all var(--transition-base);
-        min-width: 160px;
-    }
+  .xls-sheets{ background:var(--xls-bg); min-height:360px; }
+  .sheet{ display:none; padding:22px 18px; }
+  .sheet.active{ display:block; }
+  .sheet h4{ font-size:15px; font-weight:800; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+  .sheet .lead{ color:var(--xls-dim); font-size:13px; margin-bottom:18px; }
 
-    .formato-option:hover {
-        border-color: var(--primary);
-    }
+  /* Tabla estilo Excel */
+  .xls-table{ width:100%; border-collapse:collapse; margin-bottom:12px; }
+  .xls-table th{ background:var(--xls-row); border:1px solid var(--xls-border); padding:9px 12px; text-align:left;
+    color:var(--xls-label); font-weight:700; width:200px; white-space:nowrap; }
+  .xls-table td{ border:1px solid var(--xls-border); padding:9px 12px; color:var(--xls-text); }
+  .xls-note{ color:var(--xls-faint); font-size:12px; margin-top:8px; }
 
-    .formato-option.active,
-    .formato-option:has(input:checked) {
-        border-color: var(--primary);
-        background: rgba(212, 175, 55, 0.1);
-    }
+  /* Inputs */
+  .xls-field{ margin-bottom:16px; }
+  .xls-field > label{ display:block; color:var(--xls-dim); font-size:12.5px; font-weight:600; margin-bottom:6px; }
+  .xls-in{ width:100%; background:var(--xls-input); border:1px solid var(--xls-border); color:var(--xls-text);
+    padding:10px 12px; font-size:14px; font-family:inherit; }
+  .xls-in:focus{ outline:none; border-color:var(--xls-border-strong); }
+  .xls-hint{ display:block; color:var(--xls-faint); font-size:11.5px; margin-top:4px; }
+  .xls-row2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 
-    .formato-option input {
-        display: none;
-    }
+  /* Botones */
+  .xls-btn{ display:inline-flex; align-items:center; gap:8px; background:var(--xls-verde);
+    border:2px solid #1a9e54; border-bottom-width:4px; border-right-width:4px; color:#04250f;
+    font-weight:800; font-size:14px; padding:11px 22px; cursor:pointer; }
+  .xls-btn:active{ transform:translate(2px,2px); border-bottom-width:2px; border-right-width:2px; }
+  .xls-btn:disabled{ opacity:.55; cursor:not-allowed; }
 
-    .formato-icon {
-        font-size: 32px;
-    }
+  /* Badges */
+  .xls-badge{ font-size:12px; font-weight:700; padding:5px 12px; border:1px solid; white-space:nowrap; }
+  .xls-badge.ok{ color:var(--xls-verde); border-color:var(--xls-border-strong); background:var(--xls-row); }
+  .xls-badge.warn{ color:var(--xls-dorado); border-color:var(--xls-dorado); background:var(--xls-row); }
+  .xls-badge.err{ color:var(--xls-rojo); border-color:var(--xls-rojo); background:var(--xls-row); }
 
-    .formato-info {
-        display: flex;
-        flex-direction: column;
-    }
+  .sheet-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
 
-    .formato-info strong {
-        color: var(--text-primary);
-    }
+  /* Upload area (certificado / logo) */
+  .xls-drop{ border:2px dashed var(--xls-border-strong); background:var(--xls-row); padding:24px 16px; text-align:center; cursor:pointer; }
+  .xls-drop:hover{ background:var(--xls-row-alt); }
+  .xls-drop .ic{ font-size:40px; color:var(--xls-label); margin-bottom:8px; }
+  .xls-drop .t{ color:var(--xls-dim); font-size:13px; } .xls-drop .t b{ color:var(--xls-label); }
+  .xls-drop input[type=file]{ display:none; }
+  .xls-selfile{ color:var(--xls-verde); font-size:12.5px; margin-top:10px; }
 
-    .formato-info span {
-        font-size: var(--text-sm);
-        color: var(--text-secondary);
-    }
+  /* Formatos */
+  .fmt-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; }
+  .fmt-item{ border:1px solid var(--xls-border); background:var(--xls-row); padding:14px; }
+  .fmt-item .fl{ display:block; font-weight:700; color:var(--xls-text); margin-bottom:10px; }
+  .fmt-opts{ display:flex; gap:8px; }
+  .fmt-opt{ flex:1; text-align:center; border:1px solid var(--xls-border); background:var(--xls-input);
+    color:var(--xls-dim); padding:8px 4px; cursor:pointer; font-size:13px; font-weight:600; }
+  .fmt-opt:hover{ border-color:var(--xls-border-strong); }
+  .fmt-opt input{ display:none; }
+  .fmt-opt:has(input:checked){ background:var(--xls-verde-excel); color:#fff; border-color:var(--xls-verde); }
 
-    /* Formato Grid */
-    .formato-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--space-6);
-    }
+  /* Logo preview */
+  .logo-box{ display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; margin-bottom:8px; }
+  .logo-prev{ width:150px; height:110px; border:1px solid var(--xls-border); background:var(--xls-row);
+    display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; }
+  .logo-prev img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .logo-prev .ph{ color:var(--xls-faint); font-size:12px; text-align:center; padding:8px; }
+  .logo-upl{ flex:1; min-width:220px; }
 
-    .formato-item {
-        background: var(--bg-tertiary);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-lg);
-        padding: var(--space-4);
-    }
+  /* Próximamente */
+  .soon-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .soon{ border:1px dashed var(--xls-border-strong); background:var(--xls-row); padding:20px 16px; text-align:center; }
+  .soon .ic{ font-size:30px; margin-bottom:8px; }
+  .soon b{ display:block; font-size:14px; margin-bottom:4px; }
+  .soon p{ color:var(--xls-dim); font-size:12px; margin-bottom:10px; }
+  .soon .tag{ display:inline-block; background:var(--xls-verde-excel); color:#fff; font-size:10px; font-weight:700;
+    padding:3px 10px; letter-spacing:.5px; }
 
-    .formato-label {
-        display: block;
-        font-weight: var(--weight-semibold);
-        color: var(--text-primary);
-        margin-bottom: var(--space-3);
-    }
+  /* Pestañas (hojas de Excel) ABAJO */
+  .xls-tabs{ display:flex; gap:2px; background:var(--xls-verde-excel); padding:2px 6px 0; flex-wrap:wrap; border-top:1px solid var(--xls-border); }
+  .xls-tab{ background:var(--xls-row); border:1px solid var(--xls-border); border-bottom:none; color:var(--xls-dim);
+    padding:9px 16px; cursor:pointer; font-size:12.5px; font-weight:700; display:flex; align-items:center; gap:7px; }
+  .xls-tab:hover{ color:var(--xls-text); background:var(--xls-row-alt); }
+  .xls-tab.active{ background:var(--xls-bg); color:var(--xls-verde); border-color:var(--xls-border-strong); position:relative; top:1px; }
+  .xls-tab .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .xls-tab .dot.ok{ background:var(--xls-verde); } .xls-tab .dot.no{ background:var(--xls-rojo); }
 
-    .formato-radios {
-        display: flex;
-        gap: var(--space-3);
-    }
-
-    .formato-radio {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        padding: var(--space-2) var(--space-3);
-        background: var(--bg-secondary);
-        border: 2px solid var(--border-color);
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        transition: all var(--transition-base);
-        font-size: var(--text-sm);
-        color: var(--text-primary);
-    }
-
-    .formato-radio:hover {
-        border-color: var(--primary);
-    }
-
-    .formato-radio:has(input:checked) {
-        border-color: var(--primary);
-        background: rgba(212, 175, 55, 0.15);
-    }
-
-    .formato-radio input {
-        display: none;
-    }
+  @media(max-width:640px){ .xls-row2{ grid-template-columns:1fr; } .xls-tab{ padding:9px 11px; } }
 </style>
 {% endblock %}
 
@@ -180,7 +115,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
             </button>
-            
+
             <a href="/dashboard" class="header-logo">
                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                     <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
@@ -195,7 +130,7 @@
                 <span>facturalo.pro</span>
             </a>
         </div>
-        
+
         <div class="header-right">
             <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
                 <svg class="icon-sun" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,7 +140,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                 </svg>
             </button>
-            
+
             <div class="header-user">
                 <div class="avatar">
                     <span>{{ user_ruc[:2] if user_ruc else '??' }}</span>
@@ -217,231 +152,225 @@
             </div>
         </div>
     </header>
-    
+
     <!-- Sidebar -->
         {% include 'partials/_sidebar.html' %}
-    
+
     <!-- Main -->
     <main class="main">
         <div class="page-header">
             <h1 class="page-title" style="color: var(--primary) !important;">Configuración</h1>
-            <p class="page-description" style="color: var(--primary) !important;">Configura tu certificado digital y credenciales SUNAT</p>
+            <p class="page-description" style="color: var(--primary) !important;">Tu libro de configuración — cambia de hoja abajo</p>
         </div>
-        
-        <!-- Datos del Emisor -->
-        <section class="config-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">📋 Datos del Emisor</h3>
-                </div>
-                <div class="card-body">
-                    <dl class="cert-info">
-                        <dt>RUC:</dt>
-                        <dd>{{ emisor.ruc }}</dd>
-                        <dt>Razón Social:</dt>
-                        <dd>{{ emisor.razon_social }}</dd>
-                        <dt>Dirección:</dt>
-                        <dd>{{ emisor.direccion or 'No configurada' }}</dd>
-                    </dl>
-                </div>
-            </div>
-        </section>
 
-        <!-- Certificado Digital -->
-        <section class="config-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">🔐 Certificado Digital</h3>
-                    {% if certificado and certificado.activo %}
-                        {% if certificado_dias_restantes is not none and certificado_dias_restantes > 30 %}
-                            <span class="status-badge status-success">✅ Vigente hasta {{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>
-                        {% elif certificado_dias_restantes is not none and certificado_dias_restantes > 0 %}
-                            <span class="status-badge status-warning">⚠️ Vence en {{ certificado_dias_restantes }} días</span>
-                        {% elif certificado_dias_restantes is not none %}
-                            <span class="status-badge status-error">❌ Vencido</span>
-                        {% else %}
-                            <span class="status-badge status-success">✅ Vigente hasta {{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') if certificado.fecha_vencimiento else 'N/A' }}</span>
-                        {% endif %}
-                    {% else %}
-                        <span class="status-badge status-error">❌ No configurado</span>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    {% if certificado and certificado.activo %}
-                    <dl class="cert-info" style="margin-bottom: var(--space-6);">
-                        <dt>Serial:</dt>
-                        <dd>{{ certificado.serial_number[:30] }}...</dd>
-                        <dt>Válido hasta:</dt>
-                        <dd>{{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') if certificado.fecha_vencimiento else 'N/A' }}</dd>
-                        <dt>Cargado:</dt>
-                        <dd>{{ certificado.creado_en.strftime('%d/%m/%Y %H:%M') if certificado.creado_en else 'N/A' }}</dd>
-                    </dl>
-                    {% endif %}
-                    
-                    <form id="form-certificado" enctype="multipart/form-data">
-                        <div class="upload-area" id="upload-area">
-                            <div class="upload-icon">📁</div>
-                            <p style="color: var(--primary);"><strong>Arrastra tu certificado aquí</strong></p>
-                            <p class="text-tertiary" style="color: var(--text-tertiary);">o haz clic para seleccionar</p>
-                            <p class="text-tertiary" style="color: var(--text-tertiary); font-size: 12px; margin-top: 8px;">Formatos: .pfx, .p12</p>
-                            <input type="file" id="archivo-cert" name="archivo" accept=".pfx,.p12">
-                        </div>
-                        
-                        <div id="archivo-seleccionado" style="display: none; margin-top: var(--space-4);">
-                            <p><strong>Archivo:</strong> <span id="nombre-archivo"></span></p>
-                        </div>
-                        
-                        <div class="input-group" style="margin-top: var(--space-4);">
-                            <label class="input-label">Contraseña del certificado</label>
-                            <input type="password" id="password-cert" name="password" class="input" placeholder="Ingresa la contraseña del .pfx">
-                        </div>
-                        
-                        <div style="margin-top: var(--space-4);">
-                            <button type="submit" class="btn btn-primary" id="btn-subir-cert">
-                                🔐 Cargar Certificado
-                            </button>
-                        </div>
-                    </form>
-                </div>
+        <div class="cfg-xls">
+          <div class="xls-book">
+            <div class="xls-titlebar">
+              <span>⚙️ CONFIGURACIÓN</span>
+              <span class="sub">RUC {{ emisor.ruc }} · {{ emisor.razon_social }}</span>
             </div>
-        </section>
-        
-        <!-- Credenciales SOL -->
-        <section class="config-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">🔑 Credenciales SUNAT (SOL)</h3>
-                    {% if emisor.usuario_sol %}
-                        <span class="status-badge status-success">✅ Configurado</span>
-                    {% else %}
-                        <span class="status-badge status-error">❌ No configurado</span>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    <form id="form-credenciales">
-                        <div class="form-row">
-                            <div class="input-group">
-                                <label class="input-label">Usuario SOL</label>
-                                <input type="text" id="usuario-sol" name="usuario_sol" class="input" 
-                                       placeholder="MODDATOS" value="{{ emisor.usuario_sol or '' }}">
-                                <small class="text-secondary">Ej: MODDATOS (sin el RUC)</small>
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label">Clave SOL</label>
-                                <input type="password" id="clave-sol" name="clave_sol" class="input" 
-                                       placeholder="••••••••">
-                                <small class="text-secondary">{{ 'Ya configurada' if emisor.clave_sol else 'No configurada' }}</small>
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: var(--space-4);">
-                            <button type="submit" class="btn btn-primary" id="btn-guardar-sol">
-                                💾 Guardar Credenciales
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </section>
 
-        <!-- Formato de Impresión -->
-        <section class="config-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">🖨️ Formato de Impresión</h3>
+            <div class="xls-sheets">
+
+              <!-- HOJA: EMISOR -->
+              <section class="sheet active" data-sheet="emisor">
+                <h4>📋 Datos del Emisor</h4>
+                <p class="lead">Provienen de tu registro en SUNAT.</p>
+                <table class="xls-table">
+                  <tr><th>RUC</th><td>{{ emisor.ruc }}</td></tr>
+                  <tr><th>Razón Social</th><td>{{ emisor.razon_social }}</td></tr>
+                  <tr><th>Nombre Comercial</th><td>{{ emisor.nombre_comercial or '—' }}</td></tr>
+                  <tr><th>Dirección</th><td>{{ emisor.direccion or 'No configurada' }}</td></tr>
+                </table>
+                <p class="xls-note">Para modificar estos datos, escríbenos por soporte.</p>
+              </section>
+
+              <!-- HOJA: CERTIFICADO -->
+              <section class="sheet" data-sheet="certificado">
+                <div class="sheet-head">
+                  <h4>🔐 Certificado Digital</h4>
+                  {% if certificado and certificado.activo %}
+                    {% if certificado_dias_restantes is not none and certificado_dias_restantes > 30 %}
+                      <span class="xls-badge ok">✅ Vigente hasta {{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>
+                    {% elif certificado_dias_restantes is not none and certificado_dias_restantes > 0 %}
+                      <span class="xls-badge warn">⚠️ Vence en {{ certificado_dias_restantes }} días</span>
+                    {% elif certificado_dias_restantes is not none %}
+                      <span class="xls-badge err">❌ Vencido</span>
+                    {% else %}
+                      <span class="xls-badge ok">✅ Vigente hasta {{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') if certificado.fecha_vencimiento else 'N/A' }}</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="xls-badge err">❌ No configurado</span>
+                  {% endif %}
                 </div>
-                <div class="card-body">
-                    <p class="text-secondary" style="margin-bottom: var(--space-6);">
-                        Configura el formato de impresión para cada tipo de comprobante
-                    </p>
-                    <form id="form-formato">
-                        <div class="formato-grid">
-                            <!-- Facturas -->
-                            <div class="formato-item">
-                                <label class="formato-label">📄 Facturas</label>
-                                <div class="formato-radios">
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_factura" value="A4" {% if emisor.formato_factura == 'A4' or not emisor.formato_factura %}checked{% endif %}>
-                                        <span>A4</span>
-                                    </label>
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_factura" value="A5" {% if emisor.formato_factura == 'A5' %}checked{% endif %}>
-                                        <span>A5</span>
-                                    </label>
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_factura" value="TICKET" {% if emisor.formato_factura == 'TICKET' %}checked{% endif %}>
-                                        <span>Ticket</span>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <!-- Boletas -->
-                            <div class="formato-item">
-                                <label class="formato-label">🧾 Boletas</label>
-                                <div class="formato-radios">
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_boleta" value="A4" {% if emisor.formato_boleta == 'A4' or not emisor.formato_boleta %}checked{% endif %}>
-                                        <span>A4</span>
-                                    </label>
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_boleta" value="A5" {% if emisor.formato_boleta == 'A5' %}checked{% endif %}>
-                                        <span>A5</span>
-                                    </label>
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_boleta" value="TICKET" {% if emisor.formato_boleta == 'TICKET' %}checked{% endif %}>
-                                        <span>Ticket</span>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <!-- Tickets -->
-                            <div class="formato-item">
-                                <label class="formato-label">🎫 Tickets</label>
-                                <div class="formato-radios">
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_ticket" value="TICKET" {% if emisor.formato_ticket == 'TICKET' or not emisor.formato_ticket %}checked{% endif %}>
-                                        <span>Ticket</span>
-                                    </label>
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_ticket" value="A5" {% if emisor.formato_ticket == 'A5' %}checked{% endif %}>
-                                        <span>A5</span>
-                                    </label>
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_ticket" value="A4" {% if emisor.formato_ticket == 'A4' %}checked{% endif %}>
-                                        <span>A4</span>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <!-- NC/ND -->
-                            <div class="formato-item">
-                                <label class="formato-label">📝 Notas C/D</label>
-                                <div class="formato-radios">
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_nc_nd" value="A4" {% if emisor.formato_nc_nd == 'A4' or not emisor.formato_nc_nd %}checked{% endif %}>
-                                        <span>A4</span>
-                                    </label>
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_nc_nd" value="A5" {% if emisor.formato_nc_nd == 'A5' %}checked{% endif %}>
-                                        <span>A5</span>
-                                    </label>
-                                    <label class="formato-radio">
-                                        <input type="radio" name="formato_nc_nd" value="TICKET" {% if emisor.formato_nc_nd == 'TICKET' %}checked{% endif %}>
-                                        <span>Ticket</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: var(--space-6);">
-                            <button type="submit" class="btn btn-primary" id="btn-guardar-formato">
-                                💾 Guardar Formatos
-                            </button>
-                        </div>
-                    </form>
+
+                {% if certificado and certificado.activo %}
+                <table class="xls-table">
+                  <tr><th>Serial</th><td>{{ certificado.serial_number[:30] }}...</td></tr>
+                  <tr><th>Válido hasta</th><td>{{ certificado.fecha_vencimiento.strftime('%d/%m/%Y') if certificado.fecha_vencimiento else 'N/A' }}</td></tr>
+                  <tr><th>Cargado</th><td>{{ certificado.creado_en.strftime('%d/%m/%Y %H:%M') if certificado.creado_en else 'N/A' }}</td></tr>
+                </table>
+                {% endif %}
+
+                <form id="form-certificado" enctype="multipart/form-data" style="margin-top:14px">
+                  <div class="xls-drop" id="upload-area">
+                    <div class="ic">📁</div>
+                    <div class="t"><b>Arrastra tu certificado aquí</b> o haz clic para seleccionar<br>Formatos: .pfx, .p12</div>
+                    <input type="file" id="archivo-cert" name="archivo" accept=".pfx,.p12">
+                    <div class="xls-selfile" id="archivo-seleccionado" style="display:none">Archivo: <span id="nombre-archivo"></span></div>
+                  </div>
+                  <div class="xls-field" style="margin-top:16px">
+                    <label>Contraseña del certificado</label>
+                    <input type="password" id="password-cert" name="password" class="xls-in" placeholder="Contraseña del .pfx">
+                  </div>
+                  <button type="submit" class="xls-btn" id="btn-subir-cert">🔐 Cargar Certificado</button>
+                </form>
+              </section>
+
+              <!-- HOJA: SOL -->
+              <section class="sheet" data-sheet="sol">
+                <div class="sheet-head">
+                  <h4>🔑 Credenciales SUNAT (SOL)</h4>
+                  {% if emisor.sol_usuario %}
+                    <span class="xls-badge ok">✅ Configurado</span>
+                  {% else %}
+                    <span class="xls-badge err">❌ No configurado</span>
+                  {% endif %}
                 </div>
+                <form id="form-credenciales">
+                  <div class="xls-row2">
+                    <div class="xls-field">
+                      <label>Usuario SOL</label>
+                      <input type="text" id="usuario-sol" name="usuario_sol" class="xls-in" placeholder="MODDATOS" value="{{ emisor.sol_usuario or '' }}">
+                      <span class="xls-hint">Ej: MODDATOS (sin el RUC)</span>
+                    </div>
+                    <div class="xls-field">
+                      <label>Clave SOL</label>
+                      <input type="password" id="clave-sol" name="clave_sol" class="xls-in" placeholder="••••••••">
+                      <span class="xls-hint">{{ 'Ya configurada' if emisor.sol_password else 'No configurada' }}</span>
+                    </div>
+                  </div>
+                  <button type="submit" class="xls-btn" id="btn-guardar-sol">💾 Guardar Credenciales</button>
+                </form>
+              </section>
+
+              <!-- HOJA: FORMATOS -->
+              <section class="sheet" data-sheet="formatos">
+                <h4>🖨️ Formato de Impresión</h4>
+                <p class="lead">Elige el formato por tipo de comprobante.</p>
+                <form id="form-formato">
+                  <div class="fmt-grid">
+                    <div class="fmt-item">
+                      <span class="fl">📄 Facturas</span>
+                      <div class="fmt-opts">
+                        <label class="fmt-opt"><input type="radio" name="formato_factura" value="A4" {% if emisor.formato_factura == 'A4' or not emisor.formato_factura %}checked{% endif %}><span>A4</span></label>
+                        <label class="fmt-opt"><input type="radio" name="formato_factura" value="A5" {% if emisor.formato_factura == 'A5' %}checked{% endif %}><span>A5</span></label>
+                        <label class="fmt-opt"><input type="radio" name="formato_factura" value="TICKET" {% if emisor.formato_factura == 'TICKET' %}checked{% endif %}><span>Ticket</span></label>
+                      </div>
+                    </div>
+                    <div class="fmt-item">
+                      <span class="fl">🧾 Boletas</span>
+                      <div class="fmt-opts">
+                        <label class="fmt-opt"><input type="radio" name="formato_boleta" value="A4" {% if emisor.formato_boleta == 'A4' or not emisor.formato_boleta %}checked{% endif %}><span>A4</span></label>
+                        <label class="fmt-opt"><input type="radio" name="formato_boleta" value="A5" {% if emisor.formato_boleta == 'A5' %}checked{% endif %}><span>A5</span></label>
+                        <label class="fmt-opt"><input type="radio" name="formato_boleta" value="TICKET" {% if emisor.formato_boleta == 'TICKET' %}checked{% endif %}><span>Ticket</span></label>
+                      </div>
+                    </div>
+                    <div class="fmt-item">
+                      <span class="fl">🎫 Tickets</span>
+                      <div class="fmt-opts">
+                        <label class="fmt-opt"><input type="radio" name="formato_ticket" value="TICKET" {% if emisor.formato_ticket == 'TICKET' or not emisor.formato_ticket %}checked{% endif %}><span>Ticket</span></label>
+                        <label class="fmt-opt"><input type="radio" name="formato_ticket" value="A5" {% if emisor.formato_ticket == 'A5' %}checked{% endif %}><span>A5</span></label>
+                        <label class="fmt-opt"><input type="radio" name="formato_ticket" value="A4" {% if emisor.formato_ticket == 'A4' %}checked{% endif %}><span>A4</span></label>
+                      </div>
+                    </div>
+                    <div class="fmt-item">
+                      <span class="fl">📝 Notas C/D</span>
+                      <div class="fmt-opts">
+                        <label class="fmt-opt"><input type="radio" name="formato_nc_nd" value="A4" {% if emisor.formato_nc_nd == 'A4' or not emisor.formato_nc_nd %}checked{% endif %}><span>A4</span></label>
+                        <label class="fmt-opt"><input type="radio" name="formato_nc_nd" value="A5" {% if emisor.formato_nc_nd == 'A5' %}checked{% endif %}><span>A5</span></label>
+                        <label class="fmt-opt"><input type="radio" name="formato_nc_nd" value="TICKET" {% if emisor.formato_nc_nd == 'TICKET' %}checked{% endif %}><span>Ticket</span></label>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="submit" class="xls-btn" id="btn-guardar-formato" style="margin-top:16px">💾 Guardar Formatos</button>
+                </form>
+              </section>
+
+              <!-- HOJA: COMPROBANTE (Logo + marca) -->
+              <section class="sheet" data-sheet="comprobante">
+                <h4>🎨 Enriquecer Comprobante</h4>
+                <p class="lead">Tu logo y datos de contacto aparecen en la representación impresa.</p>
+
+                <!-- Logo -->
+                <form id="form-logo" enctype="multipart/form-data" style="margin-bottom:26px">
+                  <div class="logo-box">
+                    <div class="logo-prev">
+                      <img id="logo-preview" src="/api/configuracion/logo?v={{ APP_VERSION }}" alt="Logo actual"
+                           onerror="this.style.display='none'; document.getElementById('logo-ph').style.display='block';">
+                      <div class="ph" id="logo-ph" style="display:none">Sin logo<br>cargado</div>
+                    </div>
+                    <div class="logo-upl">
+                      <div class="xls-drop" id="logo-drop">
+                        <div class="ic">🖼️</div>
+                        <div class="t"><b>Sube tu logo</b> (PNG, JPG o WebP · máx 500 KB)</div>
+                        <input type="file" id="archivo-logo" name="logo" accept="image/png,image/jpeg,image/webp">
+                        <div class="xls-selfile" id="logo-selfile" style="display:none"></div>
+                      </div>
+                      <button type="submit" class="xls-btn" id="btn-subir-logo" style="margin-top:14px">🖼️ Guardar Logo</button>
+                    </div>
+                  </div>
+                </form>
+
+                <!-- Datos de marca -->
+                <form id="form-comprobante">
+                  <div class="xls-row2">
+                    <div class="xls-field">
+                      <label>Teléfono</label>
+                      <input type="text" id="cmp-telefono" name="telefono" class="xls-in" placeholder="Ej. 065 123456 / 9XX XXX XXX" value="{{ emisor.telefono or '' }}">
+                    </div>
+                    <div class="xls-field">
+                      <label>Web</label>
+                      <input type="text" id="cmp-web" name="web" class="xls-in" placeholder="Ej. www.minegocio.pe" value="{{ emisor.web or '' }}">
+                    </div>
+                  </div>
+                  <div class="xls-field">
+                    <label>Eslogan / Lema</label>
+                    <input type="text" id="cmp-lema" name="lema" class="xls-in" placeholder="Ej. Calidad y confianza para tu negocio" value="{{ emisor.lema or '' }}" maxlength="200">
+                    <span class="xls-hint">Aparece bajo tu razón social en el comprobante.</span>
+                  </div>
+                  <button type="submit" class="xls-btn" id="btn-guardar-comprobante">💾 Guardar Datos</button>
+                </form>
+              </section>
+
+              <!-- HOJA: PRÓXIMAMENTE -->
+              <section class="sheet" data-sheet="proximamente">
+                <h4>🧭 Próximamente</h4>
+                <p class="lead">Funciones en camino para tu cuenta.</p>
+                <div class="soon-grid">
+                  <div class="soon"><div class="ic">🏢</div><b>Sucursales</b><p>Gestiona sedes y su serie activa por establecimiento.</p><span class="tag">EN CAMINO</span></div>
+                  <div class="soon"><div class="ic">👥</div><b>Usuarios / Accesos</b><p>Varias cuentas de acceso, cada una con su serie.</p><span class="tag">EN CAMINO</span></div>
+                  <div class="soon"><div class="ic">📣</div><b>Mensaje / Promo</b><p>Texto promocional al pie del comprobante.</p><span class="tag">EN CAMINO</span></div>
+                </div>
+              </section>
+
+            </div><!-- /xls-sheets -->
+
+            <!-- PESTAÑAS (hojas de Excel) ABAJO -->
+            <div class="xls-tabs" id="xls-tabs">
+              <button type="button" class="xls-tab active" data-tab="emisor">Emisor</button>
+              <button type="button" class="xls-tab" data-tab="certificado">
+                <span class="dot {{ 'ok' if certificado and certificado.activo else 'no' }}"></span>Certificado
+              </button>
+              <button type="button" class="xls-tab" data-tab="sol">
+                <span class="dot {{ 'ok' if emisor.sol_usuario else 'no' }}"></span>SOL
+              </button>
+              <button type="button" class="xls-tab" data-tab="formatos">Formatos</button>
+              <button type="button" class="xls-tab" data-tab="comprobante">Comprobante</button>
+              <button type="button" class="xls-tab" data-tab="proximamente">Próximamente ▸</button>
             </div>
-        </section>
+          </div><!-- /xls-book -->
+        </div><!-- /cfg-xls -->
     </main>
 </div>
 {% endblock %}
@@ -449,178 +378,140 @@
 {% block extra_js %}
 <script src="{{ url_for('static', path='/js/toast.js') }}?v={{ APP_VERSION }}"></script>
 <script>
-// Upload area click
-document.getElementById('upload-area').addEventListener('click', () => {
-    document.getElementById('archivo-cert').click();
+// ===== Pestañas (hojas de Excel) =====
+document.getElementById('xls-tabs').addEventListener('click', function(e){
+  var btn = e.target.closest('.xls-tab');
+  if (!btn) return;
+  var name = btn.dataset.tab;
+  document.querySelectorAll('.cfg-xls .xls-tab').forEach(function(t){ t.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.cfg-xls .sheet').forEach(function(s){
+    s.classList.toggle('active', s.dataset.sheet === name);
+  });
 });
 
-// Drag and drop
-const uploadArea = document.getElementById('upload-area');
-
-uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.style.borderColor = 'var(--primary)';
-    uploadArea.style.background = 'var(--bg-tertiary)';
+// ===== Certificado: upload area + drag&drop =====
+var upCert = document.getElementById('upload-area');
+var fileCert = document.getElementById('archivo-cert');
+upCert.addEventListener('click', function(){ fileCert.click(); });
+upCert.addEventListener('dragover', function(e){ e.preventDefault(); upCert.style.background='var(--xls-row-alt)'; });
+upCert.addEventListener('dragleave', function(){ upCert.style.background=''; });
+upCert.addEventListener('drop', function(e){
+  e.preventDefault(); upCert.style.background='';
+  if (e.dataTransfer.files.length){ fileCert.files = e.dataTransfer.files; mostrarCert(e.dataTransfer.files[0].name); }
 });
-
-uploadArea.addEventListener('dragleave', () => {
-    uploadArea.style.borderColor = 'var(--border-color)';
-    uploadArea.style.background = 'transparent';
-});
-
-uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.style.borderColor = 'var(--border-color)';
-    uploadArea.style.background = 'transparent';
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        document.getElementById('archivo-cert').files = files;
-        mostrarArchivoSeleccionado(files[0].name);
-    }
-});
-
-// File selected
-document.getElementById('archivo-cert').addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        mostrarArchivoSeleccionado(e.target.files[0].name);
-    }
-});
-
-function mostrarArchivoSeleccionado(nombre) {
-    document.getElementById('archivo-seleccionado').style.display = 'block';
-    document.getElementById('nombre-archivo').textContent = nombre;
+fileCert.addEventListener('change', function(e){ if (e.target.files.length) mostrarCert(e.target.files[0].name); });
+function mostrarCert(nombre){
+  var el = document.getElementById('archivo-seleccionado');
+  el.style.display = 'block'; document.getElementById('nombre-archivo').textContent = nombre;
 }
 
-// Submit certificado
-document.getElementById('form-certificado').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const archivo = document.getElementById('archivo-cert').files[0];
-    const password = document.getElementById('password-cert').value;
-    
-    if (!archivo) {
-        toast.warning('Selecciona un archivo', 'Debes seleccionar un archivo .pfx o .p12');
-        return;
-    }
-    
-    if (!password) {
-        toast.warning('Ingresa la contraseña', 'La contraseña del certificado es requerida');
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('archivo', archivo);
-    formData.append('password', password);
-    
-    const btn = document.getElementById('btn-subir-cert');
-    btn.disabled = true;
-    btn.textContent = 'Cargando...';
-    
-    try {
-        const response = await fetch('/api/configuracion/certificado', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.exito) {
-            toast.success('¡Certificado cargado!', result.mensaje);
-            setTimeout(() => location.reload(), 2000);
-        } else {
-            toast.error('Error', result.detail || result.mensaje || 'Error al cargar certificado');
-        }
-    } catch (error) {
-        toast.error('Error de conexión', error.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '🔐 Cargar Certificado';
-    }
+document.getElementById('form-certificado').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var archivo = fileCert.files[0];
+  var password = document.getElementById('password-cert').value;
+  if (!archivo){ toast.warning('Selecciona un archivo', 'Debes seleccionar un .pfx o .p12'); return; }
+  if (!password){ toast.warning('Ingresa la contraseña', 'La contraseña del certificado es requerida'); return; }
+  var fd = new FormData(); fd.append('archivo', archivo); fd.append('password', password);
+  var btn = document.getElementById('btn-subir-cert'); btn.disabled = true; btn.textContent = 'Cargando...';
+  try {
+    var r = await fetch('/api/configuracion/certificado', { method:'POST', body: fd });
+    var res = await r.json();
+    if (r.ok && res.exito){ toast.success('¡Certificado cargado!', res.mensaje); setTimeout(function(){ location.reload(); }, 2000); }
+    else { toast.error('Error', res.detail || res.mensaje || 'Error al cargar certificado'); }
+  } catch(err){ toast.error('Error de conexión', err.message); }
+  finally { btn.disabled = false; btn.textContent = '🔐 Cargar Certificado'; }
 });
 
-// Submit credenciales SOL
-document.getElementById('form-credenciales').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const usuario = document.getElementById('usuario-sol').value;
-    const clave = document.getElementById('clave-sol').value;
-    
-    if (!usuario) {
-        toast.warning('Usuario requerido', 'Ingresa el usuario SOL');
-        return;
-    }
-    
-    const btn = document.getElementById('btn-guardar-sol');
-    btn.disabled = true;
-    btn.textContent = 'Guardando...';
-    
-    try {
-        const response = await fetch('/api/configuracion/credenciales-sol', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usuario_sol: usuario, clave_sol: clave })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.exito) {
-            toast.success('¡Credenciales guardadas!', result.mensaje);
-        } else {
-            toast.error('Error', result.detail || result.mensaje || 'Error al guardar');
-        }
-    } catch (error) {
-        toast.error('Error de conexión', error.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '💾 Guardar Credenciales';
-    }
+// ===== Credenciales SOL ===== (POST conserva claves usuario_sol / clave_sol)
+document.getElementById('form-credenciales').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var usuario = document.getElementById('usuario-sol').value;
+  var clave = document.getElementById('clave-sol').value;
+  if (!usuario){ toast.warning('Usuario requerido', 'Ingresa el usuario SOL'); return; }
+  var btn = document.getElementById('btn-guardar-sol'); btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    var r = await fetch('/api/configuracion/credenciales-sol', {
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ usuario_sol: usuario, clave_sol: clave })
+    });
+    var res = await r.json();
+    if (r.ok && res.exito) toast.success('¡Credenciales guardadas!', res.mensaje);
+    else toast.error('Error', res.detail || res.mensaje || 'Error al guardar');
+  } catch(err){ toast.error('Error de conexión', err.message); }
+  finally { btn.disabled = false; btn.textContent = '💾 Guardar Credenciales'; }
 });
 
-
-    // Submit formato
-    document.getElementById('form-formato').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const data = {
-            formato_factura: document.querySelector('input[name="formato_factura"]:checked').value,
-            formato_boleta: document.querySelector('input[name="formato_boleta"]:checked').value,
-            formato_ticket: document.querySelector('input[name="formato_ticket"]:checked').value,
-            formato_nc_nd: document.querySelector('input[name="formato_nc_nd"]:checked').value
-        };
-        
-        const btn = document.getElementById('btn-guardar-formato');
-        btn.disabled = true;
-        btn.textContent = 'Guardando...';
-        
-        try {
-            const response = await fetch('/api/configuracion/formato', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok && result.exito) {
-                toast.success('¡Formatos guardados!', result.mensaje);
-            } else {
-                toast.error('Error', result.detail || result.mensaje || 'Error al guardar');
-            }
-        } catch (error) {
-            toast.error('Error de conexión', error.message);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '💾 Guardar Formatos';
-        }
+// ===== Formatos =====
+document.getElementById('form-formato').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var data = {
+    formato_factura: document.querySelector('input[name="formato_factura"]:checked').value,
+    formato_boleta:  document.querySelector('input[name="formato_boleta"]:checked').value,
+    formato_ticket:  document.querySelector('input[name="formato_ticket"]:checked').value,
+    formato_nc_nd:   document.querySelector('input[name="formato_nc_nd"]:checked').value
+  };
+  var btn = document.getElementById('btn-guardar-formato'); btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    var r = await fetch('/api/configuracion/formato', {
+      method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(data)
     });
+    var res = await r.json();
+    if (r.ok && res.exito) toast.success('¡Formatos guardados!', res.mensaje);
+    else toast.error('Error', res.detail || res.mensaje || 'Error al guardar');
+  } catch(err){ toast.error('Error de conexión', err.message); }
+  finally { btn.disabled = false; btn.textContent = '💾 Guardar Formatos'; }
+});
 
-    // Actualizar visual al cambiar opción
-    document.querySelectorAll('.formato-option input').forEach(input => {
-        input.addEventListener('change', () => {
-            document.querySelectorAll('.formato-option').forEach(opt => opt.classList.remove('active'));
-            input.closest('.formato-option').classList.add('active');
-        });
+// ===== Logo: upload + preview =====
+var logoDrop = document.getElementById('logo-drop');
+var fileLogo = document.getElementById('archivo-logo');
+logoDrop.addEventListener('click', function(){ fileLogo.click(); });
+fileLogo.addEventListener('change', function(e){
+  if (!e.target.files.length) return;
+  var f = e.target.files[0];
+  var sf = document.getElementById('logo-selfile'); sf.style.display = 'block'; sf.textContent = 'Archivo: ' + f.name;
+  // Preview inmediato del archivo elegido
+  var img = document.getElementById('logo-preview');
+  img.src = URL.createObjectURL(f); img.style.display = 'block';
+  document.getElementById('logo-ph').style.display = 'none';
+});
+document.getElementById('form-logo').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var f = fileLogo.files[0];
+  if (!f){ toast.warning('Selecciona un logo', 'Debes elegir una imagen PNG, JPG o WebP'); return; }
+  var fd = new FormData(); fd.append('logo', f);
+  var btn = document.getElementById('btn-subir-logo'); btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    var r = await fetch('/api/configuracion/logo', { method:'POST', body: fd });
+    var res = await r.json();
+    if (r.ok && res.exito){
+      toast.success('¡Logo guardado!', res.mensaje || 'Logo actualizado');
+      // recargar preview desde el servidor (cache-bust)
+      document.getElementById('logo-preview').src = '/api/configuracion/logo?t=' + Date.now();
+    } else { toast.error('Error', res.detail || res.mensaje || 'Error al subir logo'); }
+  } catch(err){ toast.error('Error de conexión', err.message); }
+  finally { btn.disabled = false; btn.textContent = '🖼️ Guardar Logo'; }
+});
+
+// ===== Enriquecer comprobante (teléfono / eslogan / web) =====
+document.getElementById('form-comprobante').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var data = {
+    telefono: document.getElementById('cmp-telefono').value,
+    web:      document.getElementById('cmp-web').value,
+    lema:     document.getElementById('cmp-lema').value
+  };
+  var btn = document.getElementById('btn-guardar-comprobante'); btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    var r = await fetch('/configuracion/comprobante', {
+      method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(data)
     });
+    var res = await r.json();
+    if (r.ok && res.exito) toast.success('¡Datos guardados!', res.mensaje);
+    else toast.error('Error', res.detail || res.mensaje || 'Error al guardar');
+  } catch(err){ toast.error('Error de conexión', err.message); }
+  finally { btn.disabled = false; btn.textContent = '💾 Guardar Datos'; }
+});
 </script>
 {% endblock %}
