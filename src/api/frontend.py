@@ -486,6 +486,38 @@ async def configuracion_page(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.post("/configuracion/comprobante")
+async def guardar_datos_comprobante(request: Request, db: Session = Depends(get_db)):
+    """Enriquecer comprobante: teléfono, eslogan (lema) y web del emisor.
+
+    Endpoint ADITIVO (columnas ya existentes en Emisor). No interviene en el
+    flujo de emisión ni toca cert/SOL/formato/logo. Guardado simple y no-fatal.
+    """
+    try:
+        emisor = await obtener_emisor_actual(request, db)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Sesión no válida")
+
+    data = await request.json()
+
+    # Normalizar: None => no tocar; "" => limpiar. Con límites de longitud.
+    def _norm(v, maxlen):
+        if v is None:
+            return None
+        v = str(v).strip()
+        return v[:maxlen] if v else None
+
+    if "telefono" in data:
+        emisor.telefono = _norm(data.get("telefono"), 20)
+    if "lema" in data:
+        emisor.lema = _norm(data.get("lema"), 200)
+    if "web" in data:
+        emisor.web = _norm(data.get("web"), 200)
+
+    db.commit()
+    return JSONResponse({"exito": True, "mensaje": "Datos del comprobante guardados correctamente"})
+
+
 @router.get("/comprobantes/nota-credito", response_class=HTMLResponse)
 async def nota_credito_page(request: Request, db: Session = Depends(get_db)):
     """Página para emitir Nota de Crédito"""
