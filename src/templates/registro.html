@@ -5,372 +5,107 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crear cuenta gratis - facturalo.pro</title>
     <meta name="description" content="Regístrate gratis en facturalo.pro. 15 días de prueba, sin tarjeta de crédito.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        :root {
-            --bg: #061728;
-            --bg-card: #ffffff;
-            --text: #0f172a;
-            --text-muted: #64748b;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --primary-light: #dbeafe;
-            --border: #e2e8f0;
-            --error: #dc2626;
-            --error-bg: #fef2f2;
-            --success: #059669;
-            --success-bg: #ecfdf5;
-            --radius: 12px;
-            --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
-            --shadow-lg: 0 4px 24px rgba(0,0,0,.08);
-        }
+      :root{
+        --xls-bg:#0A1410; --xls-panel:#0E1B15; --xls-row:#0C1712; --xls-row-alt:#101E18; --xls-input:#13241C;
+        --xls-border:#217346; --xls-border-strong:#2E9C5E; --xls-verde:#2ECC71; --xls-verde-excel:#217346;
+        --xls-text:#E6EDE9; --xls-dim:#94A69C; --xls-faint:#61756B; --xls-dorado:#F4B400; --xls-rojo:#D42020; --xls-label:#3DBB73;
+        /* nombres que usa el JS para pintar estados en línea */
+        --success:#2ECC71; --error:#D42020;
+      }
+      *{ box-sizing:border-box; margin:0; padding:0; }
+      html{ scroll-behavior:smooth; }
+      body{ background:var(--xls-bg); color:var(--xls-text); font-family:"Segoe UI",system-ui,sans-serif;
+        font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; min-height:100vh; }
 
-        body {
-            font-family: 'DM Sans', -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+      /* Barra de marca (como /pagar) */
+      header{ display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid var(--xls-border);
+        padding:14px 24px; position:sticky; top:0; background:var(--xls-bg); z-index:30; }
+      .brand{ display:flex; align-items:center; gap:10px; }
+      .brand .logo{ width:36px; height:36px; background:linear-gradient(135deg,#D01414,#7E0000);
+        display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding:5px; }
+      .brand .logo i{ background:#fff; }
+      .brand .logo i:nth-child(2),.brand .logo i:nth-child(3),.brand .logo i:nth-child(5),.brand .logo i:nth-child(9){ background:#F4B400; }
+      .brand .n{ font-size:20px; font-weight:800; } .brand .n span{ color:var(--xls-rojo); } .brand .n em{ color:var(--xls-dorado); font-style:normal; }
+      header nav a{ color:var(--xls-dim); text-decoration:none; padding:7px 14px; font-size:14px; } header nav a:hover{ color:var(--xls-text); }
 
-        /* ── Header ── */
-        .header {
-            padding: 1rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-            background: var(--bg-card);
-        }
-        .logo {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-        }
-        .logo span { color: var(--text); }
-        .header-link {
-            font-size: .875rem;
-            color: var(--text-muted);
-            text-decoration: none;
-        }
-        .header-link a {
-            color: var(--primary);
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .header-link a:hover { text-decoration: underline; }
+      main{ flex:1; display:flex; justify-content:center; align-items:flex-start; padding:36px 18px 60px; }
 
-        /* ── Layout ── */
-        .main {
-            flex: 1;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding: 2rem 1rem;
-        }
-        .container {
-            width: 100%;
-            max-width: 520px;
-        }
+      /* Hoja central */
+      .card{ width:100%; max-width:540px; border:1px solid var(--xls-border); background:var(--xls-panel); }
+      .card .ch{ background:var(--xls-verde-excel); color:#fff; padding:11px 16px; font-weight:700; letter-spacing:1px; font-size:13px; }
+      .card .cb{ padding:24px 20px; }
+      .card-title{ font-size:24px; font-weight:800; margin-bottom:4px; }
+      .card-subtitle{ color:var(--xls-dim); font-size:13.5px; margin-bottom:20px; }
 
-        /* ── Card ── */
-        .card {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            padding: 2.5rem;
-        }
-        .card-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: .25rem;
-        }
-        .card-subtitle {
-            color: var(--text-muted);
-            font-size: .925rem;
-            margin-bottom: 2rem;
-            line-height: 1.5;
-        }
+      /* Alerta de error (slot {{ error }}) */
+      .alert-error{ display:flex; align-items:center; gap:9px; border:1px solid var(--xls-rojo); border-left:4px solid var(--xls-rojo);
+        background:var(--xls-row); color:#f3b0b0; padding:11px 14px; font-size:13.5px; margin-bottom:18px; }
+      .alert-error svg{ color:var(--xls-rojo); flex-shrink:0; }
 
-        /* ── Trial badge ── */
-        .trial-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: .375rem;
-            background: var(--success-bg);
-            color: var(--success);
-            font-size: .8rem;
-            font-weight: 600;
-            padding: .375rem .75rem;
-            border-radius: 20px;
-            margin-bottom: 1.25rem;
-        }
+      /* Campos estilo Excel */
+      .form-group{ margin-bottom:16px; }
+      .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+      .form-label{ display:block; color:var(--xls-label); font-size:12.5px; font-weight:700; margin-bottom:6px; }
+      .form-label .optional{ color:var(--xls-faint); font-weight:400; }
+      .input-wrapper{ position:relative; }
+      .form-input{ width:100%; background:var(--xls-input); border:1px solid var(--xls-border); color:var(--xls-text);
+        padding:11px 12px; font-size:14px; font-family:inherit; }
+      .form-input:focus{ outline:none; border-color:var(--xls-border-strong); }
+      .form-input.mono{ font-family:ui-monospace,"Cascadia Code","Courier New",monospace; letter-spacing:1px; }
+      .form-hint{ color:var(--xls-faint); font-size:11.5px; margin-top:5px; }
 
-        /* ── Form ── */
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-        .form-label {
-            display: block;
-            font-size: .8125rem;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: .375rem;
-        }
-        .form-label .optional {
-            font-weight: 400;
-            color: var(--text-muted);
-        }
-        .form-input {
-            width: 100%;
-            padding: .75rem 1rem;
-            font-size: .9375rem;
-            font-family: inherit;
-            border: 1.5px solid var(--border);
-            border-radius: 8px;
-            background: var(--bg);
-            color: var(--text);
-            transition: border-color .2s, box-shadow .2s;
-            outline: none;
-        }
-        .form-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-light);
-        }
-        .form-input.mono {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: .875rem;
-            letter-spacing: .5px;
-        }
-        .form-input::placeholder { color: #94a3b8; }
-        .form-hint {
-            font-size: .75rem;
-            color: var(--text-muted);
-            margin-top: .25rem;
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
+      /* Estado del RUC (lo pinta el JS con .valid/.invalid/.loading) */
+      .input-status{ position:absolute; right:12px; top:50%; transform:translateY(-50%); font-weight:800; font-size:15px; }
+      .input-status.valid{ color:var(--success); }
+      .input-status.invalid{ color:var(--error); }
+      .input-status.loading{ color:var(--xls-dim); }
 
-        /* ── RUC validation indicator ── */
-        .input-wrapper {
-            position: relative;
-        }
-        .input-status {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1.1rem;
-            display: none;
-        }
-        .input-status.valid { display: block; color: var(--success); }
-        .input-status.invalid { display: block; color: var(--error); }
-        .input-status.loading { 
-            display: block; 
-            color: var(--text-muted);
-            animation: spin .8s linear infinite;
-        }
-        @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+      /* Medidor de contraseña (barras que el JS activa) */
+      .pwd-strength{ display:flex; gap:5px; margin-top:8px; }
+      .pwd-bar{ flex:1; height:5px; background:var(--xls-input); border:1px solid var(--xls-border); }
+      .pwd-bar.active-weak{ background:var(--xls-rojo); border-color:var(--xls-rojo); }
+      .pwd-bar.active-medium{ background:var(--xls-dorado); border-color:var(--xls-dorado); }
+      .pwd-bar.active-strong{ background:var(--xls-verde); border-color:var(--xls-verde); }
 
-        /* ── Password strength ── */
-        .pwd-strength {
-            display: flex;
-            gap: 4px;
-            margin-top: .375rem;
-        }
-        .pwd-bar {
-            height: 3px;
-            flex: 1;
-            background: var(--border);
-            border-radius: 2px;
-            transition: background .3s;
-        }
-        .pwd-bar.active-weak { background: var(--error); }
-        .pwd-bar.active-medium { background: #f59e0b; }
-        .pwd-bar.active-strong { background: var(--success); }
+      /* Términos */
+      .checkbox-group{ display:flex; align-items:flex-start; gap:9px; margin:6px 0 20px; }
+      .checkbox-group input{ margin-top:3px; width:16px; height:16px; accent-color:var(--xls-verde); flex-shrink:0; }
+      .checkbox-label{ color:var(--xls-dim); font-size:13px; }
+      .checkbox-label a{ color:var(--xls-label); text-decoration:none; font-weight:600; } .checkbox-label a:hover{ color:var(--xls-verde); }
 
-        /* ── Error alert ── */
-        .alert-error {
-            background: var(--error-bg);
-            color: var(--error);
-            padding: .875rem 1rem;
-            border-radius: 8px;
-            font-size: .875rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: flex-start;
-            gap: .5rem;
-            border: 1px solid #fecaca;
-        }
-        .alert-error svg { flex-shrink: 0; margin-top: 1px; }
+      /* Botón (relieve como /pagar) */
+      .btn-primary{ width:100%; background:var(--xls-verde); border:2px solid #1a9e54; border-bottom-width:5px; border-right-width:5px;
+        color:#04250f; font-weight:800; font-size:17px; padding:15px; cursor:pointer; }
+      .btn-primary:active{ transform:translate(2px,2px); border-bottom-width:2px; border-right-width:2px; }
+      .btn-primary:disabled{ opacity:.6; cursor:not-allowed; }
 
-        /* ── Checkbox ── */
-        .checkbox-group {
-            display: flex;
-            align-items: flex-start;
-            gap: .625rem;
-            margin: 1.5rem 0;
-        }
-        .checkbox-group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            margin-top: 2px;
-            accent-color: var(--primary);
-            flex-shrink: 0;
-        }
-        .checkbox-label {
-            font-size: .8125rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-        }
-        .checkbox-label a {
-            color: var(--primary);
-            text-decoration: none;
-        }
+      /* Features */
+      .features{ margin-top:24px; border:1px solid var(--xls-border); background:var(--xls-row); padding:16px 18px; }
+      .features-title{ color:var(--xls-label); font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:12px; }
+      .feature-item{ display:flex; align-items:center; gap:10px; color:var(--xls-dim); font-size:13px; padding:5px 0; }
+      .feature-icon{ font-size:16px; }
 
-        /* ── Submit button ── */
-        .btn-primary {
-            width: 100%;
-            padding: .875rem;
-            font-size: 1rem;
-            font-weight: 600;
-            font-family: inherit;
-            color: #fff;
-            background: var(--primary);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background .2s, transform .1s;
-        }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-primary:active { transform: scale(.995); }
-        .btn-primary:disabled {
-            opacity: .6;
-            cursor: not-allowed;
-        }
+      footer{ text-align:center; color:var(--xls-faint); font-size:12px; padding:20px; border-top:1px solid var(--xls-border); }
 
-        /* ── Divider ── */
-        .divider {
-            text-align: center;
-            margin: 1.5rem 0;
-            color: var(--text-muted);
-            font-size: .8125rem;
-            position: relative;
-        }
-        .divider::before, .divider::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            width: calc(50% - 2rem);
-            height: 1px;
-            background: var(--border);
-        }
-        .divider::before { left: 0; }
-        .divider::after { right: 0; }
-
-        /* ── Features list ── */
-        .features {
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border);
-        }
-        .features-title {
-            font-size: .8125rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: .5px;
-            margin-bottom: 1rem;
-        }
-        .feature-item {
-            display: flex;
-            align-items: center;
-            gap: .625rem;
-            padding: .375rem 0;
-            font-size: .875rem;
-            color: var(--text);
-        }
-        .feature-icon {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--primary-light);
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: .7rem;
-            flex-shrink: 0;
-        }
-
-        /* ── Footer ── */
-        .footer {
-            padding: 1.5rem;
-            text-align: center;
-            font-size: .8125rem;
-            color: var(--text-muted);
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 640px) {
-            .card { padding: 1.75rem 1.25rem; }
-            .form-row { grid-template-columns: 1fr; }
-            .header { padding: 1rem; }
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0f172a;
-                --bg-card: #1e293b;
-                --text: #f1f5f9;
-                --text-muted: #94a3b8;
-                --border: #334155;
-                --primary: #3b82f6;
-                --primary-hover: #60a5fa;
-                --primary-light: rgba(59,130,246,.15);
-                --error-bg: rgba(220,38,38,.1);
-                --success-bg: rgba(5,150,105,.1);
-            }
-            .form-input { background: #0f172a; }
-            .form-input::placeholder { color: #475569; }
-            .api-warning { background: rgba(217,119,6,.1); border-color: rgba(217,119,6,.25); color: #fbbf24; }
-        }
+      @media(max-width:560px){ .form-row{ grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <a href="/" class="logo">
-            facturalo<span>.pro</span>
-        </a>
-        <div class="header-link">
-            ¿Ya tienes cuenta? <a href="/login">Iniciar sesión</a>
-        </div>
+    <header>
+        <a href="/" style="text-decoration:none;color:inherit"><div class="brand">
+            <div class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="n"><span>facturalo</span><em>.pro</em></div>
+        </div></a>
+        <nav><a href="/login">Ya tengo cuenta →</a></nav>
     </header>
 
-    <!-- Main -->
-    <main class="main">
-        <div class="container">
-            <div class="card">
-                <div class="trial-badge">
-                    ✓ 15 días gratis · Sin tarjeta de crédito
-                </div>
+    <main>
+        <div class="card">
+            <div class="ch">CREAR CUENTA</div>
+            <div class="cb">
                 <h1 class="card-title">Crea tu cuenta</h1>
-                <p class="card-subtitle">
-                    Obtén tu API Key y empieza a emitir comprobantes electrónicos en minutos.
-                </p>
+                <p class="card-subtitle">Obtén tu API Key y empieza a emitir comprobantes electrónicos en minutos.</p>
 
                 <!-- Error message -->
                 {% if error %}
@@ -387,10 +122,10 @@
                     <div class="form-group">
                         <label class="form-label" for="ruc">RUC</label>
                         <div class="input-wrapper">
-                            <input 
-                                type="text" 
-                                class="form-input mono" 
-                                id="ruc" 
+                            <input
+                                type="text"
+                                class="form-input mono"
+                                id="ruc"
                                 name="ruc"
                                 placeholder="20XXXXXXXXX"
                                 maxlength="11"
@@ -408,10 +143,10 @@
                     <!-- Razón Social -->
                     <div class="form-group">
                         <label class="form-label" for="razon_social">Razón Social / Nombre</label>
-                        <input 
-                            type="text" 
-                            class="form-input" 
-                            id="razon_social" 
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="razon_social"
                             name="razon_social"
                             placeholder="Mi Empresa S.A.C."
                             value="{{ form_data.razon_social if form_data else '' }}"
@@ -422,10 +157,10 @@
                     <!-- Email -->
                     <div class="form-group">
                         <label class="form-label" for="email">Email</label>
-                        <input 
-                            type="email" 
-                            class="form-input" 
-                            id="email" 
+                        <input
+                            type="email"
+                            class="form-input"
+                            id="email"
                             name="email"
                             placeholder="tu@empresa.com"
                             value="{{ form_data.email if form_data else '' }}"
@@ -437,26 +172,22 @@
                     <!-- Nombre contacto + Teléfono -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label" for="nombre_contacto">
-                                Nombre de contacto <span class="optional">(opcional)</span>
-                            </label>
-                            <input 
-                                type="text" 
-                                class="form-input" 
-                                id="nombre_contacto" 
+                            <label class="form-label" for="nombre_contacto">Nombre de contacto <span class="optional">(opcional)</span></label>
+                            <input
+                                type="text"
+                                class="form-input"
+                                id="nombre_contacto"
                                 name="nombre_contacto"
                                 placeholder="Juan Pérez"
                                 value="{{ form_data.nombre_contacto if form_data else '' }}"
                             >
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="telefono">
-                                Celular <span class="optional">(opcional)</span>
-                            </label>
-                            <input 
-                                type="tel" 
-                                class="form-input" 
-                                id="telefono" 
+                            <label class="form-label" for="telefono">Celular <span class="optional">(opcional)</span></label>
+                            <input
+                                type="tel"
+                                class="form-input"
+                                id="telefono"
                                 name="telefono"
                                 placeholder="999 999 999"
                                 value="{{ form_data.telefono if form_data else '' }}"
@@ -468,10 +199,10 @@
                     <!-- Password -->
                     <div class="form-group">
                         <label class="form-label" for="password">Contraseña</label>
-                        <input 
-                            type="password" 
-                            class="form-input" 
-                            id="password" 
+                        <input
+                            type="password"
+                            class="form-input"
+                            id="password"
                             name="password"
                             placeholder="Mínimo 8 caracteres"
                             required
@@ -489,10 +220,10 @@
                     <!-- Password confirm -->
                     <div class="form-group">
                         <label class="form-label" for="password_confirm">Confirmar contraseña</label>
-                        <input 
-                            type="password" 
-                            class="form-input" 
-                            id="password_confirm" 
+                        <input
+                            type="password"
+                            class="form-input"
+                            id="password_confirm"
                             name="password_confirm"
                             placeholder="Repite tu contraseña"
                             required
@@ -507,48 +238,29 @@
                     <div class="checkbox-group">
                         <input type="checkbox" id="acepta_terminos" name="acepta_terminos" value="true" required>
                         <label class="checkbox-label" for="acepta_terminos">
-                            Acepto los <a href="/terminos" target="_blank">términos de servicio</a> 
+                            Acepto los <a href="/terminos" target="_blank">términos de servicio</a>
                             y la <a href="/privacidad" target="_blank">política de privacidad</a>
                         </label>
                     </div>
 
                     <!-- Submit -->
-                    <button type="submit" class="btn-primary" id="btnSubmit">
-                        Crear cuenta gratis
-                    </button>
+                    <button type="submit" class="btn-primary" id="btnSubmit">Crear cuenta gratis</button>
                 </form>
 
                 <!-- Features -->
                 <div class="features">
                     <div class="features-title">Tu cuenta incluye</div>
-                    <div class="feature-item">
-                        <div class="feature-icon">🔑</div>
-                        API Key + API Secret instantáneos
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-icon">📄</div>
-                        50 comprobantes de prueba gratis
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-icon">🧪</div>
-                        Modo test (sin afectar SUNAT real)
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-icon">📖</div>
-                        Documentación completa + ejemplos
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-icon">⚡</div>
-                        Activa producción cuando estés listo
-                    </div>
+                    <div class="feature-item"><div class="feature-icon">🔑</div> API Key + API Secret instantáneos</div>
+                    <div class="feature-item"><div class="feature-icon">📄</div> 50 comprobantes de prueba gratis</div>
+                    <div class="feature-item"><div class="feature-icon">🧪</div> Modo test (sin afectar SUNAT real)</div>
+                    <div class="feature-item"><div class="feature-icon">📖</div> Documentación completa + ejemplos</div>
+                    <div class="feature-item"><div class="feature-icon">⚡</div> Activa producción cuando estés listo</div>
                 </div>
             </div>
         </div>
     </main>
 
-    <footer class="footer">
-        © 2026 facturalo.pro · Perú Sistemas Pro E.I.R.L.
-    </footer>
+    <footer>© 2026 facturalo.pro · Perú Sistemas Pro E.I.R.L.</footer>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -565,7 +277,7 @@
         rucInput.addEventListener('input', () => {
             // Only allow digits
             rucInput.value = rucInput.value.replace(/\D/g, '').slice(0, 11);
-            
+
             clearTimeout(rucTimer);
             const ruc = rucInput.value;
 
