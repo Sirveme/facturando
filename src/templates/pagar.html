@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pagar — facturalo.pro</title>
+<meta name="description" content="Elige tu plan, paga por Yape, Plin o transferencia y sube tu voucher. Tu cuenta queda activa de inmediato.">
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="https://facturalo.pro/pagar">
+<meta name="theme-color" content="#0A1410">
+<style>
+  :root{
+    --bg:#0A1410;--bg-panel:#0E1B15;--bg-row:#0C1712;--bg-row-alt:#101E18;--bg-input:#13241C;
+    --border:#217346;--border-strong:#2E9C5E;
+    --text:#E6EDE9;--text-dim:#94A69C;--text-faint:#61756B;
+    --rojo:#D42020;--dorado:#F4B400;
+    --verde-excel:#217346;--verde:#2ECC71;--label:#3DBB73;
+    --fs:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{ background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;font-size:var(--fs);line-height:1.55;-webkit-font-smoothing:antialiased; }
+
+  header{ display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--border);padding:14px 24px;position:sticky;top:0;background:var(--bg);z-index:30; }
+  .brand{ display:flex;align-items:center;gap:10px; }
+  .brand .logo{ width:36px;height:36px;background:linear-gradient(135deg,#D01414,#7E0000);display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:5px; }
+  .brand .logo i{background:#fff} .brand .logo i:nth-child(2),.brand .logo i:nth-child(3),.brand .logo i:nth-child(5),.brand .logo i:nth-child(9){background:#F4B400}
+  .brand .n{ font-size:20px;font-weight:800; } .brand .n span{color:var(--rojo)} .brand .n em{color:var(--dorado);font-style:normal}
+  header nav a{ color:var(--text-dim);text-decoration:none;padding:7px 14px;font-size:14px; } header nav a:hover{ color:var(--text); }
+
+  main{ max-width:820px;margin:0 auto;padding:40px 20px 80px; }
+  h1{ font-size:32px;font-weight:800;text-align:center;margin-bottom:8px; } h1 .hl{color:var(--dorado)}
+  .lead{ text-align:center;color:var(--text-dim);font-size:16px;margin-bottom:36px;max-width:600px;margin-left:auto;margin-right:auto; }
+
+  .card{ border:1px solid var(--border);background:var(--bg-panel);margin-bottom:26px; }
+  .card .ch{ background:var(--verde-excel);color:#fff;padding:10px 16px;font-weight:700;font-size:13px;letter-spacing:1px;display:flex;align-items:center;gap:10px; }
+  .card .cn{ width:24px;height:24px;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800; }
+  .card .cb{ padding:22px 18px; }
+
+  /* Plan selector */
+  .planes{ display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border); }
+  .planopt{ border-right:1px solid var(--border);padding:20px;cursor:pointer;position:relative;transition:background .12s; } .planopt:last-child{border-right:none}
+  .planopt:hover{ background:var(--bg-row-alt); }
+  .planopt.sel{ background:var(--bg-row);border-left:4px solid var(--dorado); }
+  .planopt .pn{ color:var(--label);font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:6px; }
+  .planopt .pp{ font-size:30px;font-weight:800; } .planopt .pp small{ font-size:13px;color:var(--text-dim);font-weight:400; }
+  .planopt .rc{ font-size:13px;color:var(--text-dim);margin-top:6px; }
+  .planopt .chk{ position:absolute;top:14px;right:14px;width:20px;height:20px;border:2px solid var(--border-strong);border-radius:50%; }
+  .planopt.sel .chk{ background:var(--verde);border-color:var(--verde); }
+
+  .peri{ display:flex;gap:0;border:1px solid var(--border);margin-top:16px; }
+  .peri button{ flex:1;background:var(--bg-row);border:none;border-right:1px solid var(--border);color:var(--text-dim);padding:12px;cursor:pointer;font-weight:700;font-size:14px; } .peri button:last-child{border-right:none}
+  .peri button.on{ background:var(--verde-excel);color:#fff; }
+  .peri .ahorro{ font-size:11px;color:var(--dorado);display:block;font-weight:600; }
+
+  .resumen{ margin-top:18px;padding:16px;border:1px dashed var(--border-strong);background:var(--bg-row);display:flex;justify-content:space-between;align-items:center; }
+  .resumen .rl{ color:var(--text-dim);font-size:13px; } .resumen .rl b{ color:var(--text);display:block;font-size:15px; }
+  .resumen .monto{ font-size:34px;font-weight:800;color:var(--verde); } .resumen .monto small{ font-size:14px;color:var(--text-dim);font-weight:400; }
+
+  /* Datos de pago */
+  .pay-grid{ display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+  .pay{ border:1px solid var(--border);padding:14px 16px;background:var(--bg-row); }
+  .pay .pt{ color:var(--label);font-weight:700;font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center; }
+  .pay .row{ display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0; } .pay .row span:first-child{ color:var(--text-dim); }
+  .pay .num{ font-family:"Courier New",monospace;font-weight:700;letter-spacing:.3px; }
+  .copy{ background:transparent;border:1px solid var(--border-strong);color:var(--label);font-size:11px;padding:3px 8px;cursor:pointer;font-weight:600; } .copy:hover{ background:var(--bg-row-alt);color:var(--text); }
+  .pay.sel{ border-color:var(--verde);background:var(--bg-row-alt);box-shadow:inset 3px 0 0 var(--verde); }
+  .pay.sel .pt{ color:var(--verde); }
+  .metodo-sel{ margin-top:14px;padding:11px 14px;border:1px solid var(--border);border-left:4px solid var(--verde);background:var(--bg-row);font-size:14px; }
+  .metodo-sel b{ color:var(--verde);text-transform:capitalize; } .metodo-sel .metodo-hint{ color:var(--text-faint);font-size:12px; }
+  .titular-nota{ color:var(--text-faint);font-size:12px;margin-top:12px; } .titular-nota b{ color:var(--label); }
+
+  /* Formulario voucher */
+  label.fl{ display:block;color:var(--text-dim);font-size:13px;font-weight:600;margin:14px 0 6px; }
+  input[type=text], input[type=tel]{ width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:11px 12px;font-size:14px;font-family:inherit; }
+  input:focus{ outline:none;border-color:var(--border-strong); }
+  .file-drop{ border:2px dashed var(--border-strong);background:var(--bg-row);padding:26px 16px;text-align:center;cursor:pointer;margin-top:6px; }
+  .file-drop:hover{ background:var(--bg-row-alt); }
+  .file-drop .fi{ font-size:34px;color:var(--label);margin-bottom:8px; }
+  .file-drop .ft{ color:var(--text-dim);font-size:13px; } .file-drop .ft b{ color:var(--label); }
+  #preview{ max-width:220px;max-height:220px;margin:14px auto 0;display:none;border:1px solid var(--border); }
+
+  .submit-btn{ margin-top:22px;width:100%;background:var(--verde);border:2px solid #1a9e54;border-bottom-width:5px;border-right-width:5px;color:#04250f;font-weight:800;font-size:18px;padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px; }
+  .submit-btn:active{ transform:translate(2px,2px);border-bottom-width:2px;border-right-width:2px; }
+  .submit-btn:disabled{ opacity:.55;cursor:not-allowed; }
+
+  .msg{ display:none;margin-top:18px;padding:18px;border:1px solid var(--border);border-left:4px solid var(--verde);background:var(--bg-row); }
+  .msg.err{ border-left-color:var(--rojo); }
+  .msg .mt{ font-size:17px;font-weight:800;color:var(--verde);margin-bottom:4px; } .msg.err .mt{ color:var(--rojo); }
+  .msg p{ color:var(--text-dim);font-size:13.5px; }
+
+  .foot-help{ text-align:center;color:var(--text-faint);font-size:13px;margin-top:26px; }
+  .foot-help a{ color:var(--verde);text-decoration:none;font-weight:600; }
+
+  @media(max-width:640px){ .planes,.pay-grid{ grid-template-columns:1fr; } .planopt{ border-right:none;border-bottom:1px solid var(--border); } }
+</style>
+</head>
+<body>
+  <header>
+    <a href="/" style="text-decoration:none;color:inherit"><div class="brand">
+      <div class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="n"><span>facturalo</span><em>.pro</em></div>
+    </div></a>
+    <nav><a href="/">← Volver</a></nav>
+  </header>
+
+  <main>
+    <h1>Paga y <span class="hl">empieza ya</span></h1>
+    <p class="lead">Elige tu plan, paga por el medio que prefieras y sube tu voucher. Tu cuenta queda activa de inmediato.</p>
+
+    <!-- PASO 1: PLAN -->
+    <div class="card">
+      <div class="ch"><span class="cn">1</span> ELIGE TU PLAN</div>
+      <div class="cb">
+        <div class="planes">
+          <div class="planopt sel" data-plan="emprendedor" onclick="selPlan(this)">
+            <div class="chk"></div>
+            <div class="pn">EMPRENDEDOR</div>
+            <div class="pp" data-mes="29" data-anio="290">S/ 29<small>/mes</small></div>
+            <div class="rc">1 RUC · Comprobantes ilimitados</div>
+          </div>
+          <div class="planopt" data-plan="negocio" onclick="selPlan(this)">
+            <div class="chk"></div>
+            <div class="pn">NEGOCIO</div>
+            <div class="pp" data-mes="55" data-anio="550">S/ 55<small>/mes</small></div>
+            <div class="rc">3 RUCs · Comprobantes ilimitados</div>
+          </div>
+        </div>
+
+        <div class="peri">
+          <button type="button" class="on" data-peri="mensual" onclick="selPeri(this)">Mensual</button>
+          <button type="button" data-peri="anual" onclick="selPeri(this)">Anual <span class="ahorro">2 meses gratis</span></button>
+        </div>
+
+        <div class="resumen">
+          <div class="rl">Vas a pagar<b id="rPlan">Plan Emprendedor · Mensual</b></div>
+          <div class="monto">S/ <span id="rMonto">29</span><small id="rPeri">/mes</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 2: DATOS DE PAGO -->
+    <div class="card">
+      <div class="ch"><span class="cn">2</span> PAGA POR TU MEDIO PREFERIDO</div>
+      <div class="cb">
+        <div class="pay-grid">
+          <div class="pay" data-metodo="yape">
+            <div class="pt">Yape / Plin</div>
+            <div class="row"><span>Yape</span><span><span class="num">938 246 208</span> <button type="button" class="copy" onclick="cp(event,'938246208','yape')">Copiar</button></span></div>
+            <div class="row"><span>Plin</span><span><span class="num">967 317 946</span> <button type="button" class="copy" onclick="cp(event,'967317946','plin')">Copiar</button></span></div>
+          </div>
+          <div class="pay" data-metodo="bcp">
+            <div class="pt">BCP · Soles</div>
+            <div class="row"><span>Cuenta</span><span><span class="num">390-16822755053</span> <button type="button" class="copy" onclick="cp(event,'39016822755053','bcp')">Copiar</button></span></div>
+            <div class="row"><span>CCI</span><span><span class="num">002-390-116822755053-34</span> <button type="button" class="copy" onclick="cp(event,'00239011682275505334','bcp')">Copiar</button></span></div>
+          </div>
+          <div class="pay" data-metodo="interbank">
+            <div class="pt">Interbank · Cuenta Simple Soles</div>
+            <div class="row"><span>Cuenta</span><span><span class="num">740-3135422716</span> <button type="button" class="copy" onclick="cp(event,'7403135422716','interbank')">Copiar</button></span></div>
+            <div class="row"><span>CCI</span><span><span class="num">003-740-013135422716-80</span> <button type="button" class="copy" onclick="cp(event,'00374001313542271680','interbank')">Copiar</button></span></div>
+          </div>
+          <div class="pay">
+            <div class="pt">Titular de las cuentas</div>
+            <div class="row"><span>Empresa</span><span>Perú Sistemas Pro E.I.R.L.</span></div>
+            <div class="row"><span>RUC</span><span class="num">20615446565</span></div>
+          </div>
+        </div>
+        <div class="metodo-sel" id="metodoSel" style="display:none">Vas a pagar por: <b id="metodoTxt"></b> <span class="metodo-hint">(lo anotamos para cruzar tu pago)</span></div>
+        <p class="titular-nota"><b>Importante:</b> el pago <b>no es un requisito para usar Facturalo</b>. Puedes empezar hoy; esto solo deja constancia de tu pago.</p>
+      </div>
+    </div>
+
+    <!-- PASO 3: VOUCHER -->
+    <div class="card">
+      <div class="ch"><span class="cn">3</span> SUBE TU VOUCHER Y ACTIVA</div>
+      <div class="cb">
+        <form id="voucherForm">
+          <input type="hidden" name="plan" id="fPlan" value="emprendedor">
+          <input type="hidden" name="periodicidad" id="fPeri" value="mensual">
+          <input type="hidden" name="monto" id="fMonto" value="29">
+          <input type="hidden" name="metodo" id="fMetodo" value="">
+
+          <label class="fl">Nombre del titular que hizo el pago *</label>
+          <input type="text" name="titular" id="fTitular" placeholder="Ej. Juan Pérez / Mi Empresa S.A.C." required>
+
+          <label class="fl">RUC o DNI (opcional)</label>
+          <input type="text" name="ruc" id="fRuc" placeholder="Para asociar el pago a tu cuenta">
+
+          <label class="fl">WhatsApp de contacto (opcional)</label>
+          <input type="tel" name="telefono" id="fTel" placeholder="Ej. 9XX XXX XXX">
+
+          <label class="fl">Imagen del voucher (captura o foto) *</label>
+          <div class="file-drop" id="fileDrop" onclick="document.getElementById('fVoucher').click()">
+            <div class="fi">🧾</div>
+            <div class="ft" id="fileTxt">Toca aquí para <b>subir tu voucher</b><br>PNG, JPG o WebP · máx 5 MB</div>
+            <img id="preview" alt="Vista previa del voucher">
+          </div>
+          <input type="file" name="voucher" id="fVoucher" accept="image/png,image/jpeg,image/webp" style="display:none" required>
+
+          <button type="submit" class="submit-btn" id="submitBtn"><span>🔒</span> Activar mi cuenta</button>
+        </form>
+
+        <div class="msg" id="okMsg">
+          <div class="mt">✅ ¡Listo!</div>
+          <p id="okTxt">Validaremos tu pago, pero TU CUENTA YA ESTÁ ACTIVA.</p>
+        </div>
+        <div class="msg err" id="errMsg">
+          <div class="mt">No se pudo enviar</div>
+          <p id="errTxt"></p>
+        </div>
+
+        <div class="foot-help">¿Dudas con el pago? Escríbenos por <a href="https://wa.me/51967317946?text=Hola%2C%20necesito%20ayuda%20con%20mi%20pago%20en%20Facturalo.pro" target="_blank" rel="noopener">WhatsApp</a>.</div>
+      </div>
+    </div>
+  </main>
+
+  <!--
+    HOOK (fase futura) — Motor de pagos completo. NO implementado en Fase 1.
+    Cascada prevista al confirmar pago:
+      1) pagoOK  → intento de cobro directo         (~3s)
+      2) correo de banco → conciliación automática  (~10s)
+      3) voucher (este formulario) → respaldo manual (~3s)
+    Por ahora solo se persiste el voucher y la cuenta se activa de inmediato.
+  -->
+
+<script>
+  var plan = 'emprendedor', peri = 'mensual';
+
+  function precio(){
+    var sel = document.querySelector('.planopt.sel .pp');
+    var mes = +sel.dataset.mes, anio = +sel.dataset.anio;
+    return peri === 'anual' ? anio : mes;
+  }
+  function refrescar(){
+    var monto = precio();
+    var nombrePlan = plan.charAt(0).toUpperCase() + plan.slice(1);
+    var etPeri = peri === 'anual' ? 'Anual' : 'Mensual';
+    document.getElementById('rPlan').textContent = 'Plan ' + nombrePlan + ' · ' + etPeri;
+    document.getElementById('rMonto').textContent = monto;
+    document.getElementById('rPeri').textContent = peri === 'anual' ? '/año' : '/mes';
+    document.getElementById('fPlan').value = plan;
+    document.getElementById('fPeri').value = peri;
+    document.getElementById('fMonto').value = monto;
+  }
+  function selPlan(el){
+    document.querySelectorAll('.planopt').forEach(function(p){ p.classList.remove('sel'); });
+    el.classList.add('sel'); plan = el.dataset.plan; refrescar();
+  }
+  function selPeri(el){
+    document.querySelectorAll('.peri button').forEach(function(b){ b.classList.remove('on'); });
+    el.classList.add('on'); peri = el.dataset.peri; refrescar();
+  }
+  var METODO_LABEL = { yape:'Yape', plin:'Plin', bcp:'BCP (transferencia)', interbank:'Interbank (transferencia)' };
+  function pickMetodo(metodo){
+    document.getElementById('fMetodo').value = metodo;
+    document.querySelectorAll('.pay').forEach(function(p){ p.classList.remove('sel'); });
+    var card = document.querySelector('.pay[data-metodo="' + (metodo==='plin'?'yape':metodo) + '"]');
+    if (card) card.classList.add('sel');
+    document.getElementById('metodoTxt').textContent = METODO_LABEL[metodo] || metodo;
+    document.getElementById('metodoSel').style.display = 'block';
+  }
+  function cp(ev, txt, metodo){
+    if (navigator.clipboard) navigator.clipboard.writeText(txt);
+    if (metodo) pickMetodo(metodo);            // registra el banco/método elegido
+    var b = ev.target; b.textContent = 'Copiado ✓';
+    setTimeout(function(){ b.textContent = 'Copiar'; }, 1500);
+  }
+
+  // Preview del voucher
+  document.getElementById('fVoucher').addEventListener('change', function(e){
+    var f = e.target.files[0];
+    if (!f) return;
+    var img = document.getElementById('preview');
+    img.src = URL.createObjectURL(f);
+    img.style.display = 'block';
+    document.getElementById('fileTxt').innerHTML = 'Archivo: <b>' + f.name + '</b> · toca para cambiar';
+  });
+
+  // Envío
+  document.getElementById('voucherForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var ok = document.getElementById('okMsg'), err = document.getElementById('errMsg');
+    ok.style.display = 'none'; err.style.display = 'none';
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.innerHTML = '<span>⏳</span> Enviando...';
+
+    var fd = new FormData(document.getElementById('voucherForm'));
+    fetch('/pagar/voucher', { method: 'POST', body: fd })
+      .then(function(r){ return r.json().then(function(j){ return { status: r.status, body: j }; }); })
+      .then(function(res){
+        if (res.status >= 200 && res.status < 300 && res.body.exito){
+          document.getElementById('voucherForm').style.display = 'none';
+          document.getElementById('okTxt').textContent = res.body.mensaje;
+          ok.style.display = 'block';
+          ok.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          document.getElementById('errTxt').textContent = (res.body && res.body.detail) || 'Intenta de nuevo o escríbenos por WhatsApp.';
+          err.style.display = 'block';
+          btn.disabled = false; btn.innerHTML = '<span>🔒</span> Activar mi cuenta';
+        }
+      })
+      .catch(function(){
+        document.getElementById('errTxt').textContent = 'Error de conexión. Revisa tu internet e intenta de nuevo.';
+        err.style.display = 'block';
+        btn.disabled = false; btn.innerHTML = '<span>🔒</span> Activar mi cuenta';
+      });
+  });
+
+  refrescar();
+</script>
+</body>
+</html>

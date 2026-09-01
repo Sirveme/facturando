@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facturalo.pro — Facturación electrónica SUNAT en segundos</title>
+<style>
+  :root{
+    --bg:#0A1410;--bg-panel:#0E1B15;--bg-row:#0C1712;--bg-row-alt:#101E18;--bg-input:#13241C;
+    --border:#217346;--border-strong:#2E9C5E;
+    --text:#E6EDE9;--text-dim:#94A69C;--text-faint:#61756B;
+    --rojo:#D42020;--rojo-soft:#C41010;--dorado:#F4B400;
+    --verde-excel:#217346;--verde:#2ECC71;--label:#3DBB73;
+    --fs:14px;--radius:0px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{ scroll-behavior:smooth; }
+  body{ background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;font-size:var(--fs);line-height:1.55;-webkit-font-smoothing:antialiased;padding-bottom:60px; }
+  body::before{ content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background-image:repeating-linear-gradient(45deg,transparent,transparent 80px,rgba(46,204,113,.008) 80px,rgba(46,204,113,.008) 160px);animation:drift 55s linear infinite; }
+  @keyframes drift{from{background-position:0 0}to{background-position:160px 160px}}
+
+  header{ display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--border);padding:14px 24px;position:sticky;top:0;background:var(--bg);z-index:30; }
+  .brand{ display:flex;align-items:center;gap:10px; }
+  .brand .logo{ width:36px;height:36px;background:linear-gradient(135deg,#D01414,#7E0000);display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:5px; }
+  .brand .logo i:nth-child(1){background:#fff}.brand .logo i:nth-child(2){background:#F4B400}.brand .logo i:nth-child(3){background:#F4B400}
+  .brand .logo i:nth-child(4){background:#fff}.brand .logo i:nth-child(5){background:#F4B400}.brand .logo i:nth-child(6){background:#fff}
+  .brand .logo i:nth-child(7){background:#fff}.brand .logo i:nth-child(8){background:#fff}.brand .logo i:nth-child(9){background:#F4B400}
+  .brand .n{ font-size:20px;font-weight:800; } .brand .n span{color:var(--rojo)} .brand .n em{color:var(--dorado);font-style:normal} .brand .n small{ font-size:11px;color:var(--rojo);letter-spacing:2px;font-weight:700; }
+  header nav{ display:flex;gap:6px;align-items:center; }
+  header nav a{ color:var(--text-dim);text-decoration:none;padding:7px 14px;font-size:14px; } header nav a:hover{ color:var(--text); }
+  header nav a.ingresar{ border:1px solid var(--border);color:var(--verde);font-weight:600; }
+
+  /* CADA SECCIÓN casi ocupa su pantalla: min-height alto + centrado vertical */
+  section{ position:relative;z-index:1;min-height:88vh;display:flex;flex-direction:column;justify-content:center;padding:60px 24px;max-width:1000px;margin:0 auto; }
+  .kicker{ color:var(--label);font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;text-align:center; }
+
+  /* ===== HERO ===== */
+  .hero{ text-align:center; }
+  .hero h1{ font-size:44px;line-height:1.12;font-weight:800;margin-bottom:20px;max-width:840px;margin-left:auto;margin-right:auto; }
+  .hero h1 .hl{ color:var(--dorado); }
+  .hero .sub{ font-size:19px;color:var(--text-dim);max-width:600px;margin:0 auto 40px; }
+  .hero .video{ border:1px solid var(--border);background:var(--bg-panel);max-width:700px;margin:0 auto;width:100%;aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer; }
+  .hero .video .play{ width:74px;height:74px;border:2px solid var(--verde);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--verde);font-size:30px;padding-left:6px; }
+  .hero .video:hover .play{ background:var(--verde);color:#04250f; }
+  .hero .video .cap{ color:var(--text-dim);font-size:14px; } .hero .video .cap b{ color:var(--label); }
+
+
+  /* ===== COMPROBANTES DE EJEMPLO (prueba visual) ===== */
+  .comp-sec{ text-align:center; }
+  .comp-sec h2{ font-size:32px;font-weight:800;margin-bottom:10px; }
+  .comp-sec .lead{ color:var(--text-dim);font-size:16px;margin-bottom:36px;max-width:640px;margin-left:auto;margin-right:auto; }
+  .comp-tabs{ display:inline-flex;border:1px solid var(--border);margin-bottom:24px; }
+  .comp-tabs button{ background:var(--bg-row);border:none;border-right:1px solid var(--border);color:var(--text-dim);padding:10px 20px;cursor:pointer;font-weight:600;font-size:13px; }
+  .comp-tabs button:last-child{border-right:none} .comp-tabs button.on{ background:var(--verde-excel);color:#fff; }
+  .comp-stage{ display:flex;justify-content:center; }
+  .comp-pane{ display:none; } .comp-pane.on{ display:block; }
+
+  /* comprobante A4/A5 */
+  .cpe{ background:#fdfdfb;color:#1a1a1a;border:1px solid #ccc;width:480px;max-width:100%;text-align:left;font-family:Arial,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4); }
+  .cpe .cpe-top{ display:flex;justify-content:space-between;padding:14px;border-bottom:1px solid #ddd; }
+  .cpe .emisor b{ font-size:14px;color:#111; } .cpe .emisor div{ font-size:10px;color:#555;line-height:1.5; }
+  .cpe .cpe-box{ border:1.5px solid #333;padding:8px 14px;text-align:center;min-width:150px; }
+  .cpe .cpe-box .ruc{ font-size:10px;color:#333; } .cpe .cpe-box .tipo{ font-size:13px;font-weight:800;margin:3px 0;color:#111; } .cpe .cpe-box .num{ font-size:12px;font-weight:700;background:#eee;padding:2px; }
+  .cpe .cli{ padding:12px 14px;border-bottom:1px solid #ddd;font-size:11px;line-height:1.7; }
+  .cpe .cli .k{ color:#666;display:inline-block;width:90px; }
+  .ofusc{ background:#2a2a2a;color:transparent;border-radius:2px;padding:0 4px;user-select:none;position:relative; }
+  .ofusc::after{ content:"";position:absolute;left:0;right:0;top:15%;bottom:15%;background:repeating-linear-gradient(0deg,#333,#333 2px,#222 2px,#222 4px); }
+  .cpe table.det{ width:100%;border-collapse:collapse;font-size:10px; }
+  .cpe table.det th{ background:#f0f0f0;border:1px solid #ddd;padding:5px;color:#444;text-align:left; }
+  .cpe table.det td{ border:1px solid #eee;padding:5px;color:#222; } .cpe table.det td.n{ text-align:right; }
+  .cpe .tot{ padding:10px 14px;border-top:1px solid #ddd;font-size:11px; }
+  .cpe .tot .tr{ display:flex;justify-content:space-between;padding:2px 0; } .cpe .tot .grand{ font-weight:800;font-size:14px;border-top:1px solid #333;margin-top:4px;padding-top:5px; }
+  .cpe .detr{ margin:8px 14px;padding:8px;border:1px dashed #c0392b;background:#fdf0ee;font-size:10px;color:#922; }
+  .cpe .detr b{ color:#c0392b; }
+  .cpe .foot{ padding:8px 14px;border-top:1px solid #ddd;font-size:9px;color:#888;text-align:center; }
+
+  /* ticket 80mm */
+  .ticket{ background:#fff;color:#000;width:280px;max-width:100%;font-family:"Courier New",monospace;font-size:11px;padding:14px;text-align:left;box-shadow:0 8px 30px rgba(0,0,0,.4);line-height:1.5; }
+  .ticket .c{ text-align:center; } .ticket .b{ font-weight:700; } .ticket hr{ border:none;border-top:1px dashed #999;margin:6px 0; }
+  .ticket .row{ display:flex;justify-content:space-between; }
+  .comp-caption{ margin-top:16px;color:var(--label);font-size:12px; } .comp-caption b{color:var(--text)}
+
+  /* ===== PUENTES DE VALOR (open-loops) ===== */
+  .puente{ text-align:center;padding:8px 24px 0;max-width:760px;margin:24px auto 0; }
+  .puente p{ font-size:16px;color:var(--text);line-height:1.5; }
+  .puente p .val{ color:var(--dorado);font-weight:700; }
+  .puente .down{ display:block;margin-top:14px;color:var(--verde);font-size:26px;animation:bounce 2s infinite;opacity:.75; }
+
+  .scroll-hint{ margin-top:36px;color:var(--text-faint);font-size:22px;animation:bounce 2s infinite; }
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+  /* ===== PROBLEMA ===== */
+  .problema{ text-align:center; }
+  .problema h2{ font-size:32px;font-weight:800;margin-bottom:12px; } .problema h2 .hl{color:var(--dorado)}
+  .problema .lead{ color:var(--text-dim);font-size:17px;max-width:620px;margin:0 auto 36px; }
+  .pain-grid{ display:grid;grid-template-columns:repeat(2,1fr);gap:0;border:1px solid var(--border);max-width:760px;margin:0 auto; }
+  .pain{ border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:22px;text-align:left;display:flex;gap:14px;align-items:flex-start; }
+  .pain:nth-child(2n){border-right:none} .pain:nth-child(3),.pain:nth-child(4){border-bottom:none}
+  .pain .q{ color:var(--rojo);font-size:22px;font-weight:800;line-height:1; }
+  .pain b{ display:block;font-size:15px;margin-bottom:3px; } .pain span{ color:var(--text-dim);font-size:13px; }
+
+  /* ===== SOLUCIÓN ===== */
+  .solucion{ text-align:center; }
+  .solucion h2{ font-size:34px;font-weight:800;margin-bottom:14px; } .solucion h2 .hl{color:var(--verde)}
+  .solucion .lead{ color:var(--text-dim);font-size:17px;max-width:640px;margin:0 auto 40px; }
+  .benef{ display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);max-width:860px;margin:0 auto;width:100%; }
+  .benef > div{ border-right:1px solid var(--border);padding:28px 20px; } .benef > div:last-child{border-right:none}
+  .benef .ic{ color:var(--label);margin-bottom:14px;display:flex;justify-content:center; } .benef .ic svg{ width:34px;height:34px; }
+  .benef b{ display:block;font-size:17px;margin-bottom:6px; } .benef p{ color:var(--text-dim);font-size:13.5px; }
+
+  /* ===== PRUEBA ===== */
+  .prueba{ text-align:center; }
+  .prueba .claim{ display:inline-flex;align-items:center;gap:12px;border:1px solid var(--border);border-left:4px solid var(--dorado);background:var(--bg-panel);padding:18px 28px;font-size:20px;margin-bottom:16px; }
+  .prueba .claim b{ color:var(--dorado); }
+  .prueba .backed{ color:var(--text-dim);font-size:14px;max-width:560px;margin:0 auto 44px; } .prueba .backed b{ color:var(--rojo);font-weight:700; }
+  .prueba .users-t{ color:var(--text-faint);font-size:12px;letter-spacing:2px;font-weight:600;margin-bottom:16px; }
+  .logos{ display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--border);max-width:900px;margin:0 auto;width:100%; }
+  .logos .lg{ border-right:1px solid var(--border);padding:20px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:96px; } .logos .lg:last-child{border-right:none}
+  .logos .lg .dot{ width:30px;height:30px;border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--label); }
+  .logos .lg span{ font-size:11px;color:var(--text-dim);text-align:center;line-height:1.25; }
+
+  /* ===== PLANES ===== */
+  .planes-sec{ text-align:center; }
+  .planes-sec h2{ font-size:32px;font-weight:800;margin-bottom:10px; }
+  .planes-sec .lead{ color:var(--text-dim);font-size:16px;margin-bottom:36px; }
+  .planes{ display:grid;grid-template-columns:1fr 1fr 1.1fr;border:1px solid var(--border);max-width:900px;margin:0 auto;width:100%;text-align:left; }
+  .plan{ border-right:1px solid var(--border);padding:26px 22px;display:flex;flex-direction:column; } .plan:last-child{border-right:none;background:var(--bg-row);}
+  .plan .pn{ color:var(--label);font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:8px; }
+  .plan .price{ font-size:38px;font-weight:800; } .plan .price small{ font-size:14px;color:var(--text-dim);font-weight:400; }
+  .plan .rucs{ font-size:15px;margin:10px 0; } .plan .feat{ color:var(--text-dim);font-size:13px;margin:4px 0;display:flex;gap:7px; } .plan .feat::before{ content:"✓";color:var(--verde);font-weight:800; }
+  .plan .detail-btn{ margin-top:18px;background:transparent;border:1px solid var(--border-strong);color:var(--label);padding:10px;cursor:pointer;font-weight:600;font-size:13px; } .plan .detail-btn:hover{ background:var(--bg-row-alt);color:var(--text); }
+  .plan.api{ justify-content:center; } .plan.api .apit{ font-weight:700;color:var(--dorado);margin-bottom:10px;font-size:15px; } .plan.api p{ color:var(--text-dim);font-size:13px; }
+  .sede-note{ color:var(--text-faint);font-size:12px;margin-top:16px; }
+
+  /* ===== FAQ ===== */
+  .faq-sec h2{ font-size:30px;font-weight:800;text-align:center;margin-bottom:32px; }
+  .qa{ border:1px solid var(--border);max-width:800px;margin:0 auto;width:100%; }
+  .qa details{ border-bottom:1px solid var(--border); } .qa details:last-child{border-bottom:none}
+  .qa summary{ padding:15px 18px;cursor:pointer;font-weight:600;background:var(--bg-panel);list-style:none;display:flex;justify-content:space-between;align-items:center;font-size:15px; }
+  .qa summary::-webkit-details-marker{display:none} .qa summary::after{ content:"+";color:var(--verde);font-weight:800;font-size:18px; }
+  .qa details[open] summary::after{ content:"−"; } .qa details[open] summary{ color:var(--label);background:var(--bg-row); }
+  .qa .a{ padding:15px 18px;color:var(--text-dim);font-size:14px;background:var(--bg-row-alt);border-top:1px solid var(--border); }
+
+  /* ===== CTA FINAL ===== */
+  .cta-sec{ text-align:center; }
+  .cta2{ border:1px solid var(--border);border-left:4px solid var(--dorado);background:var(--bg-panel);padding:44px;max-width:720px;margin:0 auto;width:100%; }
+  .cta2 h3{ font-size:30px;font-weight:800;margin-bottom:12px; } .cta2 h3 .hl{color:var(--dorado)}
+  .cta2 p{ color:var(--text-dim);font-size:16px;margin-bottom:26px; }
+  .cta2 .ctabtn{ display:inline-flex;align-items:center;gap:10px;background:var(--verde);border:2px solid #1a9e54;border-bottom-width:4px;border-right-width:4px;color:#04250f;font-weight:800;font-size:17px;padding:15px 32px;cursor:pointer; } .cta2 .ctabtn:active{ transform:translate(2px,2px);border-bottom-width:2px;border-right-width:2px; }
+  .cta2 .mini{ color:var(--text-faint);font-size:12.5px;margin-top:16px; }
+
+
+  /* ===== SECCIÓN PAGAR (cierre) ===== */
+  .pagar-sec{ text-align:center; }
+  .pagar-box{ border:1px solid var(--border);background:var(--bg-panel);max-width:820px;margin:0 auto;width:100%; }
+  .pagar-box .ph{ background:var(--verde-excel);color:#fff;padding:10px;font-weight:700;font-size:13px;letter-spacing:1px; }
+  .pagar-steps{ display:grid;grid-template-columns:repeat(3,1fr); }
+  .pagar-steps > div{ border-right:1px solid var(--border);padding:26px 18px; } .pagar-steps > div:last-child{border-right:none}
+  .pagar-steps .n{ width:38px;height:38px;border:2px solid var(--verde);color:var(--verde);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;margin:0 auto 12px; }
+  .pagar-steps b{ display:block;font-size:15px;margin-bottom:4px; } .pagar-steps p{ color:var(--text-dim);font-size:12.5px; }
+  .pagar-cierre{ padding:30px 20px;border-top:1px solid var(--border); }
+  .pagar-cierre .t1{ font-size:26px;font-weight:800;margin-bottom:6px; } .pagar-cierre .t1 .hl{ color:var(--dorado); }
+  .pagar-cierre .t2{ color:var(--text-dim);font-size:15px;margin-bottom:22px; }
+  .pagar-cierre .pagar-btn{ display:inline-flex;align-items:center;gap:12px;background:var(--verde);border:2px solid #1a9e54;border-bottom-width:5px;border-right-width:5px;color:#04250f;font-weight:800;font-size:20px;padding:16px 40px;cursor:pointer; }
+  .pagar-cierre .pagar-btn:active{ transform:translate(3px,3px);border-bottom-width:2px;border-right-width:2px; }
+  .pagar-cierre .pagar-btn .ic{ font-size:24px; }
+  .pagar-cierre .nota{ color:var(--text-faint);font-size:12.5px;margin-top:14px; } .pagar-cierre .nota b{ color:var(--label); }
+
+  /* ===== BLOG ===== */
+  .blog-sec h2{ font-size:28px;font-weight:800;text-align:center;margin-bottom:32px; }
+  .blog{ display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);max-width:920px;margin:0 auto;width:100%; }
+  .blog article{ border-right:1px solid var(--border);padding:20px; } .blog article:last-child{border-right:none}
+  .blog .tag{ display:inline-block;background:var(--verde-excel);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;margin-bottom:10px;letter-spacing:.5px; }
+  .blog h3{ font-size:15px;margin-bottom:8px;line-height:1.3; } .blog p{ color:var(--text-dim);font-size:12.5px;margin-bottom:10px; }
+  .blog a{ color:var(--label);font-size:12.5px;text-decoration:none;font-weight:600; } .blog a:hover{color:var(--verde)}
+
+  .fixedbar{ position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;border-top:2px solid var(--border-strong);background:var(--bg-panel); }
+  .fixedbar button{ flex:1;padding:16px;border:none;cursor:pointer;font-weight:800;font-size:15px;letter-spacing:.5px; }
+  .fixedbar .consultar{ background:transparent;color:var(--verde);border-right:1px solid var(--border); } .fixedbar .consultar:hover{ background:var(--bg-row-alt); }
+  .fixedbar .config{ background:var(--verde);color:#04250f; } .fixedbar .config:hover{ filter:brightness(1.07); }
+
+  .modal-bg{ position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center; } .modal-bg.show{ display:flex; }
+  .modal{ width:90%;height:90%;max-width:1000px;border:2px solid var(--border-strong);background:var(--bg);display:flex;flex-direction:column; }
+  .modal .mh{ background:var(--verde-excel);color:#fff;font-weight:700;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:16px; } .modal .mh .x{ cursor:pointer;font-size:22px; }
+  .modal .mb{ padding:20px;overflow:auto;flex:1; }
+  table.compare{ width:100%;border-collapse:collapse; }
+  table.compare th{ background:var(--bg-row);border:1px solid var(--border);padding:11px;font-size:13px;color:var(--label);text-align:left; } table.compare th.plan-h{ background:var(--verde-excel);color:#fff;text-align:center; }
+  table.compare td{ border:1px solid var(--border);padding:11px;font-size:13px; } table.compare td.c{ text-align:center; } table.compare tr:nth-child(even) td{ background:var(--bg-row-alt); }
+  table.compare .yes{ color:var(--verde);font-weight:800; } .price-big{ font-size:22px;font-weight:800; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="n"><span>facturalo</span><em>.pro</em> <small>PRO</small></div>
+    </div>
+    <nav><a href="#planes">Planes</a><a href="#faq">Preguntas</a><a href="#blog">Blog</a><a href="#" class="ingresar">INGRESAR</a></nav>
+  </header>
+
+  <!-- 1. HERO -->
+  <section class="hero">
+    <h1>Emite comprobantes <span class="hl">aceptados por SUNAT</span> en segundos.</h1>
+    <p class="sub">Facturas, boletas, guías y notas. En menos de 10 segundos, y sigues vendiendo.</p>
+    <div class="video">
+      <div class="play">▶</div>
+      <div class="cap">Nuestra filosofía: <b>reserva de información · seguridad · agilidad</b></div>
+    </div>
+    <div class="puente" style="margin-top:36px">
+      <p>Pero antes de mostrarte el cómo, déjame preguntarte algo.</p>
+      <span class="down">↓</span>
+    </div>
+  </section>
+
+  <!-- 2. PROBLEMA -->
+  <section class="problema">
+    <div class="kicker">Lo que buscaban quienes hoy nos usan</div>
+    <h2>¿Por qué <span class="hl">nos contrataron</span>?</h2>
+    <p class="lead">No llegaron por casualidad. Llegaron porque tenían un problema real — y se quedaron porque lo resolvimos.</p>
+    <div class="pain-grid">
+      <div class="pain"><div class="q">?</div><div><b>"SUNAT me complica"</b><span>Reglas que cambian, formatos, exoneraciones, detracciones. Un error cuesta multas.</span></div></div>
+      <div class="pain"><div class="q">?</div><div><b>"Mi sistema es lento"</b><span>Emitir un comprobante toma demasiado. La cola crece, la venta se frena.</span></div></div>
+      <div class="pain"><div class="q">?</div><div><b>"Nadie me da soporte"</b><span>Cuando algo falla, respondes tú solo. El proveedor es un correo que no contesta.</span></div></div>
+      <div class="pain"><div class="q">?</div><div><b>"Se cae el internet"</b><span>Sin señal, no facturas. Y en la Amazonía, la señal no siempre acompaña.</span></div></div>
+    </div>
+    <div class="puente">
+      <p>¿Y sabes lo mejor? Ninguno de ellos volvió a preocuparse. <span class="val">Anticipamos los errores que la competencia recién descubre</span> — para que tú nunca los vivas.</p>
+      <span class="down">↓</span>
+    </div>
+  </section>
+
+  <!-- 3. SOLUCIÓN -->
+  <section class="solucion">
+    <div class="kicker">La solución</div>
+    <h2>Facturalo lo <span class="hl">resuelve</span></h2>
+    <p class="lead">Hecho por gente que conoce SUNAT desde adentro, para negocios que necesitan cumplir sin complicarse.</p>
+    <div class="benef">
+      <div><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="10" width="16" height="10"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><b>Reserva de información</b><p>Tus datos son tuyos. No los compartimos ni los explotamos.</p></div>
+      <div><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l8 3v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg></div><b>Seguridad</b><p>Certificado, firma y envío a SUNAT con máximos resguardos.</p></div>
+      <div><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div><b>Agilidad</b><p>Emisión en segundos. Menos clics, más ventas.</p></div>
+    </div>
+    <div class="puente">
+      <p>Palabras bonitas las dice cualquiera. <span class="val">Nosotros tenemos con qué probarlo</span>, y no es poca cosa.</p>
+      <span class="down">↓</span>
+    </div>
+  </section>
+
+  <!-- 4. PRUEBA -->
+  <section class="prueba">
+    <div class="kicker">La prueba</div>
+    <div class="claim">🏛️ <span><b>Probado a diario</b> por un Colegio de Contadores del Perú</span></div>
+    <div class="backed">Facturalo.pro está respaldado por <b>PERÚ SISTEMAS PRO</b>, empresa especializada en software empresarial e institucional.</div>
+    <div class="users-t">QUIENES NOS USAN A DIARIO</div>
+    <div class="logos">
+      <div class="lg"><div class="dot">CC</div><span>Colegio de Contadores de Loreto</span></div>
+      <div class="lg"><div class="dot">MS</div><span>Multiservicios Shevalche</span></div>
+      <div class="lg"><div class="dot">AC</div><span>Automotriz Castillo</span></div>
+      <div class="lg"><div class="dot">MT</div><span>Metraes.com</span></div>
+      <div class="lg"><div class="dot">QV</div><span>QueVendi.pro</span></div>
+      <div class="lg"><div class="dot">PG</div><span>pagoOK.pro</span></div>
+    </div>
+    <div class="puente">
+      <p>Un Colegio de Contadores nos confía miles de comprobantes al mes. <span class="val">Y todo esto cuesta menos de lo que imaginas</span>.</p>
+      <span class="down">↓</span>
+    </div>
+  </section>
+
+
+  <!-- COMPROBANTES DE EJEMPLO -->
+  <section class="comp-sec">
+    <div class="kicker">Comprobantes reales</div>
+    <h2>Así se ven, <span style="color:var(--verde)">bien hechos</span></h2>
+    <p class="lead">Comprobantes que nuestros clientes emiten todos los días. (Los datos de sus clientes están ocultos por privacidad.)</p>
+    <div class="comp-tabs">
+      <button class="on" onclick="showComp('bol',this)">Boleta</button>
+      <button onclick="showComp('fac',this)">Factura</button>
+      <button onclick="showComp('tkt',this)">Ticket</button>
+      <button onclick="showComp('det',this)">Factura c/ Detracción</button>
+    </div>
+    <div class="comp-stage">
+
+      <!-- BOLETA (CCPL) -->
+      <div class="comp-pane on" data-comp="bol">
+        <div class="cpe">
+          <div class="cpe-top">
+            <div class="emisor"><b>COLEGIO DE CONTADORES PÚBLICOS DE LORETO</b><div>Calle Echenique N° 451, Iquitos<br><span class="ofusc">colegiocontadores.loreto</span>@gmail.com</div></div>
+            <div class="cpe-box"><div class="ruc">RUC 20103830991</div><div class="tipo">BOLETA<br>ELECTRÓNICA</div><div class="num">B400-00002061</div></div>
+          </div>
+          <div class="cli">
+            <div><span class="k">Fecha:</span> 30/08/2026</div>
+            <div><span class="k">Adquirente:</span> <span class="ofusc">ARMAS MOZOMBITE DENISSE</span></div>
+            <div><span class="k">Documento:</span> <span class="ofusc">DNI 75591392</span></div>
+          </div>
+          <table class="det"><thead><tr><th>Descripción</th><th>Cant</th><th>Importe</th></tr></thead>
+            <tbody><tr><td>Derecho de Colegiatura (pago a cuenta)</td><td class="n">1</td><td class="n">600.00</td></tr></tbody></table>
+          <div class="tot"><div class="tr"><span>Op. Inafecta</span><span>S/ 600.00</span></div><div class="tr grand"><span>TOTAL</span><span>S/ 600.00</span></div></div>
+          <div class="foot">Representación impresa de la BOLETA ELECTRÓNICA · facturalo.pro</div>
+        </div>
+      </div>
+
+      <!-- FACTURA (Maykol) -->
+      <div class="comp-pane" data-comp="fac">
+        <div class="cpe">
+          <div class="cpe-top">
+            <div class="emisor"><b>AUTOMOTRIZ INTEGRAL CASTILLO</b><div>Milton Ernani Castillo Florián<br>Cal. Manuel del Pino 778, Lima</div></div>
+            <div class="cpe-box"><div class="ruc">RUC 10736459791</div><div class="tipo">FACTURA<br>ELECTRÓNICA</div><div class="num">F778-00000003</div></div>
+          </div>
+          <div class="cli">
+            <div><span class="k">Fecha:</span> 15/08/2026</div>
+            <div><span class="k">Cliente:</span> <span class="ofusc">TRANSPORTES SELVA S.A.C.</span></div>
+            <div><span class="k">RUC:</span> <span class="ofusc">20516778629</span></div>
+          </div>
+          <table class="det"><thead><tr><th>Descripción</th><th>Cant</th><th>P.Unit</th><th>Importe</th></tr></thead>
+            <tbody>
+              <tr><td>Servicio de mantenimiento de frenos</td><td class="n">1</td><td class="n">180.00</td><td class="n">180.00</td></tr>
+              <tr><td>Cambio de aceite y filtros</td><td class="n">1</td><td class="n">120.00</td><td class="n">120.00</td></tr>
+            </tbody></table>
+          <div class="tot"><div class="tr"><span>Op. Gravada</span><span>S/ 254.24</span></div><div class="tr"><span>IGV (18%)</span><span>S/ 45.76</span></div><div class="tr grand"><span>TOTAL</span><span>S/ 300.00</span></div></div>
+          <div class="foot">Representación impresa de la FACTURA ELECTRÓNICA · facturalo.pro</div>
+        </div>
+      </div>
+
+      <!-- TICKET (Shevalche) -->
+      <div class="comp-pane" data-comp="tkt">
+        <div class="ticket">
+          <div class="c b" style="font-size:13px">MULTISERVICIOS SHEVALCHE</div>
+          <div class="c" style="font-size:10px">Av. Participación 1250 - Iquitos</div>
+          <hr>
+          <div class="c" style="border:1px solid #000;padding:3px;margin:2px 0">RUC 20615643735</div>
+          <div class="c b">BOLETA DE VENTA ELECTRÓNICA</div>
+          <div class="c" style="background:#000;color:#fff;padding:3px 0;font-weight:700">B884-00000137</div>
+          <hr>
+          <div style="font-size:10px">Fecha: 30/08/2026  Hora: 16:42  F.Pago: Contado</div>
+          <hr>
+          <div style="font-size:10px">Cliente: <span class="ofusc">CLIENTE VARIOS</span></div>
+          <hr>
+          <div class="row b" style="font-size:10px"><span>Producto</span><span>Cnt&nbsp;&nbsp;Total</span></div>
+          <div class="row"><span>Gaseosa 500ml</span><span>2&nbsp;&nbsp;&nbsp;7.00</span></div>
+          <div class="row"><span>Pan x6</span><span>1&nbsp;&nbsp;&nbsp;3.50</span></div>
+          <div class="row"><span>Agua mineral</span><span>3&nbsp;&nbsp;&nbsp;6.00</span></div>
+          <div style="font-size:10px">Items: 3</div>
+          <div class="row" style="font-size:10px"><span>Op. Gravada S/</span><span>16.50</span></div>
+          <hr>
+          <div style="border:2px solid #000;padding:5px 4px;margin:3px 0">
+            <div class="row b" style="font-size:15px"><span>TOTAL S/</span><span>16.50</span></div>
+          </div>
+          <div style="font-size:9px">Son: DIECISEIS CON 50/100 SOLES</div>
+          <div class="row" style="font-size:10px"><span>Efectivo S/ 20.00</span><span>Vuelto S/ 3.50</span></div>
+          <hr>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="width:44px;height:44px;border:1px solid #999;display:flex;align-items:center;justify-content:center;font-size:8px;color:#999">[QR]</div>
+            <div style="font-size:8px;line-height:1.4">Representación impresa de la BOLETA DE VENTA ELECTRÓNICA<br>Verifique en: www.facturalo.pro/verificar</div>
+          </div>
+          <div style="font-size:8px;margin-top:4px">Hash: 8kd93hsla9 · Interno: SHV 00000137</div>
+          <hr>
+          <div class="c" style="font-size:8px">BIENES TRANSFERIDOS EN LA AMAZONÍA<br>PARA SER CONSUMIDOS EN LA MISMA</div>
+          <hr>
+          <div class="c" style="font-size:8px;color:#333">Facturación: <b>facturalo.pro</b></div>
+        </div>
+      </div>
+
+      <!-- FACTURA CON DETRACCIÓN (Maykol) -->
+      <div class="comp-pane" data-comp="det">
+        <div class="cpe">
+          <div class="cpe-top">
+            <div class="emisor"><b>AUTOMOTRIZ INTEGRAL CASTILLO</b><div>Milton Ernani Castillo Florián<br>Cal. Manuel del Pino 778, Lima</div></div>
+            <div class="cpe-box"><div class="ruc">RUC 10736459791</div><div class="tipo">FACTURA<br>ELECTRÓNICA</div><div class="num">F778-00000012</div></div>
+          </div>
+          <div class="cli">
+            <div><span class="k">Fecha:</span> 27/08/2026</div>
+            <div><span class="k">Cliente:</span> <span class="ofusc">CONSTRUCTORA AMAZONAS S.A.C.</span></div>
+            <div><span class="k">RUC:</span> <span class="ofusc">20531925618</span></div>
+          </div>
+          <table class="det"><thead><tr><th>Descripción</th><th>Cant</th><th>Importe</th></tr></thead>
+            <tbody><tr><td>Servicio de mantenimiento de flota vehicular</td><td class="n">1</td><td class="n">708.16</td></tr></tbody></table>
+          <div class="tot"><div class="tr"><span>Op. Gravada</span><span>S/ 600.14</span></div><div class="tr"><span>IGV (18%)</span><span>S/ 108.02</span></div><div class="tr grand"><span>TOTAL</span><span>S/ 708.16</span></div></div>
+          <div class="detr"><b>OPERACIÓN SUJETA A DETRACCIÓN (SPOT)</b><br>Bien/Servicio: 020 · Porcentaje: 12%<br>Monto detracción: <b>S/ 85.00</b> · Cuenta BN: 00021140171</div>
+          <div class="foot">Representación impresa de la FACTURA ELECTRÓNICA · facturalo.pro</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="comp-caption">Boleta: <b>CCPL</b> · Factura: <b>Automotriz Castillo</b> · Ticket: <b>Shevalche</b> · Detracción: <b>Automotriz Castillo</b></div>
+    <div class="puente">
+      <p>Comprobantes reales, aceptados por SUNAT, emitidos hoy. <span class="val">Todo esto cuesta menos de lo que imaginas</span>.</p>
+      <span class="down">↓</span>
+    </div>
+  </section>
+
+  <!-- 5. PLANES -->
+  <section class="planes-sec" id="planes">
+    <div class="kicker">Precios</div>
+    <h2>Congelados por 5 años <span style="font-size:16px;color:var(--dorado)">(*)</span></h2>
+    <p class="lead">Comprobantes y usuarios ilimitados.</p>
+    <div class="planes">
+      <div class="plan">
+        <div class="pn">EMPRENDEDOR</div><div class="price">S/ 29<small>/mes</small></div>
+        <div style="color:var(--dorado);font-size:13px;font-weight:600;margin:2px 0 4px">Anual S/ 290</div>
+        <div class="rucs"><b>1 RUC</b></div>
+        <div class="feat">Comprobantes ilimitados</div><div class="feat">Todos los comprobantes</div><div class="feat">Incluye Detracciones</div>
+        <button class="detail-btn" onclick="openModal()">Ver detalle ▸</button>
+      </div>
+      <div class="plan">
+        <div class="pn">NEGOCIO</div><div class="price">S/ 55<small>/mes</small></div>
+        <div style="color:var(--dorado);font-size:13px;font-weight:600;margin:2px 0 4px">Anual S/ 550</div>
+        <div class="rucs"><b>3 RUCs</b></div>
+        <div class="feat">Comprobantes ilimitados</div><div class="feat">Todos los comprobantes</div><div class="feat">Incluye Detracciones</div>
+        <button class="detail-btn" onclick="openModal()">Ver detalle ▸</button>
+      </div>
+      <div class="plan api">
+        <div class="apit">¿Tienes tu propio sistema?</div>
+        <p>Integramos nuestra veloz API para que tu sistema emita directo y automáticamente.</p>
+        <button class="detail-btn" onclick="openModal()">Ver integración ▸</button>
+      </div>
+    </div>
+    <p class="sede-note">Por cada sede adicional: +S/ 10/mes. Sin permanencia forzada.<br>(*) Precios congelados si pagas anual, año por año.</p>
+    <div class="puente">
+      <p><span class="val">Por menos de lo que gastas en un almuerzo al mes</span>, cumples con SUNAT y duermes tranquilo. ¿Te queda alguna duda?</p>
+      <span class="down">↓</span>
+    </div>
+  </section>
+
+  <!-- 6. FAQ -->
+  <section class="faq-sec" id="faq">
+    <h2>Preguntas frecuentes</h2>
+    <div class="qa">
+      <details open><summary>¿Cuánto tarda en emitirse un comprobante?</summary><div class="a">Menos de 10 segundos. Ingresas los datos, presionas emitir, y SUNAT lo acepta al instante.</div></details>
+      <details><summary>¿Manejan la exoneración de IGV de la Amazonía?</summary><div class="a">Sí, Facturalo aplica correctamente la exoneración de IGV para la Amazonía, sin configuración manual.</div></details>
+      <details><summary>¿Soportan detracciones (SPOT)?</summary><div class="a">Sí. El sistema calcula el monto según el tipo de bien o servicio y lo refleja en el comprobante.</div></details>
+      <details><summary>¿Qué formatos de impresión ofrecen?</summary><div class="a">Ticket de 58mm y 80mm (térmicas), y A4 / A5. Eliges el formato por tipo de comprobante.</div></details>
+      <details><summary>¿Puedo emitir con varios usuarios?</summary><div class="a">Sí, usuarios ilimitados, y cada uno puede emitir con su propia serie.</div></details>
+      <details><summary>¿Tengo que firmar contrato de permanencia?</summary><div class="a">No. Pagas mes a mes, sin penalidades si decides no continuar.</div></details>
+    </div>
+    <div class="puente">
+      <p>Ya lo sabes todo. <span class="val">Solo falta el paso más fácil de todos</span>.</p>
+      <span class="down">↓</span>
+    </div>
+  </section>
+
+  <!-- 7. CTA FINAL -->
+  <section class="cta-sec">
+    <div class="cta2">
+      <h3>Desde <span class="hl">menos de S/ 1 al día</span></h3>
+      <p>Por el precio de un café, cumples con SUNAT sin dolores de cabeza y con soporte local que te atiende de verdad.</p>
+      <button class="ctabtn"><span>💬</span> Conversar sin compromiso</button>
+      <div class="mini">Te respondemos por WhatsApp · Sin bots, atención personal</div>
+    </div>
+  </section>
+
+
+  <!-- SECCIÓN PAGAR (cierre) -->
+  <section class="pagar-sec">
+    <div class="kicker">Pagar es fácil</div>
+    <h2 style="font-size:32px;font-weight:800;margin-bottom:10px">En <span style="color:var(--verde)">3 pasos</span>, sin complicaciones</h2>
+    <p style="color:var(--text-dim);font-size:16px;margin-bottom:32px;max-width:600px;margin-left:auto;margin-right:auto">No necesitas configurar nada primero. Paga, y luego con calma dejamos todo listo contigo.</p>
+    <div class="pagar-box">
+      <div class="ph">ASÍ DE SIMPLE</div>
+      <div class="pagar-steps">
+        <div><div class="n">1</div><b>Eliges tu plan</b><p>Emprendedor o Negocio. Mensual o anual.</p></div>
+        <div><div class="n">2</div><b>Pagas seguro</b><p>Con Yape u OpenPay. Rápido y sin complicaciones.</p></div>
+        <div><div class="n">3</div><b>Nosotros configuramos</b><p>Te acompañamos a dejar todo listo. Sin que muevas un dedo.</p></div>
+      </div>
+      <div class="pagar-cierre">
+        <div class="t1">¿Ya te <span class="hl">decidiste</span>?</div>
+        <div class="t2">Aquí puedes pagar — incluso si aún no configuraste nada.</div>
+        <button class="pagar-btn"><span class="ic">🔒</span> Pagar y empezar</button>
+        <div class="nota">Te lleva a <b>Configurar Mi Cuenta</b> · Pago seguro · Soporte local que te acompaña</div>
+      </div>
+    </div>
+    <div class="puente">
+      <p>¿Aún con dudas? Tenemos contenido que te ayuda a decidir con información. <span class="val">Aprende antes de comprar</span>.</p>
+      <span class="down">↓</span>
+    </div>
+  </section>
+
+  <!-- 8. BLOG -->
+  <section class="blog-sec" id="blog">
+    <h2>Facturación y SUNAT, explicado simple</h2>
+    <div class="blog">
+      <article><span class="tag">GUÍA SUNAT</span><h3>¿Factura o boleta? Cuándo usar cada una</h3><p>La diferencia clave está en el receptor: RUC para factura, DNI para boleta.</p><a href="#">Leer ▸</a></article>
+      <article><span class="tag">DETRACCIONES</span><h3>Detracciones 2026: umbrales y porcentajes</h3><p>Qué operaciones requieren SPOT y cómo calcularlo bien.</p><a href="#">Leer ▸</a></article>
+      <article><span class="tag">AMAZONÍA</span><h3>Exoneración de IGV en la Amazonía</h3><p>Requisitos, zonas y errores comunes al emitir exonerado.</p><a href="#">Leer ▸</a></article>
+    </div>
+  </section>
+
+  <div class="fixedbar">
+    <button class="consultar">CONSULTAR</button>
+    <button class="config">CONFIGURAR MI CUENTA</button>
+  </div>
+
+  <!-- ===== PIE (redes) — comentado hasta tener contenido =====
+  <footer>Síguenos: Facebook | Instagram | TikTok | YouTube</footer>
+  -->
+
+  <div class="modal-bg" id="modalPlanes">
+    <div class="modal">
+      <div class="mh"><span>Comparación de planes</span><span class="x" onclick="closeModal()">✕</span></div>
+      <div class="mb">
+        <table class="compare">
+          <thead><tr><th>Característica</th><th class="plan-h">Emprendedor</th><th class="plan-h">Negocio</th><th class="plan-h">API</th></tr></thead>
+          <tbody>
+            <tr><td>Precio mensual</td><td class="c"><span class="price-big">S/ 29</span></td><td class="c"><span class="price-big">S/ 55</span></td><td class="c">A cotizar</td></tr>
+            <tr><td>RUCs incluidos</td><td class="c">1</td><td class="c">3</td><td class="c">Según integración</td></tr>
+            <tr><td>Comprobantes</td><td class="c yes">Ilimitada</td><td class="c yes">Ilimitada</td><td class="c yes">Ilimitada</td></tr>
+            <tr><td>Facturas, boletas, guías, NC/ND</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+            <tr><td>Detracciones (SPOT)</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+            <tr><td>Exoneración IGV Amazonía</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+            <tr><td>Formatos Ticket 58/80mm, A4, A5</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+            <tr><td>Usuarios ilimitados</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c">—</td></tr>
+            <tr><td>Sede adicional</td><td class="c">+S/ 10/mes</td><td class="c">+S/ 10/mes</td><td class="c">—</td></tr>
+            <tr><td>Soporte local (Iquitos)</td><td class="c yes">✓</td><td class="c yes">Prioritario</td><td class="c yes">Dedicado</td></tr>
+            <tr><td>Emite desde tu propio sistema</td><td class="c">—</td><td class="c">—</td><td class="c yes">✓ vía API</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+  function showComp(t,el){
+    document.querySelectorAll('.comp-tabs button').forEach(b=>b.classList.remove('on')); el.classList.add('on');
+    document.querySelectorAll('.comp-pane').forEach(p=>p.classList.remove('on'));
+    document.querySelector('.comp-pane[data-comp="'+t+'"]').classList.add('on');
+  }
+  function openModal(){ document.getElementById('modalPlanes').classList.add('show'); }
+  function closeModal(){ document.getElementById('modalPlanes').classList.remove('show'); }
+</script>
+</body>
+</html>
