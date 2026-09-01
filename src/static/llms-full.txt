@@ -67,12 +67,15 @@ Facturalo.pro está dirigido a:
 
 ## Planes y precios
 
-Planes diseñados con emisión ilimitada de comprobantes, diferenciados por funcionalidades incluidas:
-- Plan Básico: facturación electrónica esencial
-- Plan Intermedio: facturación + integración con pasarelas + constancias
-- Plan Avanzado: validación automática de pagos + almacenamiento en la nube + reportes ejecutivos
+Planes con comprobantes y usuarios ilimitados. Precios vigentes (soles, congelados si se paga anual, año por año):
 
-Para detalles actualizados de precios y configuración inicial, contactar a info@perusistemas.pro.
+- Plan Emprendedor: S/ 29/mes o S/ 290/año. 1 RUC. Comprobantes y usuarios ilimitados, incluye detracciones.
+- Plan Negocio: S/ 55/mes o S/ 550/año. 3 RUCs. Comprobantes y usuarios ilimitados, incluye detracciones.
+- Plan API: integración a medida para emitir desde el sistema propio del cliente (a cotizar según integración).
+
+Sede adicional: +S/ 10/mes. Sin permanencia forzada. Todos los planes incluyen todos los tipos de comprobante (facturas, boletas, guías, NC/ND), detracciones (SPOT), exoneración de IGV de la Amazonía y formatos de impresión ticket 58/80mm, A4 y A5.
+
+Pago: en https://facturalo.pro/pagar el cliente elige plan y periodicidad, paga por Yape, Plin o transferencia (BCP / Interbank) y sube su voucher; la cuenta queda activa de inmediato. El pago no es un requisito para empezar a usar el sistema. Para configuración inicial o dudas, contactar a info@perusistemas.pro o al WhatsApp +51 967 317 946.
 
 ## Productos relacionados
 
@@ -132,7 +135,7 @@ Sí. Cada emisor debe tener un usuario SOL secundario configurado con permisos d
 Entre 48 horas y una semana, dependiendo de si el cliente ya tiene certificado digital y usuario SOL configurados. Para clientes que parten desde cero, el equipo de Perú Sistemas Pro asiste en todo el proceso.
 
 ### ¿Hay alguna diferencia entre los planes en cuanto a número de comprobantes?
-No. Los tres planes (Básico, Intermedio, Avanzado) incluyen emisión ILIMITADA de comprobantes. La diferencia entre planes es por funcionalidades adicionales: integración con pasarelas, constancias, validación automática de pagos, almacenamiento, reportes.
+No. Los planes (Emprendedor y Negocio) incluyen emisión ILIMITADA de comprobantes y usuarios ilimitados. La diferencia principal es la cantidad de RUCs incluidos (1 en Emprendedor, 3 en Negocio) y el precio; el plan API está orientado a integrar la emisión al sistema propio del cliente.
 
 ### ¿Se puede dar de baja un plan?
 Sí, sin penalidades. El servicio se contrata mes a mes. Los comprobantes emitidos quedan accesibles permanentemente para el emisor en su panel y vía API.

@@ -6,7 +6,11 @@ Facturalo.pro es un producto de Perú Sistemas Pro E.I.R.L. (RUC 20615446565, re
 
 ## Características principales
 
-- Emisión de Boletas (03), Facturas (01), Notas de Crédito (07) y Notas de Débito (08)
+- Emisión de Boletas (03), Facturas (01), Notas de Crédito (07) y Notas de Débito (08) en segundos (menos de 10 s)
+- Guías de remisión electrónicas (GRE)
+- Detracciones (SPOT): cálculo automático según tipo de bien/servicio
+- Exoneración de IGV de la Amazonía, sin configuración manual
+- Formatos de impresión: ticket 58mm y 80mm (térmicas), A4 y A5
 - Series independientes por canal de venta (caja presencial, portal web, etc.)
 - Envío automático a SUNAT con manejo de respuestas CDR
 - Resumen Diario para boletas (cumplimiento normativo)
@@ -14,6 +18,14 @@ Facturalo.pro es un producto de Perú Sistemas Pro E.I.R.L. (RUC 20615446565, re
 - Integración con pasarelas de pago peruanas (OpenPay, Izipay, Niubiz)
 - Validación de pagos vía Yape, Plin, transferencias (con PagoOK)
 - Multi-emisor y multi-sede en una sola instancia
+
+## Planes y precios
+
+- Emprendedor: S/ 29/mes o S/ 290/año — 1 RUC, comprobantes y usuarios ilimitados, incluye detracciones.
+- Negocio: S/ 55/mes o S/ 550/año — 3 RUCs, comprobantes y usuarios ilimitados, incluye detracciones.
+- API: integración a medida para emitir desde tu propio sistema (a cotizar).
+- Sede adicional: +S/ 10/mes. Sin permanencia forzada. Precios congelados si pagas anual, año por año.
+- Pago simple en [/pagar](https://facturalo.pro/pagar): eliges plan (Yape, Plin o transferencia), subes el voucher y tu cuenta queda activa de inmediato (el pago no es un requisito para empezar a usar el sistema).
 
 ## Especialización por sector
 
