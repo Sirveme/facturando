@@ -805,3 +805,39 @@ class MovimientoStock(Base):
         Index('idx_mov_stock_producto', 'producto_id'),
         Index('idx_mov_stock_origen', 'origen_tipo', 'origen_id'),
     )
+
+
+class PagoVoucher(Base):
+    """Voucher de pago subido desde la landing pública /pagar (Fase 1).
+
+    Tabla NUEVA e independiente: no toca ni referencia el flujo de emisión.
+    El pago NO es restrictivo (la cuenta se activa igual); esto solo deja
+    constancia del comprobante de pago para validación humana posterior.
+    Railway tiene FS efímero -> la imagen se guarda como BLOB en la BD.
+    """
+    __tablename__ = 'pago_voucher'
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+
+    # Datos que el cliente declara en el formulario (sin sesión obligatoria)
+    plan = Column(String(20), nullable=True)              # emprendedor / negocio
+    periodicidad = Column(String(10), nullable=True)      # mensual / anual
+    monto = Column(Numeric(10, 2), nullable=True)         # calculado por JS, informativo
+    titular = Column(String(160), nullable=True)          # nombre del titular del pago
+    ruc = Column(String(15), nullable=True)               # opcional
+    telefono = Column(String(30), nullable=True)          # opcional (contacto)
+    metodo = Column(String(20), nullable=True)            # yape/plin/bcp/interbank
+
+    # Imagen del voucher (BLOB, patrón Emisor.logo / Comprobante.pdf)
+    imagen = Column(LargeBinary, nullable=True)
+    imagen_content_type = Column(String(60), nullable=True)
+    imagen_filename = Column(String(200), nullable=True)
+
+    estado = Column(String(20), default='pendiente')      # pendiente/validado/rechazado
+    notas = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=utc_now)
+
+    __table_args__ = (
+        Index('idx_pago_voucher_estado_fecha', 'estado', 'created_at'),
+    )
