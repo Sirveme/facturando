@@ -136,7 +136,7 @@ def build_invoice_xml(comprobante, emisor: dict) -> bytes:
 def _build_factura_boleta_xml(comprobante, emisor: dict) -> bytes:
     tipo_doc = getattr(comprobante, 'tipo_documento', '01')
     moneda = getattr(comprobante, 'moneda', 'PEN') or 'PEN'
-    serie = getattr(comprobante, 'serie', 'F001')
+    serie = (getattr(comprobante, 'serie', 'F001') or 'F001').strip()
     numero = getattr(comprobante, 'numero', 1)
     fecha_emision = getattr(comprobante, 'fecha_emision', None)
     items = getattr(comprobante, 'items', [])
@@ -426,7 +426,7 @@ def _build_detraccion_payment_terms(detr, moneda='PEN'):
 
 def _build_credit_note_xml(comprobante, emisor: dict) -> bytes:
     moneda = getattr(comprobante, 'moneda', 'PEN') or 'PEN'
-    serie = getattr(comprobante, 'serie', 'FC01')
+    serie = (getattr(comprobante, 'serie', 'FC01') or 'FC01').strip()
     numero = getattr(comprobante, 'numero', 1)
     fecha_emision = getattr(comprobante, 'fecha_emision', None)
     items = getattr(comprobante, 'items', [])
@@ -491,7 +491,7 @@ def _build_credit_note_xml(comprobante, emisor: dict) -> bytes:
 
 def _build_debit_note_xml(comprobante, emisor: dict) -> bytes:
     moneda = getattr(comprobante, 'moneda', 'PEN') or 'PEN'
-    serie = getattr(comprobante, 'serie', 'FD01')
+    serie = (getattr(comprobante, 'serie', 'FD01') or 'FD01').strip()
     numero = getattr(comprobante, 'numero', 1)
     fecha_emision = getattr(comprobante, 'fecha_emision', None)
     items = getattr(comprobante, 'items', [])
@@ -560,7 +560,8 @@ def _build_supplier(emisor: dict):
     party = _cac('Party')
 
     pid = _cac('PartyIdentification')
-    pid_id = _cbc('ID', emisor.get('ruc', ''))
+    # Defensa barata: RUC del emisor sin espacios de extremos (no-op si ya está limpio).
+    pid_id = _cbc('ID', (emisor.get('ruc', '') or '').strip())
     pid_id.set('schemeID', '6')
     pid_id.set('schemeName', 'Documento de Identidad')
     pid_id.set('schemeAgencyName', 'PE:SUNAT')
@@ -620,6 +621,9 @@ def _build_customer(comprobante):
     cliente_num_doc = (getattr(comprobante, 'cliente_numero_doc', None) or
                        getattr(comprobante, 'cliente_numero_documento', None) or
                        getattr(comprobante, 'cliente_ruc', None) or '')
+    # Red universal (dashboard/api_v1/NC/ND): quita espacios (inicio/fin/internos) del nº
+    # de doc del receptor antes de cbc:ID. Para un valor ya limpio es no-op → XML idéntico.
+    cliente_num_doc = ''.join(str(cliente_num_doc).split())
     cliente_nombre = (getattr(comprobante, 'cliente_razon_social', None) or
                       getattr(comprobante, 'cliente_nombre', None) or '')
     cliente_direccion = (getattr(comprobante, 'cliente_direccion', None) or '').strip()
