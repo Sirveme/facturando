@@ -625,7 +625,9 @@ async def emitir_comprobante(
     tipo_documento = data.get('tipo_documento', '01')
     serie = data.get('serie', 'F001')
     cliente_tipo_doc = data.get('cliente_tipo_doc', '6')
-    cliente_numero_doc = data.get('cliente_numero_doc', '')
+    # Normaliza el nº de doc del receptor: quita espacios (inicio/fin/internos) para que
+    # el valor LIMPIO fluya a validación Y a guardado (evita SUNAT 2017 por "RUC ").
+    cliente_numero_doc = ''.join((data.get('cliente_numero_doc', '') or '').split())
     cliente_razon_social = data.get('cliente_razon_social', '')
     cliente_direccion = data.get('cliente_direccion', '')
     items = data.get('items', [])
