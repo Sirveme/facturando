@@ -99,7 +99,14 @@ async def emitir_comprobante(
     
     try:
         # === VALIDACIONES ===
-        
+
+        # Defensa en profundidad: normaliza el nº de doc del receptor (quita espacios
+        # inicio/fin/internos) ANTES de validar y guardar. Preferimos LIMPIAR y procesar
+        # que rechazar al cliente (CCPL/Shevalche) por un espacio. Retrocompatible: un
+        # valor ya limpio queda idéntico.
+        if data.cliente and data.cliente.numero_documento is not None:
+            data.cliente.numero_documento = ''.join(str(data.cliente.numero_documento).split())
+
         # Factura requiere RUC
         if data.tipo_comprobante == "01" and data.cliente.tipo_documento != "6":
             raise HTTPException(400, detail={
