@@ -81,6 +81,44 @@ app.include_router(importaciones_router, include_in_schema=False)
 app.include_router(guias_router, include_in_schema=False)
 app.include_router(lookup_router, include_in_schema=False)
 
+# ── Fingerprint de build: permite confirmar en /health QUÉ versión corre en prod ──
+import os as _os
+import hashlib as _hashlib
+from datetime import datetime as _dt, timezone as _tz
+
+_STARTED_AT = _dt.now(_tz.utc).isoformat(timespec="seconds")
+
+
+def _code_fingerprint() -> str:
+    """Hash corto del código Python desplegado (src/**/*.py). Cambia SOLO si cambia el
+    código → detecta deploys que no tomaron los últimos cambios. Si BUILD_TAG (env) está
+    seteado, se usa ese. No-fatal: ante cualquier error devuelve 'unknown'."""
+    try:
+        from src.core.config import settings as _s
+        if getattr(_s, "BUILD_TAG", ""):
+            return _s.BUILD_TAG
+        root = Path(__file__).resolve().parent  # .../src
+        h = _hashlib.sha256()
+        for p in sorted(root.rglob("*.py")):
+            h.update(p.relative_to(root).as_posix().encode())
+            # Normaliza CRLF→LF: mismo hash en Windows (local) y Linux (Railway).
+            h.update(p.read_bytes().replace(b"\r\n", b"\n"))
+        return h.hexdigest()[:12]
+    except Exception:
+        return "unknown"
+
+
+_BUILD_TAG = _code_fingerprint()
+
+
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "service": "facturalo.pro"}
+    from src.core.config import settings as _s
+    return {
+        "status": "ok",
+        "service": "facturalo.pro",
+        "version": getattr(_s, "APP_VERSION", "?"),   # sello manual (bumpear cada deploy)
+        "build": _BUILD_TAG,                           # fingerprint automático del código .py
+        "git": (_os.getenv("RAILWAY_GIT_COMMIT_SHA", "") or "")[:12] or None,
+        "started_at": _STARTED_AT,                     # cuándo arrancó este proceso
+    }
