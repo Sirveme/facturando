@@ -564,7 +564,6 @@ const SERIES_EMISOR = {{ series_emisor | tojson }};
 
 // Detracción (SPOT): checkbox condicional. null si el emisor no la tiene activa.
 const DETRACCION_CFG = {{ detraccion_cfg | tojson }};
-let _detraccionManual = false;
 function _totalActualNum() {
     const t = (document.getElementById('total').textContent || '').replace(/[^0-9.]/g, '');
     return parseFloat(t) || 0;
@@ -575,15 +574,12 @@ function actualizarDetraccion() {
     const chk = document.getElementById('detraccion_chk');
     const esFactura = document.getElementById('tipo_documento').value === '01';
     if (card) card.style.display = esFactura ? 'block' : 'none';
-    if (!esFactura) { if (chk) chk.checked = false; return; }
-    if (!_detraccionManual && chk) {
-        chk.checked = _totalActualNum() >= DETRACCION_CFG.umbral;
-    }
+    // BUG1: sin auto-marcado por monto. Casilla default DESMARCADA (opt-in);
+    // en no-factura se limpia. El aviso al emitir cubre el olvido en servicios.
+    if (!esFactura && chk) chk.checked = false;
 }
 (function () {
     if (!DETRACCION_CFG) return;
-    const chk = document.getElementById('detraccion_chk');
-    if (chk) chk.addEventListener('change', function () { _detraccionManual = true; });
     // Recalcular al cambiar items (bubbling: corre después de calcularTotales) y tipo de doc.
     document.addEventListener('input', actualizarDetraccion);
     document.addEventListener('change', actualizarDetraccion);
@@ -719,6 +715,30 @@ document.getElementById('form-emitir').addEventListener('submit', async (e) => {
     const _rv = validarReceptor();
     if (_rv.bloquea) { toast.error('No se puede emitir', _rv.msg); btn.disabled = false; return; }
     if (_rv.msg) { toast.warning('Revisa el documento', _rv.msg); }
+
+    // BUG1 — Aviso NO bloqueante: factura sobre el umbral con la detracción SIN marcar.
+    // (Se quitó el auto-marcado; confirmamos una vez para no olvidar el SPOT en servicios,
+    //  sin estorbar la venta de bienes.) 'Emitir sin detracción' continúa; 'Cancelar' revisa.
+    if (DETRACCION_CFG
+        && document.getElementById('tipo_documento').value === '01'
+        && document.getElementById('detraccion_chk')
+        && !document.getElementById('detraccion_chk').checked
+        && _totalActualNum() >= DETRACCION_CFG.umbral) {
+        const seguir = await confirmModal(
+            '¿Operación sujeta a detracción?',
+            'Esta factura supera S/ ' + Number(DETRACCION_CFG.umbral).toFixed(2) +
+            ' y la detracción NO está marcada. Si es venta de bienes, emite sin detracción. ' +
+            'Si es un servicio sujeto a detracción, cancela y márcala.',
+            'Emitir sin detracción', 'Cancelar y revisar');
+        if (!seguir) {
+            btn.disabled = false;
+            const _c = document.getElementById('detraccion_chk');
+            const _card = document.getElementById('card-detraccion');
+            if (_c) _c.focus();
+            if (_card) _card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+    }
 
     const data = {
         tipo_documento: document.getElementById('tipo_documento').value,
