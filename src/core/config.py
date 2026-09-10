@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # Cache-busting de estáticos propios: bumpea este valor (o la env APP_VERSION)
     # en cada deploy para invalidar CSS/JS cacheados por el navegador.
     # También es el sello de versión visible en /health para confirmar qué corre en prod.
-    APP_VERSION: str = Field("2026.09.09", env="APP_VERSION")
+    APP_VERSION: str = Field("2026.09.09.3", env="APP_VERSION")
     # Sello de build OPCIONAL (manual, via env). Si queda vacío, /health calcula un
     # fingerprint automático del código Python desplegado (hash de src/**/*.py), que
     # cambia solo cuando cambia el código → detecta "deploy no tomó los cambios".
