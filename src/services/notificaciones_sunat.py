@@ -125,15 +125,21 @@ def clasificar_error_a2(codigo, mensaje=''):
             return 'perfil'
         return 'contenido'  # otros Client.xxxx → rechazo real
 
-    # 2) Transitorio: códigos de servicio + keywords de red/servicio/5xx/timeout
+    # 2) Transitorio POR CÓDIGO de servicio (0109/0111/…): reintentable.
     if cod in ERRORES_TEMPORALES_SUNAT:
         return 'transitorio'
-    if any(kw in msg_lc for kw in _KEYWORDS_TEMPORAL):
-        return 'transitorio'
 
-    # 4) Contenido (RUC/monto/estructura): 1xxx/2xxx/3xxx → rechazo real, no reintentar
+    # 3) Contenido POR CÓDIGO (1xxx/2xxx/3xxx): rechazo real de datos/estructura → NO
+    #    reintentar, sin importar el texto. Va ANTES del fallback por keyword para que un
+    #    3128 ("…código de bien y servicio…") o un 3xxx con "conexión"/"no disponible" en
+    #    el mensaje NO se reintente (mismo XML → mismo rechazo).
     if cod.isdigit() and cod[:1] in ('1', '2', '3'):
         return 'contenido'
+
+    # 4) Transitorio POR KEYWORD (fallback): solo cuando NO hay código de contenido —
+    #    excepciones de red sin código numérico (timeout, connection reset, 5xx).
+    if any(kw in msg_lc for kw in _KEYWORDS_TEMPORAL):
+        return 'transitorio'
 
     # 5) Conservador
     return 'desconocido'
