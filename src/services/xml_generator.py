@@ -158,15 +158,19 @@ def _build_factura_boleta_xml(comprobante, emisor: dict) -> bytes:
     invoice.append(_cbc('IssueTime', _format_time(fecha_emision)))
 
     # 3. InvoiceTypeCode - Catálogo 01 + Catálogo 51
+    # SPOT: si la operación tiene detracción, el tipo de operación (Cat.51) es 1001,
+    # no 0101. Se decide con la MISMA fuente que emite el bloque SPOT (_detraccion_info),
+    # para que listID y bloque SPOT queden SIEMPRE en sync.
+    _det_spot = _detraccion_info(comprobante, emisor, None)
     type_code = _cbc('InvoiceTypeCode', tipo_doc)
-    type_code.set('listID', '0101')  # Catálogo 51: Venta interna
+    type_code.set('listID', '1001' if _det_spot else '0101')  # Cat.51: 1001=SPOT, 0101=venta interna
     type_code.set('listAgencyName', 'PE:SUNAT')
     type_code.set('listName', 'Tipo de Documento')
     type_code.set('listURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo01')
     type_code.set('name', 'Tipo de Operacion')
     type_code.set('listSchemeURI', 'urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo51')
     invoice.append(type_code)
-    logger.info(f"[XML_GEN] ✓ InvoiceTypeCode={tipo_doc} listID=0101")
+    logger.info(f"[XML_GEN] ✓ InvoiceTypeCode={tipo_doc} listID={'1001' if _det_spot else '0101'}")
 
     # 3b. Leyendas (cbc:Note, catálogo 52) — posición UBL: tras InvoiceTypeCode,
     #     antes de DocumentCurrencyCode. 1000=monto en letras (siempre);
