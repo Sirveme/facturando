@@ -72,7 +72,7 @@
 
   /* Formulario voucher */
   label.fl{ display:block;color:var(--text-dim);font-size:13px;font-weight:600;margin:14px 0 6px; }
-  input[type=text], input[type=tel]{ width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:11px 12px;font-size:14px;font-family:inherit; }
+  input[type=text], input[type=tel], input[type=datetime-local], select{ width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:11px 12px;font-size:14px;font-family:inherit; }
   input:focus{ outline:none;border-color:var(--border-strong); }
   .file-drop{ border:2px dashed var(--border-strong);background:var(--bg-row);padding:26px 16px;text-align:center;cursor:pointer;margin-top:6px; }
   .file-drop:hover{ background:var(--bg-row-alt); }
@@ -136,6 +136,10 @@
           <div class="rl">Vas a pagar<b id="rPlan">Plan Emprendedor · Mensual</b></div>
           <div class="monto">S/ <span id="rMonto">29</span><small id="rPeri">/mes</small></div>
         </div>
+        <!-- ⚠️ TEMPORAL — prueba de fuego S/5 (quitar después) -->
+        <div style="margin-top:12px;text-align:center">
+          <a href="#" onclick="setPrueba();return false;" style="color:var(--text-faint);font-size:12px;text-decoration:underline">Modo prueba (S/ 5)</a>
+        </div>
       </div>
     </div>
 
@@ -170,9 +174,57 @@
       </div>
     </div>
 
-    <!-- PASO 3: VOUCHER -->
+    <!-- PASO 3: YA PAGUÉ (verificación automática PagoOK) -->
     <div class="card">
-      <div class="ch"><span class="cn">3</span> SUBE TU VOUCHER Y ACTIVA</div>
+      <div class="ch"><span class="cn">3</span> YA PAGUÉ — VERIFICAR Y ACTIVAR</div>
+      <div class="cb">
+        <form id="confirmarForm">
+          <label class="fl">RUC de tu empresa *</label>
+          <input type="text" id="cRuc" inputmode="numeric" maxlength="11" placeholder="20XXXXXXXXX" required>
+
+          <label class="fl">¿A nombre de quién está el Yape/cuenta con la que pagaste? *</label>
+          <input type="text" id="cPagador" placeholder="Ej. María Quispe (titular del Yape)" required>
+          <div class="foot-help" style="text-align:left;margin:4px 0 0;">Es el <b>titular del medio de pago</b>, no la razón social de tu empresa.</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;">
+            <div>
+              <label class="fl">Canal *</label>
+              <select id="cCanal">
+                <option value="yape">Yape</option>
+                <option value="plin">Plin</option>
+                <option value="transferencia">Transferencia</option>
+              </select>
+            </div>
+            <div>
+              <label class="fl">Fecha y hora del pago *</label>
+              <input type="datetime-local" id="cFecha" required>
+            </div>
+          </div>
+
+          <label class="fl">Código de operación (opcional)</label>
+          <input type="text" id="cCodigo" placeholder="Si tu Yape/Plin lo muestra — ayuda a confirmar">
+
+          <button type="submit" class="submit-btn" id="confirmarBtn"><span>⚡</span> Ya pagué, verificar</button>
+        </form>
+
+        <div class="msg" id="confOk">
+          <div class="mt" id="confOkT">✅ ¡Listo!</div>
+          <p id="confOkP"></p>
+          <a id="confPdf" href="#" target="_blank" rel="noopener" class="submit-btn" style="display:none;margin-top:12px;">📄 Descargar mi factura (PDF)</a>
+          <p id="confPdfWait" style="display:none;color:var(--text-dim);font-size:13px;margin-top:8px;">Tu factura se está procesando en SUNAT; el PDF estará disponible en unos minutos.</p>
+        </div>
+        <div class="msg" id="confMedia" style="border-left-color:var(--dorado);">
+          <div class="mt" style="color:var(--dorado)">⏳ En revisión</div>
+          <p>Encontramos más de un pago posible. Lo confirmamos a la brevedad y te avisamos por WhatsApp.</p>
+        </div>
+        <div class="msg err" id="confErr"><div class="mt">No pudimos confirmar</div><p id="confErrP"></p></div>
+        <div class="foot-help">¿No encuentra tu pago? Usa la opción de abajo para subir tu voucher.</div>
+      </div>
+    </div>
+
+    <!-- PASO 4: VOUCHER (fallback cuando PagoOK no encuentra el pago) -->
+    <div class="card">
+      <div class="ch"><span class="cn">4</span> ¿NO SE ENCONTRÓ? SUBE TU VOUCHER</div>
       <div class="cb">
         <form id="voucherForm">
           <input type="hidden" name="plan" id="fPlan" value="emprendedor">
@@ -231,7 +283,19 @@
     var mes = +sel.dataset.mes, anio = +sel.dataset.anio;
     return peri === 'anual' ? anio : mes;
   }
+  var pruebaMode = false;   // ⚠️ TEMPORAL — modo prueba S/5 (prueba de fuego; quitar después)
   function refrescar(){
+    if (pruebaMode){
+      var etP = peri === 'anual' ? 'Anual' : 'Mensual';
+      plan = 'prueba';
+      document.getElementById('rPlan').textContent = 'Plan PRUEBA · ' + etP;
+      document.getElementById('rMonto').textContent = '5';
+      document.getElementById('rPeri').textContent = peri === 'anual' ? '/año' : '/mes';
+      document.getElementById('fPlan').value = 'prueba';
+      document.getElementById('fPeri').value = peri;
+      document.getElementById('fMonto').value = '5';
+      return;
+    }
     var monto = precio();
     var nombrePlan = plan.charAt(0).toUpperCase() + plan.slice(1);
     var etPeri = peri === 'anual' ? 'Anual' : 'Mensual';
@@ -244,11 +308,16 @@
   }
   function selPlan(el){
     document.querySelectorAll('.planopt').forEach(function(p){ p.classList.remove('sel'); });
-    el.classList.add('sel'); plan = el.dataset.plan; refrescar();
+    pruebaMode = false; el.classList.add('sel'); plan = el.dataset.plan; refrescar();
   }
   function selPeri(el){
     document.querySelectorAll('.peri button').forEach(function(b){ b.classList.remove('on'); });
     el.classList.add('on'); peri = el.dataset.peri; refrescar();
+  }
+  function setPrueba(){   // ⚠️ TEMPORAL — fija el plan de prueba S/5
+    pruebaMode = true;
+    document.querySelectorAll('.planopt').forEach(function(p){ p.classList.remove('sel'); });
+    refrescar();
   }
   var METODO_LABEL = { yape:'Yape', plin:'Plin', bcp:'BCP (transferencia)', interbank:'Interbank (transferencia)' };
   function pickMetodo(metodo){
@@ -307,6 +376,68 @@
   });
 
   refrescar();
+
+  // ── "Ya pagué" → verificación automática PagoOK ─────────────────────────────
+  function _hide(ids){ ids.forEach(function(i){ var e=document.getElementById(i); if(e) e.style.display='none'; }); }
+  function _pollFactura(suscId, intentos){
+    fetch('/pagar/estado/' + encodeURIComponent(suscId))
+      .then(function(r){ return r.json(); })
+      .then(function(st){
+        if (st.aceptada && st.pdf_url){
+          var a=document.getElementById('confPdf'); a.href=st.pdf_url; a.style.display='inline-flex';
+          document.getElementById('confPdfWait').style.display='none';
+        } else if (intentos > 0){
+          setTimeout(function(){ _pollFactura(suscId, intentos-1); }, 5000);
+        }
+      })
+      .catch(function(){ /* silencioso: el PDF aparecerá al refrescar */ });
+  }
+  document.getElementById('confirmarForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    _hide(['confOk','confMedia','confErr']);
+    var btn=document.getElementById('confirmarBtn');
+    btn.disabled=true; btn.innerHTML='<span>⏳</span> Verificando...';
+    var body={
+      ruc: document.getElementById('cRuc').value.trim(),
+      plan: plan, periodicidad: peri,
+      pagador: document.getElementById('cPagador').value.trim(),
+      canal: document.getElementById('cCanal').value,
+      fecha_hora: document.getElementById('cFecha').value,   // sin tz = hora de Lima (contrato PagoOK)
+      codigo: document.getElementById('cCodigo').value.trim()
+    };
+    fetch('/pagar/confirmar', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        btn.disabled=false; btn.innerHTML='<span>⚡</span> Ya pagué, verificar';
+        if (res.nivel === 'alta' || res.nivel === 'ya_procesado'){
+          document.getElementById('confOkP').textContent =
+            (res.mensaje || 'Suscripción activada.') + (res.factura_numero ? ' Factura ' + res.factura_numero + '.' : '');
+          document.getElementById('confOk').style.display='block';
+          document.getElementById('confOk').scrollIntoView({behavior:'smooth', block:'center'});
+          if (res.factura_estado && ['aceptado','aceptado_con_observaciones'].indexOf(res.factura_estado) >= 0){
+            // (raro en el acto; normalmente llega por el poll)
+          } else {
+            document.getElementById('confPdfWait').style.display='block';
+          }
+          if (res.suscripcion_id) _pollFactura(res.suscripcion_id, 12);  // ~1 min
+        } else if (res.nivel === 'media'){
+          document.getElementById('confMedia').style.display='block';
+          document.getElementById('confMedia').scrollIntoView({behavior:'smooth', block:'center'});
+        } else if (res.nivel === 'voucher'){
+          document.getElementById('confErrP').textContent = res.mensaje || 'No encontramos tu pago. Sube tu voucher abajo.';
+          document.getElementById('confErr').style.display='block';
+          document.getElementById('voucherForm').scrollIntoView({behavior:'smooth', block:'center'});
+        } else {
+          document.getElementById('confErrP').textContent = res.mensaje || 'No se pudo verificar. Intenta de nuevo.';
+          document.getElementById('confErr').style.display='block';
+        }
+      })
+      .catch(function(){
+        btn.disabled=false; btn.innerHTML='<span>⚡</span> Ya pagué, verificar';
+        document.getElementById('confErrP').textContent='Error de conexión. Intenta de nuevo.';
+        document.getElementById('confErr').style.display='block';
+      });
+  });
 </script>
 </body>
 </html>
