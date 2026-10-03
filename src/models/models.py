@@ -841,3 +841,52 @@ class PagoVoucher(Base):
     __table_args__ = (
         Index('idx_pago_voucher_estado_fecha', 'estado', 'created_at'),
     )
+
+
+class Suscripcion(Base):
+    """Suscripción de un cliente a Facturalo (cobro vía PagoOK).
+
+    Tabla NUEVA y aditiva: NO toca el flujo de emisión. Un registro por
+    renovación (historial auditable). Enlaza el pago de PagoOK y la factura
+    de suscripción que emite PSP.
+
+    `estado` = ciclo de la suscripción (pendiente/media/activa/vencida/anulada).
+    `factura_estado` = snapshot de comprobante.estado de la factura de PSP, para
+    distinguir 'activa con factura ACEPTADA' de 'activa, factura pendiente/fallida'
+    (caso borde: pago confirmado pero la emisión a SUNAT falla/queda en cola).
+    """
+    __tablename__ = 'suscripcion'
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    emisor_id = Column(String(36), ForeignKey('emisor.id'), nullable=False)  # el CLIENTE suscrito
+    plan = Column(String(20), nullable=False)          # emprendedor | negocio
+    periodicidad = Column(String(10), nullable=False)  # mensual | anual
+    monto = Column(Numeric(10, 2), nullable=False)
+    moneda = Column(String(3), default='PEN')
+    vence = Column(Date, nullable=False)               # hoy + 30 (mensual) / 365 (anual)
+    estado = Column(String(20), nullable=False, default='pendiente')
+    # pendiente | media | activa | vencida | anulada
+
+    # Trazabilidad del pago (PagoOK)
+    pagook_pago_id = Column(Integer)                   # pago_id devuelto por PagoOK
+    pagook_nivel = Column(String(20))                  # alta | media | voucher
+    referencia_externa = Column(String(150))           # lo enviado a marcar-usado (= id de esta fila)
+
+    # Factura de suscripción (PSP)
+    factura_id = Column(String(36), ForeignKey('comprobante.id'))
+    factura_numero = Column(String(16))                # FF50-00000001 (cache legible)
+    factura_estado = Column(String(32))                # None | pendiente | enviando | aceptado | rechazado…
+
+    pago_voucher_id = Column(String(36))               # si entró por voucher (sin_coincidencia)
+    creado_por = Column(String(255))
+    notas = Column(Text)
+    creado_en = Column(DateTime, default=utc_now)
+    actualizado_en = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    # Nota: el índice único PARCIAL ux_susc_pagook_pago (anti-doble-cobro) vive solo
+    # en sql/zClaude-suscripciones.sql — SQLAlchemy no crea índices parciales.
+    __table_args__ = (
+        Index('idx_susc_emisor', 'emisor_id', 'vence'),
+        Index('idx_susc_estado', 'estado', 'vence'),
+        Index('idx_susc_factura_estado', 'factura_estado'),
+    )
