@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
-from src.models.models import Comprobante, Emisor, LineaDetalle, PagoVoucher
+from src.models.models import Comprobante, Emisor, LineaDetalle, PagoVoucher, Suscripcion
 from src.api.dependencies import get_db
 from src.api.auth_utils import obtener_emisor_actual
 from src.api.referencias_ui import COMP_ACEPTADOS  # ("aceptado", "aceptado_con_observaciones")
@@ -122,6 +122,57 @@ async def pagar_voucher(
         "mensaje": "Validaremos tu pago, pero TU CUENTA YA ESTÁ ACTIVA.",
         "id": registro.id,
     })
+
+
+@router.post("/pagar/confirmar")
+async def pagar_confirmar(request: Request, db: Session = Depends(get_db)):
+    """"Ya pagué" → consulta PagoOK y, si corresponde, activa la suscripción y emite
+    la factura de PSP. Delega toda la lógica (orden seguro, idempotencia, caso borde)
+    en suscripcion_service. Responde el `nivel` para el front."""
+    from src.services import suscripcion_service
+    data = await request.json()
+    try:
+        res = suscripcion_service.procesar_confirmacion(
+            db,
+            ruc_cliente=(data.get("ruc") or "").strip(),
+            plan=(data.get("plan") or "").strip().lower(),
+            periodicidad=(data.get("periodicidad") or "").strip().lower(),
+            pagador=(data.get("pagador") or "").strip() or None,
+            fecha_hora=(data.get("fecha_hora") or "").strip() or None,
+            canal=(data.get("canal") or "").strip().lower() or None,
+            codigo=(data.get("codigo") or "").strip() or None,
+        )
+    except ValueError as e:
+        return JSONResponse({"nivel": "error", "mensaje": str(e)}, status_code=400)
+    return JSONResponse(res)
+
+
+@router.get("/pagar/estado/{suscripcion_id}")
+async def pagar_estado(suscripcion_id: str, db: Session = Depends(get_db)):
+    """Estado de una suscripción + de su factura. El link de descarga del PDF solo
+    aparece cuando la factura está ACEPTADA por SUNAT (nunca en cola/enviando/rechazada)."""
+    s = db.query(Suscripcion).filter(Suscripcion.id == suscripcion_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Suscripción no encontrada")
+
+    # Refrescar el snapshot factura_estado desde el comprobante (fuente de verdad)
+    comp = db.query(Comprobante).filter(Comprobante.id == s.factura_id).first() if s.factura_id else None
+    if comp and s.factura_estado != comp.estado:
+        s.factura_estado = comp.estado
+        db.commit()
+
+    aceptada = bool(comp and comp.estado in COMP_ACEPTADOS)
+    return JSONResponse({
+        "suscripcion_id": s.id,
+        "estado": s.estado,
+        "vence": s.vence.isoformat() if s.vence else None,
+        "factura_numero": s.factura_numero,
+        "factura_estado": s.factura_estado,
+        "aceptada": aceptada,
+        # Solo si aceptada: reusa el endpoint de PDF existente.
+        "pdf_url": f"/api/comprobantes/{comp.id}/pdf" if aceptada else None,
+    })
+
 
 @router.get("/desarrolladores", response_class=HTMLResponse)
 async def desarrolladores(request: Request):
