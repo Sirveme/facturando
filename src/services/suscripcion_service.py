@@ -118,9 +118,13 @@ def procesar_confirmacion(db, *, cliente, plan, periodicidad, pagador=None,
 
     monto = monto_plan(plan, periodicidad)
 
+    logger.warning("[DIAG][SUSC] ANTES de consultar PagoOK monto=%s fecha=%s canal=%s",
+                   monto, fecha_hora, canal)
     res = pagook_client.consultar_pago(
         str(monto), fecha_hora, nombre_pagador_declarado=pagador, canal=canal, codigo_operacion=codigo)
     nivel = res.get("nivel")
+    logger.warning("[DIAG][SUSC] DESPUES de consultar PagoOK → nivel=%s motivo=%s",
+                   nivel, res.get("motivo"))
 
     # ── NIVEL ALTA ──────────────────────────────────────────────────────────
     if nivel == "alta":
@@ -145,8 +149,13 @@ def procesar_confirmacion(db, *, cliente, plan, periodicidad, pagador=None,
         db.add(s)
         try:
             db.flush()   # (2) 2da barrera: UNIQUE(pagook_pago_id) en Postgres
-        except IntegrityError:
+        except IntegrityError as e:
             db.rollback()
+            # [DIAG] CLAVE: NO asumir "pago duplicado". Loguear el error REAL de la BD:
+            # si es UNIQUE(pagook_pago_id) → sí es duplicado; si es NOT NULL / FK / tipo /
+            # columna inexistente → es un DESAJUSTE DE ESQUEMA disfrazado de ya_procesado.
+            logger.error("[DIAG][SUSC] IntegrityError en flush (pago_id=%s, emisor_id=%s): %r",
+                         pago_id, cliente.id, getattr(e, "orig", e))
             return {"nivel": "ya_procesado", "mensaje": "Tu pago ya fue procesado."}
 
         # marcar_usado ANTES de activar
