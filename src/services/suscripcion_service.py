@@ -38,8 +38,8 @@ DIAS = {'mensual': 30, 'anual': 365}
 PLANES = {
     'emprendedor': {'mensual': Decimal('29.00'), 'anual': Decimal('290.00')},
     'negocio':     {'mensual': Decimal('55.00'), 'anual': Decimal('550.00')},
-    # ⚠️ TEMPORAL — plan de prueba S/5 para la prueba de fuego (quitar después).
-    'prueba':      {'mensual': Decimal('5.00'),  'anual': Decimal('5.00')},
+    # ⚠️ TEMPORAL — plan de prueba S/4 para la prueba de fuego (quitar después).
+    'prueba':      {'mensual': Decimal('4.00'),  'anual': Decimal('4.00')},
 }
 
 
