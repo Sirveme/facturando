@@ -151,12 +151,26 @@ def procesar_confirmacion(db, *, cliente, plan, periodicidad, pagador=None,
             db.flush()   # (2) 2da barrera: UNIQUE(pagook_pago_id) en Postgres
         except IntegrityError as e:
             db.rollback()
-            # [DIAG] CLAVE: NO asumir "pago duplicado". Loguear el error REAL de la BD:
-            # si es UNIQUE(pagook_pago_id) → sí es duplicado; si es NOT NULL / FK / tipo /
-            # columna inexistente → es un DESAJUSTE DE ESQUEMA disfrazado de ya_procesado.
-            logger.error("[DIAG][SUSC] IntegrityError en flush (pago_id=%s, emisor_id=%s): %r",
-                         pago_id, cliente.id, getattr(e, "orig", e))
-            return {"nivel": "ya_procesado", "mensaje": "Tu pago ya fue procesado."}
+            # SOLO una violación de UNIQUE(pagook_pago_id) (índice ux_susc_pagook_pago)
+            # significa "pago ya procesado". Cualquier OTRO IntegrityError (CHECK /
+            # NOT NULL / FK / tipo) es un error REAL de datos o esquema y NO debe
+            # disfrazarse de éxito (bug histórico: un CHECK de 'plan' daba ya_procesado).
+            orig = getattr(e, "orig", None)
+            pgcode = getattr(orig, "pgcode", None)                 # psycopg2: '23505'=unique
+            constraint = (getattr(getattr(orig, "diag", None), "constraint_name", "") or "").lower()
+            texto = str(orig).lower()
+            es_duplicado_pago = (
+                pgcode == "23505"                                  # Postgres unique_violation
+                or "pagook_pago" in constraint                     # ux_susc_pagook_pago
+                or ("unique" in texto and "pagook_pago" in texto)  # fallback (p.ej. sqlite)
+            )
+            if es_duplicado_pago:
+                logger.warning("[SUSC] pago %s ya tenía suscripción (UNIQUE) → ya_procesado", pago_id)
+                return {"nivel": "ya_procesado", "mensaje": "Tu pago ya fue procesado."}
+            logger.error("[SUSC] IntegrityError NO-duplicado al crear suscripción "
+                         "(pago_id=%s, emisor_id=%s): %r", pago_id, cliente.id, orig)
+            return {"nivel": "error",
+                    "mensaje": "No se pudo registrar la suscripción. Escríbenos y lo resolvemos."}
 
         # marcar_usado ANTES de activar
         u = pagook_client.marcar_usado(pago_id, referencia_externa=s.id)
