@@ -23,6 +23,9 @@ import os as _os
 from src.core.config import settings as _settings
 templates.env.globals["APP_VERSION"] = _os.getenv("APP_VERSION") or getattr(_settings, "APP_VERSION", "1")
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 @router.get("/", response_class=HTMLResponse)
@@ -130,14 +133,21 @@ async def pagar_confirmar(request: Request, db: Session = Depends(get_db)):
     la factura de PSP. Delega toda la lógica (orden seguro, idempotencia, caso borde)
     en suscripcion_service. Responde el `nivel` para el front."""
     from src.services import suscripcion_service
+    # [DIAG] log garantizado: confirma que el handler REAL corre (no cache/ruta vieja).
+    logger.warning("[DIAG][PAGAR] confirmar INICIO rid=%s",
+                   request.headers.get("x-railway-request-id"))
     # Adquirente = usuario LOGUEADO (nunca un input). Sin sesión → pedir login.
     try:
         cliente = await obtener_emisor_actual(request, db)
     except Exception:
+        logger.warning("[DIAG][PAGAR] sin sesión → login")
         return JSONResponse({"nivel": "login",
             "mensaje": "Inicia sesión con tu empresa para activar la suscripción."},
             status_code=401)
     data = await request.json()
+    logger.warning("[DIAG][PAGAR] cliente ruc=%s id=%s plan=%s/%s",
+                   getattr(cliente, "ruc", None), getattr(cliente, "id", None),
+                   (data.get("plan") or ""), (data.get("periodicidad") or ""))
     try:
         res = suscripcion_service.procesar_confirmacion(
             db,
