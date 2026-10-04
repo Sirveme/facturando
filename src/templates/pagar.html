@@ -138,7 +138,7 @@
         </div>
         <!-- ⚠️ TEMPORAL — prueba de fuego S/5 (quitar después) -->
         <div style="margin-top:12px;text-align:center">
-          <a href="#" onclick="setPrueba();return false;" style="color:var(--text-faint);font-size:12px;text-decoration:underline">Modo prueba (S/ 5)</a>
+          <a href="#" onclick="setPrueba();return false;" style="color:var(--text-faint);font-size:12px;text-decoration:underline">Modo prueba (S/ 4)</a>
         </div>
       </div>
     </div>
@@ -289,11 +289,11 @@
       var etP = peri === 'anual' ? 'Anual' : 'Mensual';
       plan = 'prueba';
       document.getElementById('rPlan').textContent = 'Plan PRUEBA · ' + etP;
-      document.getElementById('rMonto').textContent = '5';
+      document.getElementById('rMonto').textContent = '4';
       document.getElementById('rPeri').textContent = peri === 'anual' ? '/año' : '/mes';
       document.getElementById('fPlan').value = 'prueba';
       document.getElementById('fPeri').value = peri;
-      document.getElementById('fMonto').value = '5';
+      document.getElementById('fMonto').value = '4';
       return;
     }
     var monto = precio();
