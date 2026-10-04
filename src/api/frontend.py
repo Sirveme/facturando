@@ -130,11 +130,18 @@ async def pagar_confirmar(request: Request, db: Session = Depends(get_db)):
     la factura de PSP. Delega toda la lógica (orden seguro, idempotencia, caso borde)
     en suscripcion_service. Responde el `nivel` para el front."""
     from src.services import suscripcion_service
+    # Adquirente = usuario LOGUEADO (nunca un input). Sin sesión → pedir login.
+    try:
+        cliente = await obtener_emisor_actual(request, db)
+    except Exception:
+        return JSONResponse({"nivel": "login",
+            "mensaje": "Inicia sesión con tu empresa para activar la suscripción."},
+            status_code=401)
     data = await request.json()
     try:
         res = suscripcion_service.procesar_confirmacion(
             db,
-            ruc_cliente=(data.get("ruc") or "").strip(),
+            cliente=cliente,
             plan=(data.get("plan") or "").strip().lower(),
             periodicidad=(data.get("periodicidad") or "").strip().lower(),
             pagador=(data.get("pagador") or "").strip() or None,
