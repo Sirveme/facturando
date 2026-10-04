@@ -179,9 +179,6 @@
       <div class="ch"><span class="cn">3</span> YA PAGUÉ — VERIFICAR Y ACTIVAR</div>
       <div class="cb">
         <form id="confirmarForm">
-          <label class="fl">RUC de tu empresa *</label>
-          <input type="text" id="cRuc" inputmode="numeric" maxlength="11" placeholder="20XXXXXXXXX" required>
-
           <label class="fl">¿A nombre de quién está el Yape/cuenta con la que pagaste? *</label>
           <input type="text" id="cPagador" placeholder="Ej. María Quispe (titular del Yape)" required>
           <div class="foot-help" style="text-align:left;margin:4px 0 0;">Es el <b>titular del medio de pago</b>, no la razón social de tu empresa.</div>
@@ -398,7 +395,6 @@
     var btn=document.getElementById('confirmarBtn');
     btn.disabled=true; btn.innerHTML='<span>⏳</span> Verificando...';
     var body={
-      ruc: document.getElementById('cRuc').value.trim(),
       plan: plan, periodicidad: peri,
       pagador: document.getElementById('cPagador').value.trim(),
       canal: document.getElementById('cCanal').value,
@@ -423,6 +419,10 @@
         } else if (res.nivel === 'media'){
           document.getElementById('confMedia').style.display='block';
           document.getElementById('confMedia').scrollIntoView({behavior:'smooth', block:'center'});
+        } else if (res.nivel === 'login'){
+          document.getElementById('confErrP').innerHTML = (res.mensaje || 'Inicia sesión con tu empresa.') +
+            ' <a href="/login" style="color:var(--verde);text-decoration:underline">Iniciar sesión</a>';
+          document.getElementById('confErr').style.display='block';
         } else if (res.nivel === 'voucher'){
           document.getElementById('confErrP').textContent = res.mensaje || 'No encontramos tu pago. Sube tu voucher abajo.';
           document.getElementById('confErr').style.display='block';
