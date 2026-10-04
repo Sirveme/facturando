@@ -107,14 +107,16 @@ def _activar(cliente, s):
     cliente.plan = 'pagado'
 
 
-def procesar_confirmacion(db, *, ruc_cliente, plan, periodicidad, pagador=None,
+def procesar_confirmacion(db, *, cliente, plan, periodicidad, pagador=None,
                           fecha_hora=None, canal=None, codigo=None) -> dict:
-    """Flujo "ya pagué". Devuelve dict con `nivel` para el front:
+    """Flujo "ya pagué". `cliente` es el emisor LOGUEADO (adquirente), resuelto de la
+    sesión por el endpoint — nunca de un input. Devuelve dict con `nivel` para el front:
     alta | ya_procesado | media | voucher | error."""
+    # (B) Guarda anti-autofactura: el emisor de la plataforma (PSP) no se suscribe a sí mismo.
+    if cliente.ruc == RUC_PSP:
+        return {"nivel": "error", "mensaje": "El emisor de la plataforma no puede suscribirse."}
+
     monto = monto_plan(plan, periodicidad)
-    cliente = db.query(Emisor).filter(Emisor.ruc == (ruc_cliente or '').strip()).first()
-    if not cliente:
-        return {"nivel": "error", "mensaje": "Ese RUC no está registrado en Facturalo."}
 
     res = pagook_client.consultar_pago(
         str(monto), fecha_hora, nombre_pagador_declarado=pagador, canal=canal, codigo_operacion=codigo)
