@@ -136,10 +136,6 @@
           <div class="rl">Vas a pagar<b id="rPlan">Plan Emprendedor · Mensual</b></div>
           <div class="monto">S/ <span id="rMonto">29</span><small id="rPeri">/mes</small></div>
         </div>
-        <!-- ⚠️ TEMPORAL — prueba de fuego S/5 (quitar después) -->
-        <div style="margin-top:12px;text-align:center">
-          <a href="#" onclick="setPrueba();return false;" style="color:var(--text-faint);font-size:12px;text-decoration:underline">Modo prueba (S/ 4)</a>
-        </div>
       </div>
     </div>
 
@@ -280,19 +276,7 @@
     var mes = +sel.dataset.mes, anio = +sel.dataset.anio;
     return peri === 'anual' ? anio : mes;
   }
-  var pruebaMode = false;   // ⚠️ TEMPORAL — modo prueba S/5 (prueba de fuego; quitar después)
   function refrescar(){
-    if (pruebaMode){
-      var etP = peri === 'anual' ? 'Anual' : 'Mensual';
-      plan = 'prueba';
-      document.getElementById('rPlan').textContent = 'Plan PRUEBA · ' + etP;
-      document.getElementById('rMonto').textContent = '4';
-      document.getElementById('rPeri').textContent = peri === 'anual' ? '/año' : '/mes';
-      document.getElementById('fPlan').value = 'prueba';
-      document.getElementById('fPeri').value = peri;
-      document.getElementById('fMonto').value = '4';
-      return;
-    }
     var monto = precio();
     var nombrePlan = plan.charAt(0).toUpperCase() + plan.slice(1);
     var etPeri = peri === 'anual' ? 'Anual' : 'Mensual';
@@ -305,16 +289,11 @@
   }
   function selPlan(el){
     document.querySelectorAll('.planopt').forEach(function(p){ p.classList.remove('sel'); });
-    pruebaMode = false; el.classList.add('sel'); plan = el.dataset.plan; refrescar();
+    el.classList.add('sel'); plan = el.dataset.plan; refrescar();
   }
   function selPeri(el){
     document.querySelectorAll('.peri button').forEach(function(b){ b.classList.remove('on'); });
     el.classList.add('on'); peri = el.dataset.peri; refrescar();
-  }
-  function setPrueba(){   // ⚠️ TEMPORAL — fija el plan de prueba S/5
-    pruebaMode = true;
-    document.querySelectorAll('.planopt').forEach(function(p){ p.classList.remove('sel'); });
-    refrescar();
   }
   var METODO_LABEL = { yape:'Yape', plin:'Plin', bcp:'BCP (transferencia)', interbank:'Interbank (transferencia)' };
   function pickMetodo(metodo){
