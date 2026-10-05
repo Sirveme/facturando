@@ -152,7 +152,8 @@ async def pagar_confirmar(request: Request, db: Session = Depends(get_db)):
         res = suscripcion_service.procesar_confirmacion(
             db,
             cliente=cliente,
-            plan=(data.get("plan") or "").strip().lower(),
+            producto_codigo=(data.get("producto") or "facturalo").strip().lower(),
+            plan_codigo=(data.get("plan") or "").strip().lower(),
             periodicidad=(data.get("periodicidad") or "").strip().lower(),
             pagador=(data.get("pagador") or "").strip() or None,
             fecha_hora=(data.get("fecha_hora") or "").strip() or None,
