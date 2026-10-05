@@ -3,7 +3,8 @@ from uuid import uuid4
 from datetime import datetime, timezone, date, timedelta
 from decimal import Decimal
 from sqlalchemy import (
-    Column, String, Integer, Boolean, Date, DateTime, Text, Numeric, LargeBinary, JSON, ForeignKey, Index
+    Column, String, Integer, Boolean, Date, DateTime, Text, Numeric, LargeBinary, JSON, ForeignKey,
+    Index, UniqueConstraint
 )
 from sqlalchemy.orm import relationship, declarative_base
 
@@ -872,6 +873,12 @@ class Suscripcion(Base):
     pagook_nivel = Column(String(20))                  # alta | media | voucher
     referencia_externa = Column(String(150))           # lo enviado a marcar-usado (= id de esta fila)
 
+    # Central de suscripciones (multi-producto). producto_id/cliente_ruc son NOT NULL en BD
+    # (sql/zClaude-central-suscripciones.sql); plan_id nullable (filas sin plan en catálogo).
+    producto_id = Column(String(36), ForeignKey('susc_producto.id'), nullable=False)
+    plan_id     = Column(String(36), ForeignKey('susc_plan.id'))
+    cliente_ruc = Column(String(15), nullable=False)
+
     # Factura de suscripción (PSP)
     factura_id = Column(String(36), ForeignKey('comprobante.id'))
     factura_numero = Column(String(16))                # FF50-00000001 (cache legible)
@@ -889,4 +896,61 @@ class Suscripcion(Base):
         Index('idx_susc_emisor', 'emisor_id', 'vence'),
         Index('idx_susc_estado', 'estado', 'vence'),
         Index('idx_susc_factura_estado', 'factura_estado'),
+        Index('idx_susc_emisor_producto', 'emisor_id', 'producto_id'),
+        Index('idx_susc_rucprod', 'cliente_ruc', 'producto_id'),
     )
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# CENTRAL DE SUSCRIPCIONES (multi-producto). Tablas creadas vía
+# sql/zClaude-central-suscripciones.sql. OJO: la tabla de inventario se llama
+# `producto`; estas usan prefijo `susc_` para no colisionar.
+# ════════════════════════════════════════════════════════════════════════════
+class SuscProducto(Base):
+    """Producto del ecosistema PSP cobrado por suscripción (Facturalo, QueVendi, …)."""
+    __tablename__ = 'susc_producto'
+    id            = Column(String(36), primary_key=True, default=gen_uuid)
+    codigo        = Column(String(30), nullable=False, unique=True)   # facturalo|quevendi|…
+    nombre        = Column(String(100), nullable=False)
+    serie_factura = Column(String(4), nullable=False, unique=True)    # FF50/FQ50/…
+    activo        = Column(Boolean, nullable=False, default=True)
+    creado_en     = Column(DateTime, default=utc_now)
+
+
+class SuscPlan(Base):
+    __tablename__ = 'susc_plan'
+    id             = Column(String(36), primary_key=True, default=gen_uuid)
+    producto_id    = Column(String(36), ForeignKey('susc_producto.id'), nullable=False)
+    codigo         = Column(String(40), nullable=False)
+    nombre         = Column(String(100), nullable=False)
+    precio_mensual = Column(Numeric(10, 2), nullable=False)
+    precio_anual   = Column(Numeric(10, 2), nullable=False)
+    activo         = Column(Boolean, nullable=False, default=True)
+    # publico: el front solo lista planes publicables. 'prueba' (interno) = False;
+    # se invoca por parámetro para pruebas internas sin tocar código.
+    publico        = Column(Boolean, nullable=False, default=True)
+    orden          = Column(Integer, default=0)
+    creado_en      = Column(DateTime, default=utc_now)
+    __table_args__ = (UniqueConstraint('producto_id', 'codigo', name='uq_susc_plan'),)
+
+
+class SuscPlanIncluye(Base):
+    __tablename__ = 'susc_plan_incluye'
+    id                   = Column(String(36), primary_key=True, default=gen_uuid)
+    plan_id              = Column(String(36), ForeignKey('susc_plan.id'), nullable=False)
+    producto_incluido_id = Column(String(36), ForeignKey('susc_producto.id'), nullable=False)
+    tipo_precio_incluido = Column(String(12), nullable=False)    # gratis|porcentaje|monto_fijo
+    valor_incluido       = Column(Numeric(10, 2), nullable=False, default=0)
+    creado_en            = Column(DateTime, default=utc_now)
+    __table_args__ = (UniqueConstraint('plan_id', 'producto_incluido_id', name='uq_susc_plan_incluye'),)
+
+
+class SuscFeature(Base):
+    __tablename__ = 'susc_feature'
+    id        = Column(String(36), primary_key=True, default=gen_uuid)
+    plan_id   = Column(String(36), ForeignKey('susc_plan.id'), nullable=False)
+    clave     = Column(String(60), nullable=False)
+    tipo      = Column(String(10), nullable=False)    # limite|booleano|texto
+    valor     = Column(String(255))
+    creado_en = Column(DateTime, default=utc_now)
+    __table_args__ = (UniqueConstraint('plan_id', 'clave', name='uq_susc_feature'),)
