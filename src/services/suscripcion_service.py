@@ -27,27 +27,40 @@ from uuid import uuid4
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
-from src.models.models import Emisor, Comprobante, LineaDetalle, Suscripcion
+from src.models.models import Emisor, Comprobante, LineaDetalle, Suscripcion, SuscProducto, SuscPlan
 from src.services import pagook_client
 
 logger = logging.getLogger(__name__)
 
 RUC_PSP = '20615446565'
-SERIE_SUSCRIPCION = 'FF50'          # serie dedicada de PSP para Facturalo (nueva, ≠ F050)
 DIAS = {'mensual': 30, 'anual': 365}
-PLANES = {
-    'emprendedor': {'mensual': Decimal('29.00'), 'anual': Decimal('290.00')},
-    'negocio':     {'mensual': Decimal('55.00'), 'anual': Decimal('550.00')},
-    # ⚠️ TEMPORAL — plan de prueba S/4 para la prueba de fuego (quitar después).
-    'prueba':      {'mensual': Decimal('4.00'),  'anual': Decimal('4.00')},
-}
 
 
-def monto_plan(plan, periodicidad) -> Decimal:
-    try:
-        return PLANES[plan][periodicidad]
-    except KeyError:
-        raise ValueError(f"Plan/periodicidad inválidos: {plan}/{periodicidad}")
+def _get_producto(db, codigo) -> SuscProducto:
+    """Producto del catálogo (susc_producto) por código. La serie de factura sale de aquí."""
+    p = db.query(SuscProducto).filter(
+        SuscProducto.codigo == codigo, SuscProducto.activo.is_(True)).first()
+    if not p:
+        raise ValueError(f"Producto no encontrado o inactivo: {codigo}")
+    return p
+
+
+def _get_plan(db, producto_id, codigo) -> SuscPlan:
+    """Plan del catálogo (susc_plan) por (producto, código). El precio sale de aquí."""
+    pl = db.query(SuscPlan).filter(
+        SuscPlan.producto_id == producto_id, SuscPlan.codigo == codigo,
+        SuscPlan.activo.is_(True)).first()
+    if not pl:
+        raise ValueError(f"Plan no encontrado o inactivo: {codigo}")
+    return pl
+
+
+def _monto(plan_row, periodicidad) -> Decimal:
+    if periodicidad == 'mensual':
+        return Decimal(str(plan_row.precio_mensual))
+    if periodicidad == 'anual':
+        return Decimal(str(plan_row.precio_anual))
+    raise ValueError(f"Periodicidad inválida: {periodicidad}")
 
 
 def _siguiente_numero(db, emisor_id, serie, tipo='01') -> int:
@@ -59,20 +72,25 @@ def _siguiente_numero(db, emisor_id, serie, tipo='01') -> int:
 
 
 def _emitir_factura_psp(db, cliente, s) -> Comprobante:
-    """Factura de suscripción: PSP emisor, adquirente = cliente, EXONERADA (afectación
-    '20'). Crea Comprobante + LineaDetalle y encola el envío (reusa el pipeline)."""
+    """Factura de suscripción: PSP emisor, adquirente = cliente, EXONERADA (afectación '20').
+    La SERIE y el nombre del producto salen del catálogo (susc_producto) vía s.producto_id →
+    sirve a cualquier producto. Crea Comprobante + LineaDetalle y encola el envío."""
     psp = db.query(Emisor).filter(Emisor.ruc == RUC_PSP).first()
     if not psp:
         raise RuntimeError(f"Emisor PSP {RUC_PSP} no existe")
+    producto = db.query(SuscProducto).filter(SuscProducto.id == s.producto_id).first()
+    if not producto:
+        raise RuntimeError(f"Suscripción {s.id} sin producto válido (producto_id={s.producto_id})")
 
-    numero = _siguiente_numero(db, psp.id, SERIE_SUSCRIPCION, '01')
+    serie = producto.serie_factura
+    numero = _siguiente_numero(db, psp.id, serie, '01')
     monto = Decimal(str(s.monto))
-    desc = f"Suscripcion Facturalo - plan {s.plan} ({s.periodicidad})"
+    desc = f"Suscripcion {producto.nombre} - plan {s.plan} ({s.periodicidad})"
 
     comp = Comprobante(
         id=str(uuid4()), emisor_id=psp.id, tipo_documento='01',
-        serie=SERIE_SUSCRIPCION, numero=numero,
-        numero_formato=f"{SERIE_SUSCRIPCION}-{str(numero).zfill(8)}",
+        serie=serie, numero=numero,
+        numero_formato=f"{serie}-{str(numero).zfill(8)}",
         fecha_emision=date.today(), moneda='PEN',
         cliente_tipo_documento='6', cliente_numero_documento=cliente.ruc,
         cliente_razon_social=cliente.razon_social,
@@ -107,16 +125,19 @@ def _activar(cliente, s):
     cliente.plan = 'pagado'
 
 
-def procesar_confirmacion(db, *, cliente, plan, periodicidad, pagador=None,
-                          fecha_hora=None, canal=None, codigo=None) -> dict:
+def procesar_confirmacion(db, *, cliente, producto_codigo, plan_codigo, periodicidad,
+                          pagador=None, fecha_hora=None, canal=None, codigo=None) -> dict:
     """Flujo "ya pagué". `cliente` es el emisor LOGUEADO (adquirente), resuelto de la
-    sesión por el endpoint — nunca de un input. Devuelve dict con `nivel` para el front:
+    sesión por el endpoint — nunca de un input. `producto_codigo`/`plan_codigo` resuelven
+    serie y precio contra el catálogo (susc_producto/susc_plan). Devuelve dict con `nivel`:
     alta | ya_procesado | media | voucher | error."""
     # (B) Guarda anti-autofactura: el emisor de la plataforma (PSP) no se suscribe a sí mismo.
     if cliente.ruc == RUC_PSP:
         return {"nivel": "error", "mensaje": "El emisor de la plataforma no puede suscribirse."}
 
-    monto = monto_plan(plan, periodicidad)
+    producto = _get_producto(db, producto_codigo)        # serie desde el catálogo
+    plan_row = _get_plan(db, producto.id, plan_codigo)   # precio desde el catálogo
+    monto = _monto(plan_row, periodicidad)
 
     logger.warning("[DIAG][SUSC] ANTES de consultar PagoOK monto=%s fecha=%s canal=%s",
                    monto, fecha_hora, canal)
@@ -142,7 +163,9 @@ def procesar_confirmacion(db, *, cliente, plan, periodicidad, pagador=None,
 
         # Crear suscripción 'pendiente' ANTES de marcar_usado (orden seguro)
         vence = date.today() + timedelta(days=DIAS[periodicidad])
-        s = Suscripcion(id=str(uuid4()), emisor_id=cliente.id, plan=plan, periodicidad=periodicidad,
+        s = Suscripcion(id=str(uuid4()), emisor_id=cliente.id, cliente_ruc=cliente.ruc,
+                        producto_id=producto.id, plan_id=plan_row.id,
+                        plan=plan_codigo, periodicidad=periodicidad,
                         monto=monto, moneda='PEN', vence=vence, estado='pendiente',
                         pagook_pago_id=pago_id, pagook_nivel='alta')
         s.referencia_externa = s.id
@@ -200,7 +223,9 @@ def procesar_confirmacion(db, *, cliente, plan, periodicidad, pagador=None,
     # ── NIVEL MEDIA (revisión manual de Duilio) ─────────────────────────────
     if nivel == "media":
         vence = date.today() + timedelta(days=DIAS[periodicidad])
-        s = Suscripcion(id=str(uuid4()), emisor_id=cliente.id, plan=plan, periodicidad=periodicidad,
+        s = Suscripcion(id=str(uuid4()), emisor_id=cliente.id, cliente_ruc=cliente.ruc,
+                        producto_id=producto.id, plan_id=plan_row.id,
+                        plan=plan_codigo, periodicidad=periodicidad,
                         monto=monto, moneda='PEN', vence=vence, estado='media', pagook_nivel='media',
                         notas="candidatos: " + str([c.get('pago_id') for c in res.get('candidatos', [])]))
         db.add(s); db.commit()
