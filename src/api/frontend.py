@@ -56,10 +56,14 @@ _PLANES_PRECIOS = {
 WHATSAPP_PSP = "51967317946"
 
 
-def _pagar_context(db, producto_codigo):
+def _pagar_context(db, producto_codigo, plan_forzado=None):
     """Arma el contexto del formulario /pagar desde el catálogo (DB-driven):
     producto pre-seleccionado + sus planes PÚBLICOS + upsell de los OTROS productos
-    (excluyendo los que el producto ya incluye vía susc_plan_incluye)."""
+    (excluyendo los que el producto ya incluye vía susc_plan_incluye).
+
+    `plan_forzado` (de ?plan=<codigo>): incluye y pre-selecciona un plan aunque sea
+    NO público (p.ej. 'prueba' S/4) — solo cuando se pasa explícito en la URL. Sirve
+    para pruebas internas de cobro sin exponer el plan en el formulario normal."""
     producto = db.query(SuscProducto).filter(
         SuscProducto.codigo == producto_codigo, SuscProducto.activo.is_(True)).first()
     if not producto:   # código desconocido/inactivo → fallback a facturalo
@@ -68,6 +72,15 @@ def _pagar_context(db, producto_codigo):
     planes = db.query(SuscPlan).filter(
         SuscPlan.producto_id == producto.id, SuscPlan.publico.is_(True),
         SuscPlan.activo.is_(True)).order_by(SuscPlan.orden, SuscPlan.codigo).all()
+
+    # ?plan=<codigo> explícito → inyecta ese plan (aunque sea no-público) y lo deja
+    # PRIMERO para que quede pre-seleccionado. Solo si existe y está activo.
+    if plan_forzado:
+        pf = db.query(SuscPlan).filter(
+            SuscPlan.producto_id == producto.id, SuscPlan.codigo == plan_forzado,
+            SuscPlan.activo.is_(True)).first()
+        if pf:
+            planes = [pf] + [p for p in planes if p.codigo != pf.codigo]
 
     # Productos que este producto YA INCLUYE (p.ej. QueVendi incluye Facturalo) → fuera del upsell
     incluidos = {r[0] for r in db.query(SuscPlanIncluye.producto_incluido_id)
@@ -91,9 +104,13 @@ def _pagar_context(db, producto_codigo):
 
 
 @router.get("/pagar", response_class=HTMLResponse)
-async def pagar_page(request: Request, producto: str = "facturalo", db: Session = Depends(get_db)):
-    """Página pública de pago — planes y upsell dinámicos desde el catálogo."""
-    ctx = _pagar_context(db, (producto or "facturalo").strip().lower())
+async def pagar_page(request: Request, producto: str = "facturalo",
+                     plan: str | None = None, db: Session = Depends(get_db)):
+    """Página pública de pago — planes y upsell dinámicos desde el catálogo.
+    ?plan=<codigo> fuerza un plan no-público (p.ej. prueba S/4) para pruebas internas."""
+    ctx = _pagar_context(
+        db, (producto or "facturalo").strip().lower(),
+        plan_forzado=(plan.strip().lower() if plan else None))
     ctx["request"] = request
     return templates.TemplateResponse("pagar.html", ctx)
 
