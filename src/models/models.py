@@ -912,6 +912,7 @@ class SuscProducto(Base):
     id            = Column(String(36), primary_key=True, default=gen_uuid)
     codigo        = Column(String(30), nullable=False, unique=True)   # facturalo|quevendi|…
     nombre        = Column(String(100), nullable=False)
+    descripcion   = Column(String(255))                               # gancho corto para el upsell
     serie_factura = Column(String(4), nullable=False, unique=True)    # FF50/FQ50/…
     activo        = Column(Boolean, nullable=False, default=True)
     creado_en     = Column(DateTime, default=utc_now)
@@ -923,6 +924,7 @@ class SuscPlan(Base):
     producto_id    = Column(String(36), ForeignKey('susc_producto.id'), nullable=False)
     codigo         = Column(String(40), nullable=False)
     nombre         = Column(String(100), nullable=False)
+    descripcion    = Column(String(255))                 # subtítulo de la tarjeta de plan
     precio_mensual = Column(Numeric(10, 2), nullable=False)
     precio_anual   = Column(Numeric(10, 2), nullable=False)
     activo         = Column(Boolean, nullable=False, default=True)
