@@ -2,394 +2,497 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pagar — facturalo.pro</title>
-<meta name="description" content="Elige tu plan, paga por Yape, Plin o transferencia y sube tu voucher. Tu cuenta queda activa de inmediato.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Paga tu suscripción — Perú Sistemas Pro</title>
+<meta name="description" content="Elige tu plan, paga por Yape, Plin o transferencia y activa tu cuenta al instante.">
 <meta name="robots" content="noindex, follow">
 <link rel="canonical" href="https://facturalo.pro/pagar">
 <meta name="theme-color" content="#0A1410">
 <style>
   :root{
-    --bg:#0A1410;--bg-panel:#0E1B15;--bg-row:#0C1712;--bg-row-alt:#101E18;--bg-input:#13241C;
-    --border:#217346;--border-strong:#2E9C5E;
-    --text:#E6EDE9;--text-dim:#94A69C;--text-faint:#61756B;
-    --rojo:#D42020;--dorado:#F4B400;
-    --verde-excel:#217346;--verde:#2ECC71;--label:#3DBB73;
-    --fs:14px;
+    --bg:#0A1410; --panel:#0F1C17; --panel-2:#13241D;
+    --verde:#217346; --verde-vivo:#2ECC71; --verde-claro:#3DD68C;
+    --dorado:#F4B400; --rojo:#D42020;
+    --texto:#E8F0EB; --texto-2:#9DB3A8; --texto-faint:#5E7268;
+    --border:#2A4A3A; --border-soft:#1C3328;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
-  body{ background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;font-size:var(--fs);line-height:1.55;-webkit-font-smoothing:antialiased; }
+  html{scroll-behavior:smooth;scroll-padding-top:env(safe-area-inset-top,0px)}
+  body{ background:var(--bg);color:var(--texto);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0);min-height:100vh; }
 
-  header{ display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--border);padding:14px 24px;position:sticky;top:0;background:var(--bg);z-index:30; }
-  .brand{ display:flex;align-items:center;gap:10px; }
-  .brand .logo{ width:36px;height:36px;background:linear-gradient(135deg,#D01414,#7E0000);display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:5px; }
-  .brand .logo i{background:#fff} .brand .logo i:nth-child(2),.brand .logo i:nth-child(3),.brand .logo i:nth-child(5),.brand .logo i:nth-child(9){background:#F4B400}
-  .brand .n{ font-size:20px;font-weight:800; } .brand .n span{color:var(--rojo)} .brand .n em{color:var(--dorado);font-style:normal}
-  header nav a{ color:var(--text-dim);text-decoration:none;padding:7px 14px;font-size:14px; } header nav a:hover{ color:var(--text); }
+  /* Cabecera */
+  .top{ max-width:1040px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid var(--border);background:var(--panel); }
+  .top .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.3px}
+  .top .brand .cuad{width:22px;height:22px;background:var(--verde);border:2px solid var(--verde-claro)}
+  .top .seguro{font-size:13px;color:var(--texto-2);display:flex;align-items:center;gap:6px}
 
-  main{ max-width:820px;margin:0 auto;padding:40px 20px 80px; }
-  h1{ font-size:32px;font-weight:800;text-align:center;margin-bottom:8px; } h1 .hl{color:var(--dorado)}
-  .lead{ text-align:center;color:var(--text-dim);font-size:16px;margin-bottom:36px;max-width:600px;margin-left:auto;margin-right:auto; }
+  /* Indicador de pasos */
+  .pasos{ max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:0;padding:18px 20px 6px; }
+  .paso-ind{ flex:1;display:flex;align-items:center;gap:10px;color:var(--texto-faint);font-size:13.5px;font-weight:600;position:relative;cursor:default; }
+  .paso-ind.clic{cursor:pointer}
+  .paso-ind .num{ width:30px;height:30px;flex:0 0 30px;display:flex;align-items:center;justify-content:center;border:2px solid var(--border);background:var(--panel-2);color:var(--texto-faint);font-weight:700;font-size:14px;transition:all .25s ease; }
+  .paso-ind.activo .num{border-color:var(--dorado);background:var(--dorado);color:#1a1200}
+  .paso-ind.activo{color:var(--texto)}
+  .paso-ind.hecho .num{border-color:var(--verde-vivo);background:var(--verde);color:#fff}
+  .paso-ind.hecho{color:var(--texto-2)}
+  .paso-ind .linea{ position:absolute;left:30px;right:-10px;top:15px;height:2px;background:var(--border);z-index:-1; }
+  .paso-ind:last-child .linea{display:none}
+  .paso-ind.hecho .linea{background:var(--verde)}
+  .paso-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  .card{ border:1px solid var(--border);background:var(--bg-panel);margin-bottom:26px; }
-  .card .ch{ background:var(--verde-excel);color:#fff;padding:10px 16px;font-weight:700;font-size:13px;letter-spacing:1px;display:flex;align-items:center;gap:10px; }
-  .card .cn{ width:24px;height:24px;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800; }
-  .card .cb{ padding:22px 18px; }
+  /* Cuerpo: 2 columnas */
+  .wrap{ max-width:1040px;margin:0 auto;padding:14px 20px 24px;display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start; }
+  .col-main{min-width:0}
+  .col-side{position:sticky;top:20px}
 
-  /* Plan selector */
-  .planes{ display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border); }
-  .planopt{ border-right:1px solid var(--border);padding:20px;cursor:pointer;position:relative;transition:background .12s; } .planopt:last-child{border-right:none}
-  .planopt:hover{ background:var(--bg-row-alt); }
-  .planopt.sel{ background:var(--bg-row);border-left:4px solid var(--dorado); }
-  .planopt .pn{ color:var(--label);font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:6px; }
-  .planopt .pp{ font-size:30px;font-weight:800; } .planopt .pp small{ font-size:13px;color:var(--text-dim);font-weight:400; }
-  .planopt .rc{ font-size:13px;color:var(--text-dim);margin-top:6px; }
-  .planopt .chk{ position:absolute;top:14px;right:14px;width:20px;height:20px;border:2px solid var(--border-strong);border-radius:50%; }
-  .planopt.sel .chk{ background:var(--verde);border-color:var(--verde); }
+  /* Acordeón */
+  .acc{ border:2px solid var(--border);background:var(--panel);margin-bottom:14px; }
+  .acc-head{ display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;user-select:none;background:var(--panel-2); }
+  .acc-head .n{ width:28px;height:28px;flex:0 0 28px;display:flex;align-items:center;justify-content:center;background:var(--verde);color:#fff;font-weight:700;border:2px solid var(--verde-claro); }
+  .acc-head.done .n{background:var(--verde-vivo)}
+  .acc-head .t{font-weight:700;font-size:16px;flex:1}
+  .acc-head .chev{color:var(--texto-2);transition:transform .25s}
+  .acc.abierto .acc-head .chev{transform:rotate(180deg)}
+  .acc-body{ max-height:0;overflow:hidden;transition:max-height .3s ease; }
+  .acc.abierto .acc-body{max-height:1600px}
+  .acc-inner{padding:18px}
 
-  .peri{ display:flex;gap:0;border:1px solid var(--border);margin-top:16px; }
-  .peri button{ flex:1;background:var(--bg-row);border:none;border-right:1px solid var(--border);color:var(--text-dim);padding:12px;cursor:pointer;font-weight:700;font-size:14px; } .peri button:last-child{border-right:none}
-  .peri button.on{ background:var(--verde-excel);color:#fff; }
-  .peri .ahorro{ font-size:11px;color:var(--dorado);display:block;font-weight:600; }
+  /* Tarjetas de plan */
+  .planes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .plan{ border:2px solid var(--border);background:var(--panel-2);padding:16px;cursor:pointer;position:relative;transition:border-color .18s,transform .08s; }
+  .plan:hover{border-color:var(--verde-claro)}
+  .plan.sel{border-color:var(--dorado);background:#14241c}
+  .plan.sel::after{ content:'✓';position:absolute;top:10px;right:12px;color:var(--dorado);font-weight:700;font-size:16px; }
+  .plan .pn{font-weight:700;font-size:16px;margin-bottom:2px}
+  .plan .rc{font-size:12.5px;color:var(--texto-2);margin-bottom:10px;min-height:32px}
+  .plan .pp{font-size:22px;font-weight:800;color:var(--verde-claro)}
+  .plan .pp small{font-size:12px;color:var(--texto-2);font-weight:500}
 
-  .resumen{ margin-top:18px;padding:16px;border:1px dashed var(--border-strong);background:var(--bg-row);display:flex;justify-content:space-between;align-items:center; }
-  .resumen .rl{ color:var(--text-dim);font-size:13px; } .resumen .rl b{ color:var(--text);display:block;font-size:15px; }
-  .resumen .monto{ font-size:34px;font-weight:800;color:var(--verde); } .resumen .monto small{ font-size:14px;color:var(--text-dim);font-weight:400; }
+  .periodo{display:flex;gap:8px;margin-top:14px}
+  .per-btn{ flex:1;text-align:center;padding:10px;border:2px solid var(--border);background:var(--panel-2);cursor:pointer;font-weight:600;font-size:13.5px;transition:all .15s; }
+  .per-btn.sel{border-color:var(--verde-vivo);background:var(--verde);color:#fff}
+  .per-btn .ahorro{display:block;font-size:11px;color:var(--dorado);margin-top:2px}
+
+  /* Botón acción */
+  .btn{ display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;margin-top:16px;background:var(--verde-vivo);color:#06160d;font-weight:800;font-size:15px;border:none;border-bottom:4px solid #176e3a;border-right:3px solid #176e3a;cursor:pointer;transition:all .1s;font-family:inherit; }
+  .btn:active{transform:translateY(2px);border-bottom-width:2px}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
 
   /* Datos de pago */
-  .pay-grid{ display:grid;grid-template-columns:1fr 1fr;gap:14px; }
-  .pay{ border:1px solid var(--border);padding:14px 16px;background:var(--bg-row); }
-  .pay .pt{ color:var(--label);font-weight:700;font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center; }
-  .pay .row{ display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0; } .pay .row span:first-child{ color:var(--text-dim); }
-  .pay .num{ font-family:"Courier New",monospace;font-weight:700;letter-spacing:.3px; }
-  .copy{ background:transparent;border:1px solid var(--border-strong);color:var(--label);font-size:11px;padding:3px 8px;cursor:pointer;font-weight:600; } .copy:hover{ background:var(--bg-row-alt);color:var(--text); }
-  .pay.sel{ border-color:var(--verde);background:var(--bg-row-alt);box-shadow:inset 3px 0 0 var(--verde); }
-  .pay.sel .pt{ color:var(--verde); }
-  .metodo-sel{ margin-top:14px;padding:11px 14px;border:1px solid var(--border);border-left:4px solid var(--verde);background:var(--bg-row);font-size:14px; }
-  .metodo-sel b{ color:var(--verde);text-transform:capitalize; } .metodo-sel .metodo-hint{ color:var(--text-faint);font-size:12px; }
-  .titular-nota{ color:var(--text-faint);font-size:12px;margin-top:12px; } .titular-nota b{ color:var(--label); }
+  .pago-medios{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .medio{ border:2px solid var(--border);background:var(--panel-2);padding:12px;cursor:pointer;transition:border-color .15s; }
+  .medio:hover{border-color:var(--verde-claro)}
+  .medio.sel{border-color:var(--verde-vivo);background:#14241c}
+  .medio .mt2{font-weight:700;font-size:13px;margin-bottom:6px;color:var(--verde-claro)}
+  .medio .mrow{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0}
+  .medio .mrow span:first-child{color:var(--texto-2)}
+  .num{font-family:'Courier New',monospace;font-weight:700;letter-spacing:.3px}
+  .copy{background:transparent;border:1px solid var(--border);color:var(--verde-claro);font-size:11px;padding:2px 7px;cursor:pointer;font-weight:600}
+  .copy:hover{border-color:var(--verde-claro)}
+  .dato-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-soft);font-size:14px}
+  .dato-row b{color:var(--verde-claro)}
+  .metodo-sel{margin-top:12px;padding:10px 12px;border:2px solid var(--border);border-left:4px solid var(--verde-vivo);background:var(--panel-2);font-size:13.5px}
+  .metodo-sel b{color:var(--verde-vivo);text-transform:capitalize}
+  .ayuda{font-size:12px;color:var(--texto-faint);margin-top:4px}
 
-  /* Formulario voucher */
-  label.fl{ display:block;color:var(--text-dim);font-size:13px;font-weight:600;margin:14px 0 6px; }
-  input[type=text], input[type=tel], input[type=datetime-local], select{ width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:11px 12px;font-size:14px;font-family:inherit; }
-  input:focus{ outline:none;border-color:var(--border-strong); }
-  .file-drop{ border:2px dashed var(--border-strong);background:var(--bg-row);padding:26px 16px;text-align:center;cursor:pointer;margin-top:6px; }
-  .file-drop:hover{ background:var(--bg-row-alt); }
-  .file-drop .fi{ font-size:34px;color:var(--label);margin-bottom:8px; }
-  .file-drop .ft{ color:var(--text-dim);font-size:13px; } .file-drop .ft b{ color:var(--label); }
-  #preview{ max-width:220px;max-height:220px;margin:14px auto 0;display:none;border:1px solid var(--border); }
+  /* Formulario confirmar + voucher */
+  .campo{margin-bottom:12px}
+  .campo label{display:block;font-size:13px;color:var(--texto-2);margin-bottom:5px;font-weight:600}
+  .campo input,.campo select{ width:100%;padding:11px;background:var(--bg);border:2px solid var(--border);color:var(--texto);font-size:14px;font-family:inherit; }
+  .campo input:focus,.campo select:focus{outline:none;border-color:var(--verde-vivo)}
+  .file-drop{border:2px dashed var(--border);background:var(--panel-2);padding:22px 14px;text-align:center;cursor:pointer;margin-top:6px}
+  .file-drop:hover{border-color:var(--verde-claro)}
+  .file-drop .fi{font-size:30px;color:var(--verde-claro);margin-bottom:6px}
+  .file-drop .ft{color:var(--texto-2);font-size:13px} .file-drop .ft b{color:var(--verde-claro)}
+  #preview{max-width:200px;max-height:200px;margin:12px auto 0;display:none;border:1px solid var(--border)}
+  .voucher-wrap{display:none;margin-top:16px;border-top:2px solid var(--border);padding-top:14px}
+  .voucher-wrap .vh{font-weight:700;font-size:14px;margin-bottom:8px}
 
-  .submit-btn{ margin-top:22px;width:100%;background:var(--verde);border:2px solid #1a9e54;border-bottom-width:5px;border-right-width:5px;color:#04250f;font-weight:800;font-size:18px;padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px; }
-  .submit-btn:active{ transform:translate(2px,2px);border-bottom-width:2px;border-right-width:2px; }
-  .submit-btn:disabled{ opacity:.55;cursor:not-allowed; }
+  /* Mensajes de resultado */
+  .msg{display:none;margin-top:16px;padding:16px;border:2px solid var(--border);border-left:4px solid var(--verde-vivo);background:var(--panel-2)}
+  .msg.err{border-left-color:var(--rojo)}
+  .msg .mt{font-size:16px;font-weight:800;color:var(--verde-vivo);margin-bottom:4px} .msg.err .mt{color:var(--rojo)}
+  .msg p{color:var(--texto-2);font-size:13.5px}
 
-  .msg{ display:none;margin-top:18px;padding:18px;border:1px solid var(--border);border-left:4px solid var(--verde);background:var(--bg-row); }
-  .msg.err{ border-left-color:var(--rojo); }
-  .msg .mt{ font-size:17px;font-weight:800;color:var(--verde);margin-bottom:4px; } .msg.err .mt{ color:var(--rojo); }
-  .msg p{ color:var(--text-dim);font-size:13.5px; }
+  .foot-help{text-align:center;color:var(--texto-faint);font-size:13px;margin-top:16px}
+  .foot-help a{color:var(--verde-vivo);text-decoration:none;font-weight:600}
 
-  .foot-help{ text-align:center;color:var(--text-faint);font-size:13px;margin-top:26px; }
-  .foot-help a{ color:var(--verde);text-decoration:none;font-weight:600; }
+  /* Columna lateral */
+  .side-card{border:2px solid var(--border);background:var(--panel);overflow:hidden}
+  .side-img{ width:100%;aspect-ratio:4/5;background:linear-gradient(135deg,#143024,#0d1f17);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--texto-faint);text-align:center;padding:20px;position:relative;border-bottom:2px solid var(--border); }
+  .side-img .ph-ico{font-size:40px;opacity:.5}
+  .side-img .ph-txt{font-size:12px;line-height:1.4}
+  .side-msg{padding:18px}
+  .side-msg .sm-eyebrow{font-size:12px;color:var(--dorado);font-weight:700;margin-bottom:6px}
+  .side-msg .sm-title{font-size:16.5px;font-weight:700;line-height:1.35;margin-bottom:6px}
+  .side-msg .sm-sub{font-size:13.5px;color:var(--texto-2)}
 
-  @media(max-width:640px){ .planes,.pay-grid{ grid-template-columns:1fr; } .planopt{ border-right:none;border-bottom:1px solid var(--border); } }
-  /* Gancho de recompensa post-pago */
-  .reward{ display:flex;gap:12px;align-items:center;background:var(--bg-row);border:1px solid var(--dorado);border-left:4px solid var(--dorado);padding:14px 16px;margin:16px 0; }
-  .reward-ico{ font-size:22px;line-height:1; }
-  .reward b{ display:block;font-size:14px; } .reward p{ margin:2px 0 0;color:var(--text-dim);font-size:13px; }
-  /* Aviso producto sin planes públicos */
-  .aviso-empty{ text-align:center;color:var(--text-dim);padding:20px 8px;font-size:14px; }
-  .wa-btn{ display:inline-block;margin-top:12px;background:var(--verde);color:#fff;padding:10px 18px;text-decoration:none;font-weight:700; }
+  /* Recompensa */
+  .reward{display:flex;align-items:center;gap:14px;border:2px solid var(--dorado);background:#1a160a;padding:14px 16px;margin:16px 0}
+  .reward .r-ico{font-size:28px}
+  .reward b{color:var(--dorado);font-size:14.5px}
+  .reward p{font-size:13px;color:var(--texto-2);margin-top:2px}
+
+  /* Empty-state */
+  .aviso-empty{text-align:center;color:var(--texto-2);padding:28px 10px}
+  .wa-btn{display:inline-block;margin-top:14px;background:var(--verde-vivo);color:#06160d;padding:11px 20px;text-decoration:none;font-weight:800}
+
   /* Upsell */
-  .upsell{ margin-top:28px; }
-  .upsell h2{ font-size:16px;margin:0 0 4px; } .upsell .usub{ color:var(--text-dim);font-size:13px;margin:0 0 14px; }
-  .up-grid{ display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px; }
-  .up-card{ border:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:6px;background:var(--bg-row); }
-  .up-card .upn{ font-weight:800;font-size:15px; }
-  .up-card .upd{ color:var(--text-dim);font-size:13px;flex:1; }
-  .up-card .updesde{ color:var(--dorado);font-weight:700;font-size:13px; }
-  .up-card .uppromo{ color:var(--text-faint);font-size:12px; }
-  .up-card .upbtn{ margin-top:6px;background:var(--verde-excel,var(--verde));color:#fff;text-align:center;padding:9px;text-decoration:none;font-weight:700; }
+  .upsell-wrap{max-width:1040px;margin:0 auto;padding:4px 20px 44px}
+  .upsell-h{font-size:14px;font-weight:700;color:var(--texto-2);padding:12px 0;border-top:2px solid var(--border)}
+  .up-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;padding-top:6px}
+  .up-card{border:2px solid var(--border);background:var(--panel-2);padding:14px;display:flex;flex-direction:column}
+  .up-card .un{font-weight:700;font-size:14px}
+  .up-card .ud{font-size:12.5px;color:var(--texto-2);margin:6px 0;min-height:34px;flex:1}
+  .up-card .udesde{font-size:13px;color:var(--verde-claro);font-weight:700}
+  .up-card .promo{font-size:11.5px;color:var(--dorado);margin-top:6px}
+  .up-card a{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--texto);border:1px solid var(--border);padding:6px 10px;text-decoration:none;text-align:center}
+  .up-card a:hover{border-color:var(--verde-claro)}
+
+  /* Responsive */
+  @media(max-width:820px){
+    .wrap{grid-template-columns:1fr}
+    .col-side{position:static;order:-1}
+    .side-img{aspect-ratio:16/9}
+    .pasos{padding:14px 16px 2px}
+    .paso-txt{font-size:12px}
+    .planes,.up-grid,.pago-medios{grid-template-columns:1fr}
+  }
+  @media(max-width:560px){
+    .paso-ind .paso-txt{display:none}
+    .paso-ind{flex:0 0 auto;gap:0}
+    .paso-ind .linea{left:30px;right:-40px}
+    .pasos{justify-content:center;gap:40px}
+  }
 </style>
 </head>
 <body>
-  <header>
-    <a href="/" style="text-decoration:none;color:inherit"><div class="brand">
-      <div class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="n"><span>facturalo</span><em>.pro</em></div>
-    </div></a>
-    <nav><a href="/">← Volver</a></nav>
-  </header>
 
-  <main>
-    <h1>Paga tu suscripción de <span class="hl">{{ producto.nombre }}</span></h1>
-    <p class="lead">Elige tu plan, paga por el medio que prefieras y sube tu voucher. Tu cuenta queda activa de inmediato.</p>
+  <!-- Cabecera: marca madre PSP (central multi-producto donde PSP cobra) -->
+  <div class="top">
+    <a href="/" style="text-decoration:none;color:inherit"><div class="brand"><span class="cuad"></span> Perú Sistemas <b style="color:var(--rojo)">PRO</b></div></a>
+    <div class="seguro">🔒 Pago seguro</div>
+  </div>
 
-    <!-- PASO 1: PLAN -->
-    <div class="card">
-      <div class="ch"><span class="cn">1</span> ELIGE TU PLAN</div>
-      <div class="cb">
-        {% if planes %}
-        <div class="planes">
-          {% for pl in planes %}
-          <div class="planopt{% if loop.first %} sel{% endif %}" data-plan="{{ pl.codigo }}" onclick="selPlan(this)">
-            <div class="chk"></div>
-            <div class="pn">{{ pl.nombre }}</div>
-            <div class="pp" data-mes="{{ pl.precio_mensual }}" data-anio="{{ pl.precio_anual }}">S/ {{ pl.precio_mensual|int }}<small>/mes</small></div>
-            {% if pl.descripcion %}<div class="rc">{{ pl.descripcion }}</div>{% endif %}
+  {% if planes %}
+  <!-- Indicador de pasos -->
+  <div class="pasos">
+    <div class="paso-ind activo" id="ind1"><span class="num">1</span><span class="paso-txt">Elige tu plan</span><span class="linea"></span></div>
+    <div class="paso-ind" id="ind2"><span class="num">2</span><span class="paso-txt">Paga</span><span class="linea"></span></div>
+    <div class="paso-ind" id="ind3"><span class="num">3</span><span class="paso-txt">Confirma</span><span class="linea"></span></div>
+  </div>
+
+  <div class="wrap">
+    <div class="col-main">
+
+      <!-- PASO 1 -->
+      <div class="acc abierto" id="acc1">
+        <div class="acc-head" onclick="irPaso(1)">
+          <span class="n">1</span><span class="t">Elige tu plan de {{ producto.nombre }}</span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-inner">
+          <div class="planes">
+            {% for pl in planes %}
+            <div class="plan{% if loop.first %} sel{% endif %}" data-plan="{{ pl.codigo }}" data-mes="{{ pl.precio_mensual }}" data-anio="{{ pl.precio_anual }}" onclick="selPlan(this)">
+              <div class="pn">{{ pl.nombre }}</div>
+              {% if pl.descripcion %}<div class="rc">{{ pl.descripcion }}</div>{% endif %}
+              <div class="pp">S/ {{ pl.precio_mensual|int }} <small>/mes</small></div>
+            </div>
+            {% endfor %}
           </div>
-          {% endfor %}
-        </div>
-
-        <div class="peri">
-          <button type="button" class="on" data-peri="mensual" onclick="selPeri(this)">Mensual</button>
-          <button type="button" data-peri="anual" onclick="selPeri(this)">Anual <span class="ahorro">2 meses gratis</span></button>
-        </div>
-
-        <div class="resumen">
-          <div class="rl">Vas a pagar<b id="rPlan">—</b></div>
-          <div class="monto">S/ <span id="rMonto">0</span><small id="rPeri">/mes</small></div>
-        </div>
-        {% else %}
-        <div class="aviso-empty">
-          Aún no tenemos planes en línea para <b>{{ producto.nombre }}</b>.
-          Escríbenos y te ayudamos a activarlo.
-          <br>
-          <a class="wa-btn" href="https://wa.me/{{ whatsapp }}?text=Hola,%20quiero%20{{ producto.nombre }}" target="_blank" rel="noopener">Escribir por WhatsApp</a>
-        </div>
-        {% endif %}
+          <div class="periodo">
+            <div class="per-btn sel" data-per="mensual" onclick="selPer(this)">Mensual</div>
+            <div class="per-btn" data-per="anual" onclick="selPer(this)">Anual<span class="ahorro">2 meses gratis</span></div>
+          </div>
+          <button type="button" class="btn" onclick="avanzar(2)">Continuar al pago →</button>
+        </div></div>
       </div>
-    </div>
 
-    {% if planes %}
-    <!-- Gancho de recompensa post-pago. Hoy solo crea expectativa; el reporte real es
-         futuro. #reporteEvolucion + data-estado="teaser" es el hueco reservado: cuando
-         exista el reporte, se cambia a data-estado="listo" y se inyecta el link aquí
-         (p.ej. desde el poll de /pagar/estado) sin rediseñar. -->
-    <div class="reward" id="reporteEvolucion" data-estado="teaser">
-      <span class="reward-ico">✨</span>
-      <div>
-        <b>Al renovar, recibes tu Reporte de Evolución de tu Negocio</b>
-        <p>Tus números del mes, listos para ti.</p>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if planes %}
-    <!-- PASO 2: DATOS DE PAGO -->
-    <div class="card">
-      <div class="ch"><span class="cn">2</span> PAGA POR TU MEDIO PREFERIDO</div>
-      <div class="cb">
-        <div class="pay-grid">
-          <div class="pay" data-metodo="yape">
-            <div class="pt">Yape / Plin</div>
-            <div class="row"><span>Yape</span><span><span class="num">938 246 208</span> <button type="button" class="copy" onclick="cp(event,'938246208','yape')">Copiar</button></span></div>
-            <div class="row"><span>Plin</span><span><span class="num">967 317 946</span> <button type="button" class="copy" onclick="cp(event,'967317946','plin')">Copiar</button></span></div>
-          </div>
-          <div class="pay" data-metodo="bcp">
-            <div class="pt">BCP · Soles</div>
-            <div class="row"><span>Cuenta</span><span><span class="num">390-16822755053</span> <button type="button" class="copy" onclick="cp(event,'39016822755053','bcp')">Copiar</button></span></div>
-            <div class="row"><span>CCI</span><span><span class="num">002-390-116822755053-34</span> <button type="button" class="copy" onclick="cp(event,'00239011682275505334','bcp')">Copiar</button></span></div>
-          </div>
-          <div class="pay" data-metodo="interbank">
-            <div class="pt">Interbank · Cuenta Simple Soles</div>
-            <div class="row"><span>Cuenta</span><span><span class="num">740-3135422716</span> <button type="button" class="copy" onclick="cp(event,'7403135422716','interbank')">Copiar</button></span></div>
-            <div class="row"><span>CCI</span><span><span class="num">003-740-013135422716-80</span> <button type="button" class="copy" onclick="cp(event,'00374001313542271680','interbank')">Copiar</button></span></div>
-          </div>
-          <div class="pay">
-            <div class="pt">Titular de las cuentas</div>
-            <div class="row"><span>Empresa</span><span>Perú Sistemas Pro E.I.R.L.</span></div>
-            <div class="row"><span>RUC</span><span class="num">20615446565</span></div>
-          </div>
+      <!-- PASO 2 -->
+      <div class="acc" id="acc2">
+        <div class="acc-head" onclick="irPaso(2)">
+          <span class="n">2</span><span class="t">Paga <span id="montoHead" style="color:var(--verde-claro)"></span></span><span class="chev">▾</span>
         </div>
-        <div class="metodo-sel" id="metodoSel" style="display:none">Vas a pagar por: <b id="metodoTxt"></b> <span class="metodo-hint">(lo anotamos para cruzar tu pago)</span></div>
-        <p class="titular-nota"><b>Importante:</b> el pago <b>no es un requisito para usar Facturalo</b>. Puedes empezar hoy; esto solo deja constancia de tu pago.</p>
+        <div class="acc-body"><div class="acc-inner">
+          <div class="pago-medios">
+            <div class="medio" data-metodo="yape" onclick="pickMetodo('yape')">
+              <div class="mt2">Yape</div>
+              <div class="mrow"><span class="num">938 246 208</span><button type="button" class="copy" onclick="cp(event,'938246208','yape')">Copiar</button></div>
+            </div>
+            <div class="medio" data-metodo="plin" onclick="pickMetodo('plin')">
+              <div class="mt2">Plin</div>
+              <div class="mrow"><span class="num">967 317 946</span><button type="button" class="copy" onclick="cp(event,'967317946','plin')">Copiar</button></div>
+            </div>
+            <div class="medio" data-metodo="bcp" onclick="pickMetodo('bcp')">
+              <div class="mt2">BCP · Soles</div>
+              <div class="mrow"><span>Cuenta</span><span><span class="num">390-16822755053</span> <button type="button" class="copy" onclick="cp(event,'39016822755053','bcp')">Copiar</button></span></div>
+              <div class="mrow"><span>CCI</span><span><span class="num">002-390-116822755053-34</span> <button type="button" class="copy" onclick="cp(event,'00239011682275505334','bcp')">Copiar</button></span></div>
+            </div>
+            <div class="medio" data-metodo="interbank" onclick="pickMetodo('interbank')">
+              <div class="mt2">Interbank · Cuenta Simple</div>
+              <div class="mrow"><span>Cuenta</span><span><span class="num">740-3135422716</span> <button type="button" class="copy" onclick="cp(event,'7403135422716','interbank')">Copiar</button></span></div>
+              <div class="mrow"><span>CCI</span><span><span class="num">003-740-013135422716-80</span> <button type="button" class="copy" onclick="cp(event,'00374001313542271680','interbank')">Copiar</button></span></div>
+            </div>
+          </div>
+          <div class="dato-row"><span>Titular</span><b>Perú Sistemas Pro E.I.R.L. · RUC 20615446565</b></div>
+          <div class="dato-row"><span>Monto a pagar</span><b id="montoPago">S/ 0.00</b></div>
+          <div class="dato-row"><span>Concepto</span><b>Suscripción {{ producto.nombre }}</b></div>
+          <div class="metodo-sel" id="metodoSel" style="display:none">Vas a pagar por: <b id="metodoTxt"></b></div>
+          <p class="ayuda" style="margin-top:12px">El pago <b>no es requisito para usar {{ producto.nombre }}</b>: puedes empezar hoy. Paga por tu medio y luego vuelve a confirmar.</p>
+          <button type="button" class="btn" onclick="avanzar(3)">Ya pagué, continuar →</button>
+        </div></div>
       </div>
-    </div>
 
-    <!-- PASO 3: YA PAGUÉ (verificación automática PagoOK) -->
-    <div class="card">
-      <div class="ch"><span class="cn">3</span> YA PAGUÉ — VERIFICAR Y ACTIVAR</div>
-      <div class="cb">
-        <form id="confirmarForm">
-          <label class="fl">¿A nombre de quién está el Yape/cuenta con la que pagaste? *</label>
-          <input type="text" id="cPagador" placeholder="Ej. María Quispe (titular del Yape)" required>
-          <div class="foot-help" style="text-align:left;margin:4px 0 0;">Es el <b>titular del medio de pago</b>, no la razón social de tu empresa.</div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;">
-            <div>
-              <label class="fl">Canal *</label>
+      <!-- PASO 3 -->
+      <div class="acc" id="acc3">
+        <div class="acc-head" onclick="irPaso(3)">
+          <span class="n">3</span><span class="t">Confirma tu pago</span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-inner">
+          <form id="confirmarForm">
+            <div class="campo">
+              <label>¿A nombre de quién está el Yape/cuenta con la que pagaste? *</label>
+              <input type="text" id="cPagador" placeholder="Ej. María Quispe (titular del Yape)" required>
+              <p class="ayuda">Es el <b>titular del medio de pago</b>, no la razón social de tu empresa. Si otra persona pagó por ti, pon SUS datos.</p>
+            </div>
+            <div class="campo">
+              <label>Canal *</label>
               <select id="cCanal">
                 <option value="yape">Yape</option>
                 <option value="plin">Plin</option>
                 <option value="transferencia">Transferencia</option>
               </select>
             </div>
-            <div>
-              <label class="fl">Fecha y hora del pago *</label>
+            <div class="campo">
+              <label>Fecha y hora del pago *</label>
               <input type="datetime-local" id="cFecha" required>
             </div>
+            <div class="campo">
+              <label>Código de operación (opcional)</label>
+              <input type="text" id="cCodigo" placeholder="Si tu Yape/Plin lo muestra — ayuda a confirmar">
+            </div>
+            <button type="submit" class="btn" id="confirmarBtn"><span>⚡</span> Verificar y activar mi cuenta</button>
+          </form>
+
+          <div class="msg" id="confOk">
+            <div class="mt" id="confOkT">✅ ¡Listo!</div>
+            <p id="confOkP"></p>
+            <a id="confPdf" href="#" target="_blank" rel="noopener" class="btn" style="display:none;margin-top:12px;">📄 Descargar mi factura (PDF)</a>
+            <p id="confPdfWait" style="display:none;color:var(--texto-2);font-size:13px;margin-top:8px;">Tu factura se está procesando en SUNAT; el PDF estará disponible en unos minutos.</p>
+          </div>
+          <div class="msg" id="confMedia" style="border-left-color:var(--dorado);">
+            <div class="mt" style="color:var(--dorado)">⏳ En revisión</div>
+            <p>Encontramos más de un pago posible. Lo confirmamos a la brevedad y te avisamos por WhatsApp.</p>
+          </div>
+          <div class="msg err" id="confErr"><div class="mt">No pudimos confirmar</div><p id="confErrP"></p></div>
+
+          <!-- Voucher (fallback revelable: solo si PagoOK no encuentra el pago / nivel voucher) -->
+          <div class="voucher-wrap" id="voucherWrap">
+            <div class="vh">Sube tu voucher y activamos igual</div>
+            <form id="voucherForm">
+              <input type="hidden" name="plan" id="fPlan" value="{{ planes[0].codigo }}">
+              <input type="hidden" name="periodicidad" id="fPeri" value="mensual">
+              <input type="hidden" name="monto" id="fMonto" value="0">
+              <input type="hidden" name="metodo" id="fMetodo" value="">
+              <input type="hidden" name="producto" value="{{ producto.codigo }}">
+
+              <div class="campo">
+                <label>Nombre del titular que hizo el pago *</label>
+                <input type="text" name="titular" id="fTitular" placeholder="Ej. Juan Pérez / Mi Empresa S.A.C." required>
+              </div>
+              <div class="campo">
+                <label>RUC o DNI (opcional)</label>
+                <input type="text" name="ruc" id="fRuc" placeholder="Para asociar el pago a tu cuenta">
+              </div>
+              <div class="campo">
+                <label>WhatsApp de contacto (opcional)</label>
+                <input type="text" name="telefono" id="fTel" placeholder="Ej. 9XX XXX XXX">
+              </div>
+              <label class="campo" style="display:block">Imagen del voucher (captura o foto) *</label>
+              <div class="file-drop" id="fileDrop" onclick="document.getElementById('fVoucher').click()">
+                <div class="fi">🧾</div>
+                <div class="ft" id="fileTxt">Toca aquí para <b>subir tu voucher</b><br>PNG, JPG o WebP · máx 5 MB</div>
+                <img id="preview" alt="Vista previa del voucher">
+              </div>
+              <input type="file" name="voucher" id="fVoucher" accept="image/png,image/jpeg,image/webp" style="display:none" required>
+              <button type="submit" class="btn" id="submitBtn"><span>🔒</span> Activar mi cuenta</button>
+            </form>
+            <div class="msg" id="okMsg"><div class="mt">✅ ¡Listo!</div><p id="okTxt">Validaremos tu pago, pero TU CUENTA YA ESTÁ ACTIVA.</p></div>
+            <div class="msg err" id="errMsg"><div class="mt">No se pudo enviar</div><p id="errTxt"></p></div>
           </div>
 
-          <label class="fl">Código de operación (opcional)</label>
-          <input type="text" id="cCodigo" placeholder="Si tu Yape/Plin lo muestra — ayuda a confirmar">
-
-          <button type="submit" class="submit-btn" id="confirmarBtn"><span>⚡</span> Ya pagué, verificar</button>
-        </form>
-
-        <div class="msg" id="confOk">
-          <div class="mt" id="confOkT">✅ ¡Listo!</div>
-          <p id="confOkP"></p>
-          <a id="confPdf" href="#" target="_blank" rel="noopener" class="submit-btn" style="display:none;margin-top:12px;">📄 Descargar mi factura (PDF)</a>
-          <p id="confPdfWait" style="display:none;color:var(--text-dim);font-size:13px;margin-top:8px;">Tu factura se está procesando en SUNAT; el PDF estará disponible en unos minutos.</p>
-        </div>
-        <div class="msg" id="confMedia" style="border-left-color:var(--dorado);">
-          <div class="mt" style="color:var(--dorado)">⏳ En revisión</div>
-          <p>Encontramos más de un pago posible. Lo confirmamos a la brevedad y te avisamos por WhatsApp.</p>
-        </div>
-        <div class="msg err" id="confErr"><div class="mt">No pudimos confirmar</div><p id="confErrP"></p></div>
-        <div class="foot-help">¿No encuentra tu pago? Usa la opción de abajo para subir tu voucher.</div>
+          <div class="foot-help">¿Dudas con el pago? Escríbenos por <a href="https://wa.me/{{ whatsapp }}?text=Hola%2C%20necesito%20ayuda%20con%20mi%20pago." target="_blank" rel="noopener">WhatsApp</a>.</div>
+        </div></div>
       </div>
+
+      <!-- Recompensa post-pago (hueco reservado para el reporte real futuro) -->
+      <div class="reward" id="reporteEvolucion" data-estado="teaser">
+        <span class="r-ico">✨</span>
+        <div>
+          <b>Al activar, recibes tu Reporte de Evolución de tu Negocio</b>
+          <p>Tus números del mes, listos para ti.</p>
+        </div>
+      </div>
+
     </div>
 
-    <!-- PASO 4: VOUCHER (fallback cuando PagoOK no encuentra el pago) -->
-    <div class="card">
-      <div class="ch"><span class="cn">4</span> ¿NO SE ENCONTRÓ? SUBE TU VOUCHER</div>
-      <div class="cb">
-        <form id="voucherForm">
-          <input type="hidden" name="plan" id="fPlan" value="emprendedor">
-          <input type="hidden" name="periodicidad" id="fPeri" value="mensual">
-          <input type="hidden" name="monto" id="fMonto" value="29">
-          <input type="hidden" name="metodo" id="fMetodo" value="">
-
-          <label class="fl">Nombre del titular que hizo el pago *</label>
-          <input type="text" name="titular" id="fTitular" placeholder="Ej. Juan Pérez / Mi Empresa S.A.C." required>
-
-          <label class="fl">RUC o DNI (opcional)</label>
-          <input type="text" name="ruc" id="fRuc" placeholder="Para asociar el pago a tu cuenta">
-
-          <label class="fl">WhatsApp de contacto (opcional)</label>
-          <input type="tel" name="telefono" id="fTel" placeholder="Ej. 9XX XXX XXX">
-
-          <label class="fl">Imagen del voucher (captura o foto) *</label>
-          <div class="file-drop" id="fileDrop" onclick="document.getElementById('fVoucher').click()">
-            <div class="fi">🧾</div>
-            <div class="ft" id="fileTxt">Toca aquí para <b>subir tu voucher</b><br>PNG, JPG o WebP · máx 5 MB</div>
-            <img id="preview" alt="Vista previa del voucher">
+    <!-- Columna lateral: imagen (placeholder, URL por paso) + mensaje que cambia -->
+    <div class="col-side">
+      <div class="side-card">
+        <div class="side-img" id="sideImg">
+          <img id="sideFoto" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0">
+          <div class="ph-ico" id="phIco">🙂</div>
+          <div class="ph-txt" id="phTxt">[ Aquí va la foto — Paso 1 ]</div>
+        </div>
+        <div class="side-msg">
+          <div class="sm-eyebrow" id="smEye">PASO 1 DE 3</div>
+          <div class="sm-title" id="smTitle">Esta herramienta te destaca de la competencia</div>
+          <div class="sm-sub" id="smSub">Factura en segundos y cumple con SUNAT sin estrés.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <!-- Empty-state: producto sin planes públicos -->
+  <div class="wrap" style="grid-template-columns:1fr">
+    <div class="col-main">
+      <div class="acc abierto">
+        <div class="acc-head"><span class="n">!</span><span class="t">{{ producto.nombre }}</span></div>
+        <div class="acc-body" style="max-height:none"><div class="acc-inner">
+          <div class="aviso-empty">
+            Aún no tenemos planes en línea para <b>{{ producto.nombre }}</b>.
+            Escríbenos y te ayudamos a activarlo.
+            <br>
+            <a class="wa-btn" href="https://wa.me/{{ whatsapp }}?text=Hola,%20quiero%20{{ producto.nombre }}" target="_blank" rel="noopener">Escribir por WhatsApp</a>
           </div>
-          <input type="file" name="voucher" id="fVoucher" accept="image/png,image/jpeg,image/webp" style="display:none" required>
-
-          <button type="submit" class="submit-btn" id="submitBtn"><span>🔒</span> Activar mi cuenta</button>
-        </form>
-
-        <div class="msg" id="okMsg">
-          <div class="mt">✅ ¡Listo!</div>
-          <p id="okTxt">Validaremos tu pago, pero TU CUENTA YA ESTÁ ACTIVA.</p>
-        </div>
-        <div class="msg err" id="errMsg">
-          <div class="mt">No se pudo enviar</div>
-          <p id="errTxt"></p>
-        </div>
-
-        <div class="foot-help">¿Dudas con el pago? Escríbenos por <a href="https://wa.me/51967317946?text=Hola%2C%20necesito%20ayuda%20con%20mi%20pago%20en%20Facturalo.pro" target="_blank" rel="noopener">WhatsApp</a>.</div>
+        </div></div>
       </div>
     </div>
-    {% endif %}
+  </div>
+  {% endif %}
 
-    {% if upsell %}
-    <!-- UPSELL — otros productos activos (excluye los que el producto ya incluye).
-         Solo informa/enlaza a WhatsApp; no agrega al pago (la promo se cierra manual). -->
-    <section class="upsell">
-      <h2>Potencia tu negocio con nuestros otros productos</h2>
-      <p class="usub">Promo de bienvenida — escríbenos y te asesoramos.</p>
-      <div class="up-grid">
-        {% for u in upsell %}
-        <div class="up-card">
-          <div class="upn">{{ u.nombre }}</div>
-          <div class="upd">{{ u.descripcion or '' }}</div>
-          {% if u.desde %}<div class="updesde">desde S/ {{ u.desde|int }}/mes</div>{% else %}<div class="updesde">Consulta</div>{% endif %}
-          <div class="uppromo">Promo de bienvenida — consulta</div>
-          <a class="upbtn" href="https://wa.me/{{ whatsapp }}?text=Hola,%20quiero%20conocer%20{{ u.nombre }}" target="_blank" rel="noopener">Conocer más</a>
-        </div>
-        {% endfor %}
+  {% if upsell %}
+  <!-- UPSELL — otros productos activos (excluye los que el producto ya incluye) -->
+  <section class="upsell-wrap">
+    <div class="upsell-h">Potencia tu negocio con nuestros otros productos</div>
+    <div class="up-grid">
+      {% for u in upsell %}
+      <div class="up-card">
+        <div class="un">{{ u.nombre }}</div>
+        <div class="ud">{{ u.descripcion or '' }}</div>
+        {% if u.desde %}<div class="udesde">desde S/ {{ u.desde|int }}/mes</div>{% else %}<div class="udesde">Consulta</div>{% endif %}
+        <div class="promo">Promo de bienvenida — escríbenos</div>
+        <a href="https://wa.me/{{ whatsapp }}?text=Hola,%20quiero%20conocer%20{{ u.nombre }}" target="_blank" rel="noopener">Conocer más</a>
       </div>
-    </section>
-    {% endif %}
-  </main>
-
-  <!--
-    HOOK (fase futura) — Motor de pagos completo. NO implementado en Fase 1.
-    Cascada prevista al confirmar pago:
-      1) pagoOK  → intento de cobro directo         (~3s)
-      2) correo de banco → conciliación automática  (~10s)
-      3) voucher (este formulario) → respaldo manual (~3s)
-    Por ahora solo se persiste el voucher y la cuenta se activa de inmediato.
-  -->
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 
 <script>
 {% if planes %}
+  // ── Estado del flujo ───────────────────────────────────────────────────────
   var plan = "{{ planes[0].codigo }}", peri = 'mensual';
   var productoCodigo = "{{ producto.codigo }}";
+  var pasoActual = 1, maxPaso = 1;   // avanzar guiado; retroceder libre a pasos hechos
 
+  // Mensajes por paso (imágenes = placeholders; pon la URL en img para activarlas)
+  var PASOS = {
+    1:{eye:'PASO 1 DE 3', title:'Esta herramienta te destaca de la competencia',
+       sub:'Factura en segundos y cumple con SUNAT sin estrés.',
+       ph:'[ Foto de la anfitriona — Paso 1: motivación ]', ico:'🙂', img:''},
+    2:{eye:'PASO 2 DE 3', title:'Este pago es deducible',
+       sub:'Recibes tu factura al instante. Tu inversión también es un gasto que deduces.',
+       ph:'[ Foto de la anfitriona — Paso 2: confianza ]', ico:'😊', img:''},
+    3:{eye:'PASO 3 DE 3', title:'¡Ya casi eres parte!',
+       sub:'Confirma tu pago y tu cuenta se activa al instante.',
+       ph:'[ Foto de la anfitriona — Paso 3: bienvenida ]', ico:'🤝', img:''}
+  };
+
+  // ── Plan / periodicidad / monto ────────────────────────────────────────────
   function precio(){
-    var sel = document.querySelector('.planopt.sel .pp');
+    var sel = document.querySelector('.plan.sel');
+    if(!sel) return 0;
     var mes = +sel.dataset.mes, anio = +sel.dataset.anio;
     return peri === 'anual' ? anio : mes;
   }
   function refrescar(){
-    var monto = precio();
-    var selCard = document.querySelector('.planopt.sel');
-    var nombrePlan = selCard ? selCard.querySelector('.pn').textContent : '';
-    var etPeri = peri === 'anual' ? 'Anual' : 'Mensual';
-    document.getElementById('rPlan').textContent = 'Plan ' + nombrePlan + ' · ' + etPeri;
-    document.getElementById('rMonto').textContent = monto;
-    document.getElementById('rPeri').textContent = peri === 'anual' ? '/año' : '/mes';
+    var m = precio();
+    document.getElementById('montoPago').textContent = 'S/ ' + m.toFixed(2);
+    document.getElementById('montoHead').textContent = ' — S/ ' + m.toFixed(2);
     document.getElementById('fPlan').value = plan;
     document.getElementById('fPeri').value = peri;
-    document.getElementById('fMonto').value = monto;
+    document.getElementById('fMonto').value = m;
   }
   function selPlan(el){
-    document.querySelectorAll('.planopt').forEach(function(p){ p.classList.remove('sel'); });
+    document.querySelectorAll('.plan').forEach(function(p){ p.classList.remove('sel'); });
     el.classList.add('sel'); plan = el.dataset.plan; refrescar();
   }
-  function selPeri(el){
-    document.querySelectorAll('.peri button').forEach(function(b){ b.classList.remove('on'); });
-    el.classList.add('on'); peri = el.dataset.peri; refrescar();
+  function selPer(el){
+    document.querySelectorAll('.per-btn').forEach(function(b){ b.classList.remove('sel'); });
+    el.classList.add('sel'); peri = el.dataset.per; refrescar();
   }
+
+  // ── Navegación de pasos (avanzar guiado / volver libre) ─────────────────────
+  function irPaso(n){
+    if(n > maxPaso) return;                 // no saltar adelante a un paso no completado
+    pasoActual = n;
+    for(var i=1;i<=3;i++){
+      document.getElementById('acc'+i).classList.toggle('abierto', i===n);
+      var ind = document.getElementById('ind'+i);
+      ind.classList.remove('activo','hecho');
+      if(i < n) ind.classList.add('hecho');
+      if(i === n) ind.classList.add('activo');
+      ind.classList.toggle('clic', i <= maxPaso);     // solo los alcanzados son clicables
+      document.querySelector('#acc'+i+' .acc-head').classList.toggle('done', i < n);
+    }
+    var p = PASOS[n];
+    document.getElementById('smEye').textContent = p.eye;
+    document.getElementById('smTitle').textContent = p.title;
+    document.getElementById('smSub').textContent = p.sub;
+    document.getElementById('phTxt').textContent = p.ph;
+    document.getElementById('phIco').textContent = p.ico;
+    var foto = document.getElementById('sideFoto');
+    if(p.img){ foto.src = p.img; foto.style.display = 'block'; } else { foto.style.display = 'none'; }
+    if(window.innerWidth <= 820){ document.getElementById('acc'+n).scrollIntoView({behavior:'smooth', block:'start'}); }
+  }
+  function avanzar(n){ maxPaso = Math.max(maxPaso, n); irPaso(n); }
+  // headers de los indicadores: volver a pasos ya alcanzados
+  document.getElementById('ind1').addEventListener('click', function(){ irPaso(1); });
+  document.getElementById('ind2').addEventListener('click', function(){ irPaso(2); });
+  document.getElementById('ind3').addEventListener('click', function(){ irPaso(3); });
+
+  // ── Medios de pago ──────────────────────────────────────────────────────────
   var METODO_LABEL = { yape:'Yape', plin:'Plin', bcp:'BCP (transferencia)', interbank:'Interbank (transferencia)' };
   function pickMetodo(metodo){
     document.getElementById('fMetodo').value = metodo;
-    document.querySelectorAll('.pay').forEach(function(p){ p.classList.remove('sel'); });
-    var card = document.querySelector('.pay[data-metodo="' + (metodo==='plin'?'yape':metodo) + '"]');
+    document.querySelectorAll('.medio').forEach(function(p){ p.classList.remove('sel'); });
+    var card = document.querySelector('.medio[data-metodo="' + metodo + '"]');
     if (card) card.classList.add('sel');
     document.getElementById('metodoTxt').textContent = METODO_LABEL[metodo] || metodo;
     document.getElementById('metodoSel').style.display = 'block';
   }
   function cp(ev, txt, metodo){
+    ev.stopPropagation();
     if (navigator.clipboard) navigator.clipboard.writeText(txt);
-    if (metodo) pickMetodo(metodo);            // registra el banco/método elegido
+    if (metodo) pickMetodo(metodo);
     var b = ev.target; b.textContent = 'Copiado ✓';
     setTimeout(function(){ b.textContent = 'Copiar'; }, 1500);
   }
 
-  // Preview del voucher
+  // ── Voucher (fallback) ───────────────────────────────────────────────────────
   document.getElementById('fVoucher').addEventListener('change', function(e){
-    var f = e.target.files[0];
-    if (!f) return;
+    var f = e.target.files[0]; if (!f) return;
     var img = document.getElementById('preview');
-    img.src = URL.createObjectURL(f);
-    img.style.display = 'block';
+    img.src = URL.createObjectURL(f); img.style.display = 'block';
     document.getElementById('fileTxt').innerHTML = 'Archivo: <b>' + f.name + '</b> · toca para cambiar';
   });
-
-  // Envío
   document.getElementById('voucherForm').addEventListener('submit', function(e){
     e.preventDefault();
     var ok = document.getElementById('okMsg'), err = document.getElementById('errMsg');
     ok.style.display = 'none'; err.style.display = 'none';
     var btn = document.getElementById('submitBtn');
     btn.disabled = true; btn.innerHTML = '<span>⏳</span> Enviando...';
-
     var fd = new FormData(document.getElementById('voucherForm'));
     fetch('/pagar/voucher', { method: 'POST', body: fd })
       .then(function(r){ return r.json().then(function(j){ return { status: r.status, body: j }; }); })
@@ -397,8 +500,7 @@
         if (res.status >= 200 && res.status < 300 && res.body.exito){
           document.getElementById('voucherForm').style.display = 'none';
           document.getElementById('okTxt').textContent = res.body.mensaje;
-          ok.style.display = 'block';
-          ok.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          ok.style.display = 'block'; ok.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
           document.getElementById('errTxt').textContent = (res.body && res.body.detail) || 'Intenta de nuevo o escríbenos por WhatsApp.';
           err.style.display = 'block';
@@ -412,9 +514,7 @@
       });
   });
 
-  refrescar();
-
-  // ── "Ya pagué" → verificación automática PagoOK ─────────────────────────────
+  // ── "Ya pagué" → verificación automática PagoOK ──────────────────────────────
   function _hide(ids){ ids.forEach(function(i){ var e=document.getElementById(i); if(e) e.style.display='none'; }); }
   function _pollFactura(suscId, intentos){
     fetch('/pagar/estado/' + encodeURIComponent(suscId))
@@ -445,7 +545,7 @@
     fetch('/pagar/confirmar', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
       .then(function(r){ return r.json(); })
       .then(function(res){
-        btn.disabled=false; btn.innerHTML='<span>⚡</span> Ya pagué, verificar';
+        btn.disabled=false; btn.innerHTML='<span>⚡</span> Verificar y activar mi cuenta';
         if (res.nivel === 'alta' || res.nivel === 'ya_procesado'){
           document.getElementById('confOkP').textContent =
             (res.mensaje || 'Suscripción activada.') + (res.factura_numero ? ' Factura ' + res.factura_numero + '.' : '');
@@ -462,23 +562,28 @@
           document.getElementById('confMedia').scrollIntoView({behavior:'smooth', block:'center'});
         } else if (res.nivel === 'login'){
           document.getElementById('confErrP').innerHTML = (res.mensaje || 'Inicia sesión con tu empresa.') +
-            ' <a href="/login" style="color:var(--verde);text-decoration:underline">Iniciar sesión</a>';
+            ' <a href="/login" style="color:var(--verde-vivo);text-decoration:underline">Iniciar sesión</a>';
           document.getElementById('confErr').style.display='block';
         } else if (res.nivel === 'voucher'){
           document.getElementById('confErrP').textContent = res.mensaje || 'No encontramos tu pago. Sube tu voucher abajo.';
           document.getElementById('confErr').style.display='block';
-          document.getElementById('voucherForm').scrollIntoView({behavior:'smooth', block:'center'});
+          var vw=document.getElementById('voucherWrap'); vw.style.display='block';
+          vw.scrollIntoView({behavior:'smooth', block:'center'});
         } else {
           document.getElementById('confErrP').textContent = res.mensaje || 'No se pudo verificar. Intenta de nuevo.';
           document.getElementById('confErr').style.display='block';
         }
       })
       .catch(function(){
-        btn.disabled=false; btn.innerHTML='<span>⚡</span> Ya pagué, verificar';
+        btn.disabled=false; btn.innerHTML='<span>⚡</span> Verificar y activar mi cuenta';
         document.getElementById('confErrP').textContent='Error de conexión. Intenta de nuevo.';
         document.getElementById('confErr').style.display='block';
       });
   });
+
+  // init
+  refrescar();
+  irPaso(1);
 {% endif %}
 </script>
 </body>
