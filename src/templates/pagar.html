@@ -93,6 +93,23 @@
   .foot-help a{ color:var(--verde);text-decoration:none;font-weight:600; }
 
   @media(max-width:640px){ .planes,.pay-grid{ grid-template-columns:1fr; } .planopt{ border-right:none;border-bottom:1px solid var(--border); } }
+  /* Gancho de recompensa post-pago */
+  .reward{ display:flex;gap:12px;align-items:center;background:var(--bg-row);border:1px solid var(--dorado);border-left:4px solid var(--dorado);padding:14px 16px;margin:16px 0; }
+  .reward-ico{ font-size:22px;line-height:1; }
+  .reward b{ display:block;font-size:14px; } .reward p{ margin:2px 0 0;color:var(--text-dim);font-size:13px; }
+  /* Aviso producto sin planes públicos */
+  .aviso-empty{ text-align:center;color:var(--text-dim);padding:20px 8px;font-size:14px; }
+  .wa-btn{ display:inline-block;margin-top:12px;background:var(--verde);color:#fff;padding:10px 18px;text-decoration:none;font-weight:700; }
+  /* Upsell */
+  .upsell{ margin-top:28px; }
+  .upsell h2{ font-size:16px;margin:0 0 4px; } .upsell .usub{ color:var(--text-dim);font-size:13px;margin:0 0 14px; }
+  .up-grid{ display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px; }
+  .up-card{ border:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:6px;background:var(--bg-row); }
+  .up-card .upn{ font-weight:800;font-size:15px; }
+  .up-card .upd{ color:var(--text-dim);font-size:13px;flex:1; }
+  .up-card .updesde{ color:var(--dorado);font-weight:700;font-size:13px; }
+  .up-card .uppromo{ color:var(--text-faint);font-size:12px; }
+  .up-card .upbtn{ margin-top:6px;background:var(--verde-excel,var(--verde));color:#fff;text-align:center;padding:9px;text-decoration:none;font-weight:700; }
 </style>
 </head>
 <body>
@@ -105,26 +122,23 @@
   </header>
 
   <main>
-    <h1>Paga y <span class="hl">empieza ya</span></h1>
+    <h1>Paga tu suscripción de <span class="hl">{{ producto.nombre }}</span></h1>
     <p class="lead">Elige tu plan, paga por el medio que prefieras y sube tu voucher. Tu cuenta queda activa de inmediato.</p>
 
     <!-- PASO 1: PLAN -->
     <div class="card">
       <div class="ch"><span class="cn">1</span> ELIGE TU PLAN</div>
       <div class="cb">
+        {% if planes %}
         <div class="planes">
-          <div class="planopt sel" data-plan="emprendedor" onclick="selPlan(this)">
+          {% for pl in planes %}
+          <div class="planopt{% if loop.first %} sel{% endif %}" data-plan="{{ pl.codigo }}" onclick="selPlan(this)">
             <div class="chk"></div>
-            <div class="pn">EMPRENDEDOR</div>
-            <div class="pp" data-mes="29" data-anio="290">S/ 29<small>/mes</small></div>
-            <div class="rc">1 RUC · Comprobantes ilimitados</div>
+            <div class="pn">{{ pl.nombre }}</div>
+            <div class="pp" data-mes="{{ pl.precio_mensual }}" data-anio="{{ pl.precio_anual }}">S/ {{ pl.precio_mensual|int }}<small>/mes</small></div>
+            {% if pl.descripcion %}<div class="rc">{{ pl.descripcion }}</div>{% endif %}
           </div>
-          <div class="planopt" data-plan="negocio" onclick="selPlan(this)">
-            <div class="chk"></div>
-            <div class="pn">NEGOCIO</div>
-            <div class="pp" data-mes="55" data-anio="550">S/ 55<small>/mes</small></div>
-            <div class="rc">3 RUCs · Comprobantes ilimitados</div>
-          </div>
+          {% endfor %}
         </div>
 
         <div class="peri">
@@ -133,12 +147,35 @@
         </div>
 
         <div class="resumen">
-          <div class="rl">Vas a pagar<b id="rPlan">Plan Emprendedor · Mensual</b></div>
-          <div class="monto">S/ <span id="rMonto">29</span><small id="rPeri">/mes</small></div>
+          <div class="rl">Vas a pagar<b id="rPlan">—</b></div>
+          <div class="monto">S/ <span id="rMonto">0</span><small id="rPeri">/mes</small></div>
         </div>
+        {% else %}
+        <div class="aviso-empty">
+          Aún no tenemos planes en línea para <b>{{ producto.nombre }}</b>.
+          Escríbenos y te ayudamos a activarlo.
+          <br>
+          <a class="wa-btn" href="https://wa.me/{{ whatsapp }}?text=Hola,%20quiero%20{{ producto.nombre }}" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+        </div>
+        {% endif %}
       </div>
     </div>
 
+    {% if planes %}
+    <!-- Gancho de recompensa post-pago. Hoy solo crea expectativa; el reporte real es
+         futuro. #reporteEvolucion + data-estado="teaser" es el hueco reservado: cuando
+         exista el reporte, se cambia a data-estado="listo" y se inyecta el link aquí
+         (p.ej. desde el poll de /pagar/estado) sin rediseñar. -->
+    <div class="reward" id="reporteEvolucion" data-estado="teaser">
+      <span class="reward-ico">✨</span>
+      <div>
+        <b>Al renovar, recibes tu Reporte de Evolución de tu Negocio</b>
+        <p>Tus números del mes, listos para ti.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if planes %}
     <!-- PASO 2: DATOS DE PAGO -->
     <div class="card">
       <div class="ch"><span class="cn">2</span> PAGA POR TU MEDIO PREFERIDO</div>
@@ -257,6 +294,27 @@
         <div class="foot-help">¿Dudas con el pago? Escríbenos por <a href="https://wa.me/51967317946?text=Hola%2C%20necesito%20ayuda%20con%20mi%20pago%20en%20Facturalo.pro" target="_blank" rel="noopener">WhatsApp</a>.</div>
       </div>
     </div>
+    {% endif %}
+
+    {% if upsell %}
+    <!-- UPSELL — otros productos activos (excluye los que el producto ya incluye).
+         Solo informa/enlaza a WhatsApp; no agrega al pago (la promo se cierra manual). -->
+    <section class="upsell">
+      <h2>Potencia tu negocio con nuestros otros productos</h2>
+      <p class="usub">Promo de bienvenida — escríbenos y te asesoramos.</p>
+      <div class="up-grid">
+        {% for u in upsell %}
+        <div class="up-card">
+          <div class="upn">{{ u.nombre }}</div>
+          <div class="upd">{{ u.descripcion or '' }}</div>
+          {% if u.desde %}<div class="updesde">desde S/ {{ u.desde|int }}/mes</div>{% else %}<div class="updesde">Consulta</div>{% endif %}
+          <div class="uppromo">Promo de bienvenida — consulta</div>
+          <a class="upbtn" href="https://wa.me/{{ whatsapp }}?text=Hola,%20quiero%20conocer%20{{ u.nombre }}" target="_blank" rel="noopener">Conocer más</a>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
   </main>
 
   <!--
@@ -269,7 +327,9 @@
   -->
 
 <script>
-  var plan = 'emprendedor', peri = 'mensual';
+{% if planes %}
+  var plan = "{{ planes[0].codigo }}", peri = 'mensual';
+  var productoCodigo = "{{ producto.codigo }}";
 
   function precio(){
     var sel = document.querySelector('.planopt.sel .pp');
@@ -278,7 +338,8 @@
   }
   function refrescar(){
     var monto = precio();
-    var nombrePlan = plan.charAt(0).toUpperCase() + plan.slice(1);
+    var selCard = document.querySelector('.planopt.sel');
+    var nombrePlan = selCard ? selCard.querySelector('.pn').textContent : '';
     var etPeri = peri === 'anual' ? 'Anual' : 'Mensual';
     document.getElementById('rPlan').textContent = 'Plan ' + nombrePlan + ' · ' + etPeri;
     document.getElementById('rMonto').textContent = monto;
@@ -374,6 +435,7 @@
     var btn=document.getElementById('confirmarBtn');
     btn.disabled=true; btn.innerHTML='<span>⏳</span> Verificando...';
     var body={
+      producto: productoCodigo,
       plan: plan, periodicidad: peri,
       pagador: document.getElementById('cPagador').value.trim(),
       canal: document.getElementById('cCanal').value,
@@ -417,6 +479,7 @@
         document.getElementById('confErr').style.display='block';
       });
   });
+{% endif %}
 </script>
 </body>
 </html>
