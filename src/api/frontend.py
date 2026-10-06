@@ -7,7 +7,10 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
-from src.models.models import Comprobante, Emisor, LineaDetalle, PagoVoucher, Suscripcion
+from src.models.models import (
+    Comprobante, Emisor, LineaDetalle, PagoVoucher, Suscripcion,
+    SuscProducto, SuscPlan, SuscPlanIncluye,
+)
 from src.api.dependencies import get_db
 from src.api.auth_utils import obtener_emisor_actual
 from src.api.referencias_ui import COMP_ACEPTADOS  # ("aceptado", "aceptado_con_observaciones")
@@ -50,10 +53,49 @@ _PLANES_PRECIOS = {
 }
 
 
+WHATSAPP_PSP = "51967317946"
+
+
+def _pagar_context(db, producto_codigo):
+    """Arma el contexto del formulario /pagar desde el catálogo (DB-driven):
+    producto pre-seleccionado + sus planes PÚBLICOS + upsell de los OTROS productos
+    (excluyendo los que el producto ya incluye vía susc_plan_incluye)."""
+    producto = db.query(SuscProducto).filter(
+        SuscProducto.codigo == producto_codigo, SuscProducto.activo.is_(True)).first()
+    if not producto:   # código desconocido/inactivo → fallback a facturalo
+        producto = db.query(SuscProducto).filter(SuscProducto.codigo == 'facturalo').first()
+
+    planes = db.query(SuscPlan).filter(
+        SuscPlan.producto_id == producto.id, SuscPlan.publico.is_(True),
+        SuscPlan.activo.is_(True)).order_by(SuscPlan.orden, SuscPlan.codigo).all()
+
+    # Productos que este producto YA INCLUYE (p.ej. QueVendi incluye Facturalo) → fuera del upsell
+    incluidos = {r[0] for r in db.query(SuscPlanIncluye.producto_incluido_id)
+                 .join(SuscPlan, SuscPlan.id == SuscPlanIncluye.plan_id)
+                 .filter(SuscPlan.producto_id == producto.id).distinct()}
+
+    upsell = []
+    otros = db.query(SuscProducto).filter(
+        SuscProducto.activo.is_(True), SuscProducto.id != producto.id)\
+        .order_by(SuscProducto.nombre).all()
+    for p in otros:
+        if p.id in incluidos:
+            continue
+        pub = db.query(SuscPlan).filter(
+            SuscPlan.producto_id == p.id, SuscPlan.publico.is_(True),
+            SuscPlan.activo.is_(True)).all()
+        desde = min((pl.precio_mensual for pl in pub), default=None)
+        upsell.append({"codigo": p.codigo, "nombre": p.nombre,
+                       "descripcion": p.descripcion, "desde": desde})
+    return {"producto": producto, "planes": planes, "upsell": upsell, "whatsapp": WHATSAPP_PSP}
+
+
 @router.get("/pagar", response_class=HTMLResponse)
-async def pagar_page(request: Request):
-    """Página pública de pago (Fase 1)."""
-    return templates.TemplateResponse("pagar.html", {"request": request})
+async def pagar_page(request: Request, producto: str = "facturalo", db: Session = Depends(get_db)):
+    """Página pública de pago — planes y upsell dinámicos desde el catálogo."""
+    ctx = _pagar_context(db, (producto or "facturalo").strip().lower())
+    ctx["request"] = request
+    return templates.TemplateResponse("pagar.html", ctx)
 
 
 @router.post("/pagar/voucher")
