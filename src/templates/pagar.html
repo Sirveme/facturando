@@ -54,8 +54,9 @@
   .acc-head .chev{color:var(--texto-2);transition:transform .25s}
   .acc.abierto .acc-head .chev{transform:rotate(180deg)}
   .acc-body{ max-height:0;overflow:hidden;transition:max-height .3s ease; }
-  .acc.abierto .acc-body{max-height:1600px}
+  .acc.abierto .acc-body{max-height:3000px}
   .acc-inner{padding:18px}
+  .acc{scroll-margin-top:14px}
 
   /* Tarjetas de plan */
   .planes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -78,22 +79,37 @@
   .btn:active{transform:translateY(2px);border-bottom-width:2px}
   .btn:disabled{opacity:.55;cursor:not-allowed}
 
-  /* Datos de pago */
-  .pago-medios{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-  .medio{ border:2px solid var(--border);background:var(--panel-2);padding:12px;cursor:pointer;transition:border-color .15s; }
-  .medio:hover{border-color:var(--verde-claro)}
-  .medio.sel{border-color:var(--verde-vivo);background:#14241c}
-  .medio .mt2{font-weight:700;font-size:13px;margin-bottom:6px;color:var(--verde-claro)}
-  .medio .mrow{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0}
-  .medio .mrow span:first-child{color:var(--texto-2)}
+  /* Paso 2 — selector de medios (una fila) + paneles revelables */
+  .pago-sel{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .psel-btn{flex:1;min-width:110px;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border:2px solid var(--border);background:var(--panel-2);color:var(--texto);font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;transition:all .15s}
+  .psel-btn:hover{border-color:var(--verde-claro)}
+  .psel-btn.sel{border-color:var(--verde-vivo);background:var(--verde);color:#fff}
+  .psel-btn.soon{opacity:.8}
+  .medio-panel{display:none;border:2px solid var(--border);background:var(--panel-2);padding:14px;margin-bottom:14px}
+  .banco{padding:4px 0} .banco + .banco{border-top:1px solid var(--border-soft);margin-top:8px;padding-top:12px}
+  .banco-t{font-weight:700;font-size:13px;color:var(--verde-claro);margin-bottom:6px}
+  .mrow{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0;align-items:center}
+  .mrow span:first-child{color:var(--texto-2)}
   .num{font-family:'Courier New',monospace;font-weight:700;letter-spacing:.3px}
-  .copy{background:transparent;border:1px solid var(--border);color:var(--verde-claro);font-size:11px;padding:2px 7px;cursor:pointer;font-weight:600}
+  .copy{background:transparent;border:1px solid var(--border);color:var(--verde-claro);font-size:11px;padding:3px 8px;cursor:pointer;font-weight:600}
   .copy:hover{border-color:var(--verde-claro)}
+  .qr-zone{margin-top:12px;text-align:center;border:2px dashed var(--border);background:var(--bg);padding:14px;min-height:118px;display:flex;align-items:center;justify-content:center}
+  .qr-zone .qr-ph{color:var(--texto-faint);font-size:12px;line-height:1.4}
+  .qr-img{max-width:180px;max-height:180px;display:none}
+  .soon-msg{color:var(--texto-2);font-size:13.5px;text-align:center;padding:10px} .soon-msg b{color:var(--dorado)}
   .dato-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-soft);font-size:14px}
   .dato-row b{color:var(--verde-claro)}
   .metodo-sel{margin-top:12px;padding:10px 12px;border:2px solid var(--border);border-left:4px solid var(--verde-vivo);background:var(--panel-2);font-size:13.5px}
   .metodo-sel b{color:var(--verde-vivo);text-transform:capitalize}
   .ayuda{font-size:12px;color:var(--texto-faint);margin-top:4px}
+  /* Pie de confianza del formulario */
+  .form-foot{margin:16px 0 0;padding:14px 16px;border:2px solid var(--border);background:var(--panel);text-align:center}
+  .form-foot .ff-msg{font-size:14px;color:var(--texto)}
+  .form-foot .sellos{font-size:12px;color:var(--texto-2);margin-top:8px}
+  .form-foot .sellos b{color:var(--verde-claro);font-weight:700}
+  /* Señal visual al cambiar de paso */
+  @keyframes pulso{0%{box-shadow:0 0 0 0 rgba(244,180,0,.55)}100%{box-shadow:0 0 0 10px rgba(244,180,0,0)}}
+  .acc.pulse{animation:pulso .8s ease-out}
 
   /* Formulario confirmar + voucher */
   .campo{margin-bottom:12px}
@@ -156,7 +172,7 @@
     .side-img{aspect-ratio:16/9}
     .pasos{padding:14px 16px 2px}
     .paso-txt{font-size:12px}
-    .planes,.up-grid,.pago-medios{grid-template-columns:1fr}
+    .planes,.up-grid{grid-template-columns:1fr}
   }
   @media(max-width:560px){
     .paso-ind .paso-txt{display:none}
@@ -214,27 +230,39 @@
           <span class="n">2</span><span class="t">Paga <span id="montoHead" style="color:var(--verde-claro)"></span></span><span class="chev">▾</span>
         </div>
         <div class="acc-body"><div class="acc-inner">
-          <div class="pago-medios">
-            <div class="medio" data-metodo="yape" onclick="pickMetodo('yape')">
-              <div class="mt2">Yape</div>
-              <div class="mrow"><span class="num">938 246 208</span><button type="button" class="copy" onclick="cp(event,'938246208','yape')">Copiar</button></div>
+          <!-- Fila 1: selector de medio -->
+          <div class="pago-sel">
+            <button type="button" class="psel-btn" data-metodo="yape" onclick="selMedio('yape')"><span>📱</span> Yape</button>
+            <button type="button" class="psel-btn" data-metodo="plin" onclick="selMedio('plin')"><span>💜</span> Plin</button>
+            <button type="button" class="psel-btn" data-metodo="transferencia" onclick="selMedio('transferencia')"><span>🏦</span> Transferencia</button>
+            <button type="button" class="psel-btn soon" data-metodo="tarjeta" onclick="selMedio('tarjeta')"><span>💳</span> Tarjetas</button>
+          </div>
+
+          <!-- Fila 2: paneles revelables según el medio -->
+          <div class="medio-panel" id="panel-yape">
+            <div class="mrow"><span>Número Yape</span><span><span class="num">938 246 208</span> <button type="button" class="copy" onclick="cp(event,'938246208')">Copiar</button></span></div>
+            <div class="qr-zone"><img class="qr-img" id="qrYape" alt="QR Yape"><div class="qr-ph">[ QR Yape — Duilio lo sube luego ]</div></div>
+          </div>
+          <div class="medio-panel" id="panel-plin">
+            <div class="mrow"><span>Número Plin</span><span><span class="num">967 317 946</span> <button type="button" class="copy" onclick="cp(event,'967317946')">Copiar</button></span></div>
+            <div class="qr-zone"><img class="qr-img" id="qrPlin" alt="QR Plin"><div class="qr-ph">[ QR Plin — Duilio lo sube luego ]</div></div>
+          </div>
+          <div class="medio-panel" id="panel-transferencia">
+            <div class="banco">
+              <div class="banco-t">BCP · Soles</div>
+              <div class="mrow"><span>Cuenta</span><span><span class="num">390-16822755053</span> <button type="button" class="copy" onclick="cp(event,'39016822755053')">Copiar</button></span></div>
+              <div class="mrow"><span>CCI</span><span><span class="num">002-390-116822755053-34</span> <button type="button" class="copy" onclick="cp(event,'00239011682275505334')">Copiar</button></span></div>
             </div>
-            <div class="medio" data-metodo="plin" onclick="pickMetodo('plin')">
-              <div class="mt2">Plin</div>
-              <div class="mrow"><span class="num">967 317 946</span><button type="button" class="copy" onclick="cp(event,'967317946','plin')">Copiar</button></div>
-            </div>
-            <div class="medio" data-metodo="bcp" onclick="pickMetodo('bcp')">
-              <div class="mt2">BCP · Soles</div>
-              <div class="mrow"><span>Cuenta</span><span><span class="num">390-16822755053</span> <button type="button" class="copy" onclick="cp(event,'39016822755053','bcp')">Copiar</button></span></div>
-              <div class="mrow"><span>CCI</span><span><span class="num">002-390-116822755053-34</span> <button type="button" class="copy" onclick="cp(event,'00239011682275505334','bcp')">Copiar</button></span></div>
-            </div>
-            <div class="medio" data-metodo="interbank" onclick="pickMetodo('interbank')">
-              <div class="mt2">Interbank · Cuenta Simple</div>
-              <div class="mrow"><span>Cuenta</span><span><span class="num">740-3135422716</span> <button type="button" class="copy" onclick="cp(event,'7403135422716','interbank')">Copiar</button></span></div>
-              <div class="mrow"><span>CCI</span><span><span class="num">003-740-013135422716-80</span> <button type="button" class="copy" onclick="cp(event,'00374001313542271680','interbank')">Copiar</button></span></div>
+            <div class="banco">
+              <div class="banco-t">Interbank · Cuenta Simple</div>
+              <div class="mrow"><span>Cuenta</span><span><span class="num">740-3135422716</span> <button type="button" class="copy" onclick="cp(event,'7403135422716')">Copiar</button></span></div>
+              <div class="mrow"><span>CCI</span><span><span class="num">003-740-013135422716-80</span> <button type="button" class="copy" onclick="cp(event,'00374001313542271680')">Copiar</button></span></div>
             </div>
           </div>
-          <div class="dato-row"><span>Titular</span><b>Perú Sistemas Pro E.I.R.L. · RUC 20615446565</b></div>
+          <div class="medio-panel" id="panel-tarjeta">
+            <div class="soon-msg">💳 <b>Muy pronto</b> podrás pagar con Tarjeta de Crédito/Débito.</div>
+          </div>
+
           <div class="dato-row"><span>Monto a pagar</span><b id="montoPago">S/ 0.00</b></div>
           <div class="dato-row"><span>Concepto</span><b>Suscripción {{ producto.nombre }}</b></div>
           <div class="metodo-sel" id="metodoSel" style="display:none">Vas a pagar por: <b id="metodoTxt"></b></div>
@@ -251,8 +279,8 @@
         <div class="acc-body"><div class="acc-inner">
           <form id="confirmarForm">
             <div class="campo">
-              <label>¿A nombre de quién está el Yape/cuenta con la que pagaste? *</label>
-              <input type="text" id="cPagador" placeholder="Ej. María Quispe (titular del Yape)" required>
+              <label>Nombre del titular del medio con el que pagaste:</label>
+              <input type="text" id="cPagador" placeholder="Apellidos y Nombres del titular" required>
               <p class="ayuda">Es el <b>titular del medio de pago</b>, no la razón social de tu empresa. Si otra persona pagó por ti, pon SUS datos.</p>
             </div>
             <div class="campo">
@@ -264,7 +292,7 @@
               </select>
             </div>
             <div class="campo">
-              <label>Fecha y hora del pago *</label>
+              <label>¿Cuándo y a qué hora pagaste?</label>
               <input type="datetime-local" id="cFecha" required>
             </div>
             <div class="campo">
@@ -332,6 +360,11 @@
           <b>Al activar, recibes tu Reporte de Evolución de tu Negocio</b>
           <p>Tus números del mes, listos para ti.</p>
         </div>
+      </div>
+
+      <div class="form-foot">
+        <div class="ff-msg">Perú Sistemas Pro EIRL emitirá tu factura en segundos, recíbela aquí mismo.</div>
+        <div class="sellos"><b>✓ Pago validado por PagoOK</b> · Emisión automática por Facturalo.pro</div>
       </div>
 
     </div>
@@ -454,28 +487,45 @@
     document.getElementById('phIco').textContent = p.ico;
     var foto = document.getElementById('sideFoto');
     if(p.img){ foto.src = p.img; foto.style.display = 'block'; } else { foto.style.display = 'none'; }
-    if(window.innerWidth <= 820){ document.getElementById('acc'+n).scrollIntoView({behavior:'smooth', block:'start'}); }
   }
-  function avanzar(n){ maxPaso = Math.max(maxPaso, n); irPaso(n); }
-  // headers de los indicadores: volver a pasos ya alcanzados
-  document.getElementById('ind1').addEventListener('click', function(){ irPaso(1); });
-  document.getElementById('ind2').addEventListener('click', function(){ irPaso(2); });
-  document.getElementById('ind3').addEventListener('click', function(){ irPaso(3); });
+  // Scroll suave al INICIO del paso activo (evita el salto al final); señal=pulso visual.
+  function scrollAStep(n, senal){
+    var el = document.getElementById('acc'+n); if(!el) return;
+    el.scrollIntoView({behavior:'smooth', block:'start'});
+    if(senal){ el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
+               setTimeout(function(){ el.classList.remove('pulse'); }, 900); }
+  }
+  function avanzar(n){ maxPaso = Math.max(maxPaso, n); irPaso(n); scrollAStep(n, true); }
+  // headers de los indicadores: volver a pasos ya alcanzados (no saltar adelante)
+  function volver(n){ irPaso(n); if(pasoActual === n) scrollAStep(n, true); }
+  document.getElementById('ind1').addEventListener('click', function(){ volver(1); });
+  document.getElementById('ind2').addEventListener('click', function(){ volver(2); });
+  document.getElementById('ind3').addEventListener('click', function(){ volver(3); });
 
   // ── Medios de pago ──────────────────────────────────────────────────────────
-  var METODO_LABEL = { yape:'Yape', plin:'Plin', bcp:'BCP (transferencia)', interbank:'Interbank (transferencia)' };
-  function pickMetodo(metodo){
-    document.getElementById('fMetodo').value = metodo;
-    document.querySelectorAll('.medio').forEach(function(p){ p.classList.remove('sel'); });
-    var card = document.querySelector('.medio[data-metodo="' + metodo + '"]');
-    if (card) card.classList.add('sel');
-    document.getElementById('metodoTxt').textContent = METODO_LABEL[metodo] || metodo;
-    document.getElementById('metodoSel').style.display = 'block';
+  var METODO_LABEL = { yape:'Yape', plin:'Plin', transferencia:'Transferencia' };
+  // Selector de medio: revela su panel y registra fMetodo (yape/plin/transferencia → PagoOK).
+  // 'tarjeta' es solo teaser (Muy pronto): no registra método ni avanza el cobro.
+  function selMedio(m, conScroll){
+    document.querySelectorAll('.psel-btn').forEach(function(b){ b.classList.remove('sel'); });
+    var btn = document.querySelector('.psel-btn[data-metodo="'+m+'"]'); if(btn) btn.classList.add('sel');
+    ['yape','plin','transferencia','tarjeta'].forEach(function(k){
+      var p = document.getElementById('panel-'+k); if(p) p.style.display = (k===m ? 'block' : 'none');
+    });
+    if(m === 'tarjeta'){
+      document.getElementById('fMetodo').value = '';
+      document.getElementById('metodoSel').style.display = 'none';
+    } else {
+      document.getElementById('fMetodo').value = m;
+      document.getElementById('metodoTxt').textContent = METODO_LABEL[m] || m;
+      document.getElementById('metodoSel').style.display = 'block';
+      var canal = document.getElementById('cCanal'); if(canal) canal.value = m;  // prefill Paso 3
+    }
+    if(conScroll !== false) scrollAStep(pasoActual, false);   // orientar al inicio del paso (no saltar al final)
   }
-  function cp(ev, txt, metodo){
+  function cp(ev, txt){
     ev.stopPropagation();
     if (navigator.clipboard) navigator.clipboard.writeText(txt);
-    if (metodo) pickMetodo(metodo);
     var b = ev.target; b.textContent = 'Copiado ✓';
     setTimeout(function(){ b.textContent = 'Copiar'; }, 1500);
   }
@@ -581,9 +631,10 @@
       });
   });
 
-  // init
+  // init (sin scroll: el usuario recién llega)
   refrescar();
   irPaso(1);
+  selMedio('yape', false);   // medio por defecto visible, sin scroll en la carga
 {% endif %}
 </script>
 </body>
