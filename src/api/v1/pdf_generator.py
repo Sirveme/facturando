@@ -25,7 +25,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.platypus import Table, TableStyle, Paragraph
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.utils import ImageReader
+from reportlab.lib.utils import ImageReader, simpleSplit
 
 
 # === CONFIGURACIÓN ===
@@ -760,14 +760,18 @@ def generar_pdf_comprobante(comprobante, emisor, cliente, items, formato="A4",
     obs_text = getattr(comprobante, 'observaciones', None) or ""
     # Excluir observaciones que son código de matrícula (CCPL)
     if obs_text and not obs_text.startswith("MAT-"):
-        obs_h = 7 * mm
         y -= 2 * mm
-
         c.setFont("Helvetica-Bold", 7)
         c.setFillColor(COLOR_GRIS_TEXTO)
-        c.drawString(ml + 4 * mm, y - 4.5 * mm, f"Obs: {obs_text[:90]}")
-
-        y -= obs_h
+        # Wrap multilínea (cap 250 car, máx 5 líneas). Para un texto que entra en 1 línea
+        # el dibujo es IDÉNTICO al anterior: mismo baseline (y-4.5mm) y mismo avance (7mm).
+        obs_lineas = simpleSplit(f"Obs: {obs_text[:250]}", "Helvetica-Bold", 7, content_w - 8 * mm)[:5]
+        oy = y - 4.5 * mm
+        c.drawString(ml + 4 * mm, oy, obs_lineas[0] if obs_lineas else "")
+        for obs_ln in obs_lineas[1:]:
+            oy -= 3.5 * mm
+            c.drawString(ml + 4 * mm, oy, obs_ln)
+        y -= 7 * mm + 3.5 * mm * ((len(obs_lineas) - 1) if obs_lineas else 0)
 
     # =============================================
     # FOOTER: Representación + Estado + Hash + QR
@@ -1070,14 +1074,11 @@ def _generar_ticket(buffer, comprobante, emisor, cliente, items,
 
         c.setFont("Helvetica", 5.5)
         c.setFillColor(COLOR_GRIS)
-        # Si es largo, partir en 2 líneas
-        if len(obs_text) > 42:
-            c.drawString(ml, y, obs_text[:42])
+        # Wrap multilínea en ticket (cap 250 car, máx 6 líneas)
+        for obs_ln in simpleSplit(obs_text[:250], "Helvetica", 5.5, mr - ml)[:6]:
+            c.drawString(ml, y, obs_ln)
             y -= 3 * mm
-            c.drawString(ml, y, obs_text[42:84])
-        else:
-            c.drawString(ml, y, obs_text)
-        y -= 3.5 * mm
+        y -= 0.5 * mm
 
     if estado_colegiado and codigo_matricula:
         if estado_colegiado.upper() == "HÁBIL":
