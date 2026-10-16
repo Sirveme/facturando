@@ -232,6 +232,10 @@ def _build_comprobante_xml_obj(comp):
     obj.detraccion_porcentaje = getattr(comp, 'detraccion_porcentaje', None)
     obj.detraccion_monto = getattr(comp, 'detraccion_monto', None)
 
+    # Observación libre → el generador la emite como cbc:Note (sin languageLocaleID).
+    # Debe copiarse aquí para que build_invoice_xml la vea (el ORM no llega directo).
+    obj.observaciones = getattr(comp, 'observaciones', None)
+
     # Items con tipo de afectación IGV
     class ItemXML:
         pass
