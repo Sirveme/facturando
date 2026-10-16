@@ -15,7 +15,7 @@ from reportlab.lib.colors import black, white
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Table, TableStyle, Paragraph
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.utils import ImageReader
+from reportlab.lib.utils import ImageReader, simpleSplit
 
 from src.services.pdf_templates.base import (
     TIPOS_DOCUMENTO, TIPOS_DOC_CORTO, TIPOS_DOC_IDENTIDAD,
@@ -490,8 +490,14 @@ def generar_pdf_bodega(comprobante, emisor, cliente, items, formato="A4",
         y -= 2 * mm
         c.setFont("Helvetica-Bold", 7)
         c.setFillColor(COLOR_GRIS_TEXTO)
-        c.drawString(ml + 4 * mm, y - 4.5 * mm, f"Obs: {obs_text[:90]}")
-        y -= 7 * mm
+        # Wrap multilínea (cap 250 car, máx 5 líneas). 1 línea → idéntico al anterior.
+        obs_lineas = simpleSplit(f"Obs: {obs_text[:250]}", "Helvetica-Bold", 7, content_w - 8 * mm)[:5]
+        oy = y - 4.5 * mm
+        c.drawString(ml + 4 * mm, oy, obs_lineas[0] if obs_lineas else "")
+        for obs_ln in obs_lineas[1:]:
+            oy -= 3.5 * mm
+            c.drawString(ml + 4 * mm, oy, obs_ln)
+        y -= 7 * mm + 3.5 * mm * ((len(obs_lineas) - 1) if obs_lineas else 0)
 
     # =============================================
     # FOOTER: Representación + Estado + Hash + QR
@@ -986,13 +992,11 @@ def _generar_ticket_bodega(buffer, comprobante, emisor, cliente, items,
         y -= 3 * mm
         c.setFont("Helvetica", 5.5)
         c.setFillColor(COLOR_GRIS_TEXTO)
-        if len(obs_text) > 45:
-            c.drawString(ml, y, obs_text[:45])
+        # Wrap multilínea en ticket (cap 250 car, máx 6 líneas)
+        for obs_ln in simpleSplit(obs_text[:250], "Helvetica", 5.5, mr - ml)[:6]:
+            c.drawString(ml, y, obs_ln)
             y -= 2.5 * mm
-            c.drawString(ml, y, obs_text[45:90])
-        else:
-            c.drawString(ml, y, obs_text)
-        y -= 3 * mm
+        y -= 0.5 * mm
         c.setFillColor(black)
 
     importe_letras = numero_a_letras(total)
