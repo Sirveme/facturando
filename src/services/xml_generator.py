@@ -184,6 +184,14 @@ def _build_factura_boleta_xml(comprobante, emisor: dict) -> bytes:
         invoice.append(_build_note_leyenda('2006', 'Operación sujeta a detracción'))
     logger.info("[XML_GEN] ✓ Leyendas (Note cat.52)")
 
+    # Observación LIBRE (cbc:Note SIN languageLocaleID) — ADITIVO y GATEADO:
+    # solo si hay observación real. Se excluye matrícula (CCPL guarda el código de
+    # colegiado en observaciones: "MAT-"/"10-"). Sin observación → XML IDÉNTICO al actual.
+    _obs = (getattr(comprobante, 'observaciones', None) or '').strip()
+    if _obs and not _obs.startswith('MAT-') and not _obs.startswith('10-'):
+        invoice.append(_build_nota_observacion(_obs[:250]))
+        logger.info("[XML_GEN] ✓ Nota de observación libre (%d car)", len(_obs[:250]))
+
     invoice.append(_cbc('DocumentCurrencyCode', moneda))
 
     # 4. Signature reference
@@ -326,6 +334,13 @@ def _build_note_leyenda(codigo: str, texto: str):
     note = _cbc('Note', texto)
     note.set('languageLocaleID', codigo)
     return note
+
+
+def _build_nota_observacion(texto: str):
+    """cbc:Note de observación LIBRE: SIN languageLocaleID (así se distingue de las
+    leyendas del catálogo 52, que SÍ lo llevan). Texto libre del emisor — p.ej. datos
+    del vehículo para garantías. No colisiona con las leyendas."""
+    return _cbc('Note', texto)
 
 
 def _build_leyendas(parent, totales, emisor: dict, moneda='PEN'):
