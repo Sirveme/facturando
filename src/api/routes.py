@@ -632,8 +632,8 @@ async def emitir_comprobante(
     cliente_direccion = data.get('cliente_direccion', '')
     items = data.get('items', [])
     moneda = data.get('moneda', 'PEN')
-    observaciones = data.get('observaciones', '')
-    
+    observaciones = (data.get('observaciones', '') or '')[:250]  # cap 250 (alineado con XML/PDF)
+
     # Validar campos requeridos
     if not cliente_numero_doc:
         raise HTTPException(status_code=400, detail="Número de documento del cliente es requerido")
@@ -1163,7 +1163,7 @@ async def emitir_nota_credito(
         monto_igv=igv,
         monto_total=total,
         estado='pendiente',
-        observaciones=data.get('observaciones', ''),
+        observaciones=(data.get('observaciones', '') or '')[:250],  # cap 250 (alineado con XML/PDF)
         # Campos de referencia NC
         doc_referencia_tipo=comprobante_ref.tipo_documento,
         doc_referencia_numero=comprobante_ref.numero_formato,
