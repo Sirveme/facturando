@@ -217,10 +217,18 @@
                 </div>
                 <div class="card-body">
                     <div class="input-group">
-                        <textarea id="observaciones" name="observaciones" class="input" rows="2" placeholder="Notas adicionales para el comprobante (opcional)"></textarea>
+                        <textarea id="observaciones" name="observaciones" class="input" rows="2" maxlength="250" oninput="contarObs(this)" placeholder="Notas adicionales para el comprobante (opcional). Ej: Marca, Año, Color, Placa, Vin, ODS."></textarea>
+                        <small id="obsContador" style="display:block;text-align:right;color:var(--text-dim,#888);font-size:12px;margin-top:4px;">Quedan 250 caracteres</small>
                     </div>
                 </div>
             </div>
+            <script>
+              function contarObs(el){
+                var quedan = 250 - (el.value ? el.value.length : 0);
+                var c = document.getElementById('obsContador');
+                if (c) c.textContent = 'Quedan ' + quedan + ' caracteres';
+              }
+            </script>
             
             <!-- Totales -->
             <div class="card totales-card-wrap">
