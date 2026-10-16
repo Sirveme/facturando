@@ -109,11 +109,17 @@ def main():
                 # Tokens distintivos del taller (por si el texto difiere por espacios)
                 tokens = [t for t in ["Placa", "Vin", "VIN", "ODS", "Marca", "Chasis"] if t in xml_text]
                 print(f"  Tokens de vehículo hallados en XML: {tokens or 'ninguno'}")
-                # Mostrar las cbc:Note presentes (deberían ser solo leyendas cat.52)
-                notes = re.findall(r"<cbc:Note[^>]*>(.*?)</cbc:Note>", xml_text, re.DOTALL)
-                print(f"  cbc:Note en el XML ({len(notes)}):")
-                for n in notes:
-                    print("    • " + n.strip()[:120])
+                # Mostrar las cbc:Note distinguiendo LEYENDA (con languageLocaleID) de
+                # OBSERVACIÓN LIBRE (sin languageLocaleID) — este es el veredicto.
+                note_tags = re.findall(r"(<cbc:Note[^>]*>)(.*?)</cbc:Note>", xml_text, re.DOTALL)
+                libres = [t for t in note_tags if "languageLocaleID" not in t[0]]
+                print(f"  cbc:Note en el XML: {len(note_tags)} "
+                      f"(leyendas: {len(note_tags) - len(libres)}, libres: {len(libres)})")
+                for tag, n in note_tags:
+                    m = re.search(r'languageLocaleID="([^"]*)"', tag)
+                    etiqueta = f"leyenda {m.group(1)}" if m else "LIBRE (observación)"
+                    print(f"    • [{etiqueta}] " + n.strip()[:140])
+                print(f"  → Nota de observación LIBRE en el XML: {'SÍ ✅' if libres else 'NO ❌'}")
             print()
     finally:
         db.close()
