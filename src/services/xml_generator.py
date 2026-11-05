@@ -123,7 +123,11 @@ def _build_signature_ref(emisor: dict):
 
 def build_invoice_xml(comprobante, emisor: dict) -> bytes:
     tipo_doc = getattr(comprobante, 'tipo_documento', '01')
-    logger.info(f"[XML_GEN] build_invoice_xml tipo={tipo_doc}")
+    # Código de establecimiento anexo (AddressTypeCode del supplier): override por comprobante
+    # (API multi-local) > default del emisor (config_json) > '0000'. Aplica a factura/boleta/NC/ND.
+    emisor['codigo_establecimiento'] = (getattr(comprobante, 'codigo_establecimiento', None)
+                                        or emisor.get('codigo_establecimiento') or '0000')
+    logger.info(f"[XML_GEN] build_invoice_xml tipo={tipo_doc} estab={emisor['codigo_establecimiento']}")
     print(f"[XML_GEN] build_invoice_xml tipo={tipo_doc}")
 
     if tipo_doc == '07':
@@ -584,7 +588,7 @@ def _build_supplier(emisor: dict):
 
     # Orden UBL 2.1 estricto
     addr.append(_cbc('ID', emisor.get('ubigeo', '') or '150101'))
-    addr.append(_cbc('AddressTypeCode', '0000'))
+    addr.append(_cbc('AddressTypeCode', emisor.get('codigo_establecimiento') or '0000'))
     addr.append(_cbc('CitySubdivisionName', emisor.get('urbanizacion', '-') or '-'))
 
     # Solo si tienen valor (SUNAT rechaza elementos vacíos)
