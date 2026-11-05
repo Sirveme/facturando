@@ -751,9 +751,10 @@ async def emitir_comprobante(
         detraccion_porcentaje=_det_pct,
         detraccion_monto=_det_monto,
         estado='pendiente',
-        observaciones=observaciones
+        observaciones=observaciones,
+        codigo_establecimiento=((data.get('codigo_establecimiento') or '').strip() or None),  # None → default del emisor
     )
-    
+
     db.add(comprobante)
     
     # Crear líneas de detalle
