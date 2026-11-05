@@ -272,6 +272,7 @@ async def emitir_comprobante(
             cliente_direccion=data.cliente.direccion or "",
             observaciones=data.codigo_matricula or data.observaciones,
             referencia_externa=data.referencia_externa,
+            codigo_establecimiento=(getattr(data, 'codigo_establecimiento', None) or None),
             #TODO: Guardar cuotas cuando se implemente tabla de cuotas
             #Por ahora solo se guarda forma_pago="Credito" que ya funciona
         )
@@ -524,28 +525,31 @@ async def obtener_pdf(
 @router.get(
     "/{comprobante_id}/xml",
     summary="Descargar XML",
-    description="Obtiene la URL del XML firmado"
+    description="Descarga el XML firmado (CPE) del comprobante."
 )
 async def obtener_xml(
     comprobante_id: str,
     emisor: Emisor = Depends(verificar_api_key),
     db: Session = Depends(get_db)
 ):
-    """Obtiene URL del XML"""
+    """Devuelve el XML firmado tal cual (application/xml). Antes retornaba una URL
+    /storage/... inexistente (404); ahora sirve los bytes guardados en Comprobante.xml."""
     comprobante = db.query(Comprobante).filter(
         Comprobante.id == comprobante_id,
         Comprobante.emisor_id == emisor.id
     ).first()
-    
+
     if not comprobante:
         raise HTTPException(404, detail={"exito": False, "error": "No encontrado", "codigo": "NOT_FOUND"})
-    
-    return {
-        "exito": True,
-        "comprobante_id": comprobante_id,
-        "numero": f"{comprobante.serie}-{comprobante.numero:08d}",
-        "xml_url": f"/storage/xml/{comprobante_id}.xml"
-    }
+    if not comprobante.xml:
+        raise HTTPException(404, detail={"exito": False, "error": "XML aún no disponible (comprobante no enviado a SUNAT)", "codigo": "XML_NOT_READY"})
+
+    filename = f"{emisor.ruc}-{comprobante.tipo_documento}-{comprobante.serie}-{comprobante.numero:08d}.xml"
+    return Response(
+        content=comprobante.xml if isinstance(comprobante.xml, (bytes, bytearray)) else comprobante.xml.encode(),
+        media_type="application/xml",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 
 @router.post(

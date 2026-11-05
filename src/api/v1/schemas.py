@@ -61,6 +61,7 @@ class ComprobanteRequest(BaseModel):
     enviar_email: bool = Field(False, description="Enviar por email al cliente")
     referencia_externa: Optional[str] = Field(None, description="ID en sistema origen", max_length=100)
     forma_pago: str = "Contado"
+    codigo_establecimiento: Optional[str] = Field(None, description="Código de establecimiento anexo SUNAT (4 díg., ej. 0003). Si se omite, usa el default del emisor (0000).")
     # Cuotas para ventas al crédito (SUNAT)
     cuotas: Optional[List[dict]] = Field(None, description="Cuotas de pago para crédito: [{moneda, monto, fecha_pago}]")
 
