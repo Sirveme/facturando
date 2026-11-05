@@ -145,6 +145,7 @@ class Comprobante(Base):
     referencia_externa = Column(String(100), index=True)
     tipo_documento = Column(String(2), nullable=False)
     tipo_operacion = Column(String(4), default='0101')  # 0101=Venta interna
+    codigo_establecimiento = Column(String(4))  # AddressTypeCode (anexo); None → default del emisor
     hash_cpe = Column(String(100), nullable=True)
     # Detracción (SPOT) — aditivo, nullable. Registro/PDF; el XML deriva de config del emisor.
     detraccion_codigo_bien = Column(String(4), nullable=True)     # catálogo 54, ej '020'
