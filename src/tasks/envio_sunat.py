@@ -32,6 +32,11 @@ PERU_TZ = timezone(timedelta(hours=-5))
 BACKOFF_SEGUNDOS = [30, 120, 300]
 MAX_REINTENTOS = 3
 
+# Fallo de TRANSPORTE: SUNAT NO responde (TLS/timeout/conexión/HTTP 5xx). NO es un rechazo.
+# estado='error' reintentable, backoff creciente 1→5→15→60 min, tope; al agotar queda 'error' visible.
+TRANSPORTE_BACKOFF = [60, 300, 900, 3600]
+MAX_REINTENTOS_TRANSPORTE = len(TRANSPORTE_BACKOFF)
+
 # A2 — Gate anti-duplicado por getStatusCdr: PAUSADO. getStatusCdr (billConsultService) NO existe
 # en SUNAT beta y NO cubre boletas (solo facturas/NC/ND), así que no se puede validar ni sirve para
 # boletas. El reintento sigue siendo seguro sin él: reusa el MISMO correlativo y SUNAT deduplica
@@ -196,6 +201,35 @@ def _programar_reintento_o_fallo(comp, emisor, db, codigo: str, mensaje: str):
     return 'terminal'
 
 
+def _reintento_transporte(comp, db, mensaje: str):
+    """SUNAT NO respondió (TLS/timeout/conexión/HTTP 5xx, o excepción de red). NO es rechazo:
+    estado='error' (reintentable), SIN grabar CDR, conservando el MISMO correlativo. Reintenta
+    con backoff creciente (TRANSPORTE_BACKOFF); al agotar el tope queda 'error' VISIBLE.
+    NUNCA marca 'rechazado' (eso es solo con un ResponseCode real de SUNAT)."""
+    intentos = (comp.intentos_envio or 0) + 1
+    comp.intentos_envio = intentos
+    comp.ultimo_intento_envio = datetime.now(timezone.utc)
+    comp.procesando_desde = None
+    comp.estado = 'error'  # jamás 'rechazado' ante ausencia de respuesta de SUNAT
+    if intentos <= MAX_REINTENTOS_TRANSPORTE:
+        seg = TRANSPORTE_BACKOFF[intentos - 1]
+        comp.descripcion_respuesta = (f"[envio] SUNAT no respondió — reintento {intentos}/"
+                                      f"{MAX_REINTENTOS_TRANSPORTE} en {seg}s. {mensaje}")[:500]
+        db.commit()
+        try:
+            celery_app.send_task('enviar_comprobante_sunat', args=[str(comp.id)], countdown=seg)
+        except Exception as e:
+            logger.exception("No se pudo encolar reintento de transporte: %s", e)
+        logger.info("TRANSPORTE %s-%s reintento %d/%d en %ds", comp.serie, comp.numero,
+                    intentos, MAX_REINTENTOS_TRANSPORTE, seg)
+        return 'retry_scheduled'
+    comp.descripcion_respuesta = (f"[envio] SUNAT no respondió tras {MAX_REINTENTOS_TRANSPORTE} "
+                                  f"reintentos — queda en 'error' para revisión. {mensaje}")[:500]
+    db.commit()
+    logger.warning("TRANSPORTE %s-%s AGOTADO → error visible", comp.serie, comp.numero)
+    return 'error_agotado'
+
+
 def _desencriptar(fernet, valor_encriptado):
     """Desencripta un valor con Fernet. Retorna bytes."""
     if isinstance(valor_encriptado, str):
@@ -236,6 +270,9 @@ def _build_comprobante_xml_obj(comp):
     # Debe copiarse aquí para que build_invoice_xml la vea (el ORM no llega directo).
     obj.observaciones = getattr(comp, 'observaciones', None)
 
+    # Código de establecimiento anexo (override por comprobante; None → usa el default del emisor).
+    obj.codigo_establecimiento = getattr(comp, 'codigo_establecimiento', None)
+
     # Items con tipo de afectación IGV
     class ItemXML:
         pass
@@ -268,6 +305,7 @@ def _build_emisor_dict(emisor) -> dict:
         'distrito': getattr(emisor, 'distrito', '') or '',
         # Para leyenda Amazonía (cat.52 / 2002) en el generador XML
         'es_amazonia': bool((getattr(emisor, 'config_json', None) or {}).get('es_amazonia', False)),
+        'codigo_establecimiento': ((getattr(emisor, 'config_json', None) or {}).get('codigo_establecimiento') or '0000'),
         # Detracción (SPOT): claves aditivas; None si el emisor no la usa -> XML sin cambios
         'detraccion': (getattr(emisor, 'config_json', None) or {}).get('detraccion'),
         'cuenta_detraccion': getattr(emisor, 'cuenta_detraccion', None),
@@ -419,29 +457,23 @@ def enviar_comprobante_task(self, comprobante_id: str):
         except Exception as e:
             err_text = str(e)
             logger.exception(f"Error enviando a SUNAT: {err_text}")
-            print(f"❌ Error SUNAT: {err_text}")
+            print(f"❌ Error SUNAT (transporte): {err_text}")
+            # Excepción de red/cliente = SUNAT NO respondió → error reintentable, SIN CDR bogus,
+            # NUNCA 'rechazado'. Conserva el correlativo (reusa el mismo nº en el reintento).
+            _reintento_transporte(comp, db, err_text)
+            return {"exito": False, "estado": comp.estado, "error": err_text}
 
-            # Guardar error como RespuestaSunat (visibilidad)
-            try:
-                respuesta = RespuestaSunat(
-                    comprobante_id=comp.id, codigo_cdr='',
-                    descripcion=err_text, cdr_xml=err_text.encode('utf-8')
-                )
-                db.add(respuesta)
-                db.commit()
-            except Exception:
-                pass
-
-            # Excepción de red/cliente → tratar como transitorio
-            comp.intentos_envio = (comp.intentos_envio or 0) + 1
-            comp.ultimo_intento_envio = datetime.now(timezone.utc)
-            _programar_reintento_o_fallo(
-                comp, emisor, db, codigo='', mensaje=err_text,
-            )
-            return {"exito": False, "error": err_text}
+        # TRANSPORTE sin excepción: enviar_comprobante() devuelve codigo None/'' cuando SUNAT no
+        # respondió (TLS/timeout/conexión/HTTP 5xx). NO es rechazo → error reintentable, SIN CDR.
+        # (Un ResponseCode real — incluido 0, 2xxx o un rechazo — continúa al bloque de abajo.)
+        if cdr.get('codigo') in (None, ''):
+            _msg = cdr.get('descripcion') or 'SUNAT no respondió (red/TLS/timeout/5xx)'
+            print(f"⚠️ {comp.serie}-{comp.numero} SIN respuesta de SUNAT → error reintentable")
+            _reintento_transporte(comp, db, _msg)
+            return {"exito": False, "estado": comp.estado, "id": comprobante_id, "error": _msg}
 
         # ============================
-        # GUARDAR CDR
+        # GUARDAR CDR  (solo con ResponseCode REAL de SUNAT)
         # ============================
         try:
             respuesta = RespuestaSunat(

@@ -56,6 +56,7 @@ def _build_emisor_dict(emisor) -> dict:
         'distrito': getattr(emisor, 'distrito', '') or '',
         # Para leyenda Amazonía (cat.52 / 2002) en el generador XML
         'es_amazonia': bool((getattr(emisor, 'config_json', None) or {}).get('es_amazonia', False)),
+        'codigo_establecimiento': ((getattr(emisor, 'config_json', None) or {}).get('codigo_establecimiento') or '0000'),
         # Detracción (SPOT): claves aditivas; None si el emisor no la usa -> XML sin cambios
         'detraccion': (getattr(emisor, 'config_json', None) or {}).get('detraccion'),
         'cuenta_detraccion': getattr(emisor, 'cuenta_detraccion', None),
@@ -94,6 +95,9 @@ def _build_comprobante_xml_obj(comp):
     # Observación libre → el generador la emite como cbc:Note (sin languageLocaleID).
     # Debe copiarse aquí para que build_invoice_xml la vea (el ORM no llega directo).
     obj.observaciones = getattr(comp, 'observaciones', None)
+
+    # Código de establecimiento anexo (override por comprobante; None → usa el default del emisor).
+    obj.codigo_establecimiento = getattr(comp, 'codigo_establecimiento', None)
 
     # Items con tipo de afectación IGV
     class ItemXML:
@@ -312,25 +316,39 @@ def emitir_comprobante_task(self, comprobante_id: str, test_mode: bool = False):
             )
         except Exception as e:
             err_text = str(e)
-            comp.estado = 'rechazado'
+            # Transporte: SUNAT NO respondió → 'error' reintentable, NUNCA 'rechazado', SIN CDR bogus.
+            comp.estado = 'error'
+            comp.descripcion_respuesta = f"[envio] SUNAT no respondió: {err_text}"[:500]
             session.add(LogEnvio(
                 comprobante_id=comp.id, emisor_id=emisor.id,
                 evento='sunat_send_error', nivel='ERROR',
                 mensaje=err_text, meta_json={'trace': traceback.format_exc()}
             ))
-            try:
-                respuesta = RespuestaSunat(
-                    comprobante_id=comp.id, codigo_cdr='',
-                    descripcion=err_text, cdr_xml=err_text.encode('utf-8')
-                )
-                session.add(respuesta)
-                session.commit()
+            session.commit()
+            try:  # reintento por la vía robusta (que tiene backoff de transporte)
+                celery_app.send_task('enviar_comprobante_sunat', args=[str(comp.id)], countdown=60)
             except Exception:
-                session.commit()
-            return {'error': 'sunat_send_failed'}
+                pass
+            return {'error': 'sunat_send_failed', 'estado': comp.estado}
+
+        # TRANSPORTE sin excepción: codigo None/'' = SUNAT no respondió → 'error' reintentable, SIN CDR.
+        if cdr.get('codigo') in (None, ''):
+            comp.estado = 'error'
+            comp.descripcion_respuesta = f"[envio] SUNAT no respondió: {cdr.get('descripcion') or ''}"[:500]
+            session.add(LogEnvio(
+                comprobante_id=comp.id, emisor_id=emisor.id,
+                evento='sunat_sin_respuesta', nivel='WARNING',
+                mensaje=(cdr.get('descripcion') or 'SUNAT no respondió'), meta_json=None
+            ))
+            session.commit()
+            try:
+                celery_app.send_task('enviar_comprobante_sunat', args=[str(comp.id)], countdown=60)
+            except Exception:
+                pass
+            return {'error': 'sunat_sin_respuesta', 'estado': comp.estado}
 
         # ============================
-        # GUARDAR CDR
+        # GUARDAR CDR  (solo con ResponseCode REAL de SUNAT)
         # ============================
         try:
             respuesta = RespuestaSunat(
