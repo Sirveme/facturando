@@ -1128,19 +1128,89 @@ async def emitir_nota_credito(
     siguiente_numero = (max_numero + 1) if max_numero else 1
     
     # Validar items
-    items = data.get('items', [])
-    if not items:
-        raise HTTPException(status_code=400, detail="Debe incluir al menos un item")
+    items = data.get('items', []) or []
+    motivo = data.get('motivo', '01')
     
-    # Calcular totales
-    subtotal_gravado = 0
-    for item in items:
-        cantidad = float(item.get('cantidad', 0))
-        precio = float(item.get('precio_unitario', 0))
-        subtotal_gravado += cantidad * precio
+    # --- Líneas y totales: SIEMPRE se heredan del comprobante original ---
+    # El portal ya NO inventa afectación '10' ni IGV 18% fijo: cada línea de la NC
+    # copia precio y afectación del original. motivo '01' = clon exacto.
+    from decimal import Decimal, ROUND_HALF_UP
+
+    def _dnc(x):
+        return Decimal(str(x if x is not None else 0))
+
+    ref_lineas = (db.query(LineaDetalle)
+                  .filter(LineaDetalle.comprobante_id == comprobante_ref.id)
+                  .order_by(LineaDetalle.orden.asc()).all())
+    if not ref_lineas:
+        raise HTTPException(status_code=400,
+                            detail="El comprobante de referencia no tiene líneas; no se puede clonar")
+
+    nc_src = []
+    if motivo == '01' or not items:
+        # Anulación total → clon EXACTO del original
+        for l in ref_lineas:
+            nc_src.append({
+                'descripcion': l.descripcion,
+                'cantidad': _dnc(l.cantidad),
+                'precio': _dnc(l.precio_unitario),
+                'unidad': l.unidad or 'NIU',
+                'tipo_afectacion_igv': (l.tipo_afectacion_igv or '10'),
+            })
+    else:
+        # NC parcial → cada ítem mapea a una línea del original (por 'orden' 1-based o
+        # por descripción) y HEREDA afectación y precio; la cantidad puede ser menor.
+        for it in items:
+            orden = int(it.get('orden') or 0)
+            ref = None
+            if 1 <= orden <= len(ref_lineas):
+                ref = ref_lineas[orden - 1]
+            else:
+                desc = (it.get('descripcion') or '').strip().lower()
+                ref = next((l for l in ref_lineas
+                            if (l.descripcion or '').strip().lower() == desc), None)
+            if ref is None:
+                raise HTTPException(status_code=400,
+                    detail="Un ítem de la NC no corresponde a ninguna línea del comprobante original")
+            cant_nc = _dnc(it.get('cantidad', ref.cantidad))
+            if cant_nc <= 0 or cant_nc > _dnc(ref.cantidad):
+                raise HTTPException(status_code=400,
+                    detail=f"Cantidad de NC excede la del original en '{ref.descripcion}'")
+            nc_src.append({
+                'descripcion': ref.descripcion,
+                'cantidad': cant_nc,
+                'precio': _dnc(ref.precio_unitario),
+                'unidad': ref.unidad or 'NIU',
+                'tipo_afectacion_igv': (ref.tipo_afectacion_igv or '10'),
+            })
+
+    # Totales por afectación (idéntico a _calcular_totales del XML)
+    gravado = exonerado = inafecto = Decimal('0.00')
+    igv = Decimal('0.00')
+    for s in nc_src:
+        base = (s['cantidad'] * s['precio']).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        s['monto_linea'] = base
+        t = s['tipo_afectacion_igv']
+        if t == '20':
+            exonerado += base
+        elif t == '30':
+            inafecto += base
+        else:  # '10' u otros gravados
+            gravado += base
+            igv += (base * Decimal('0.18')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    subtotal = gravado + exonerado + inafecto
+    total = subtotal + igv
+
+    # --- Validaciones: si no cuadra, NO se envía (nada se persiste) ---
+    if total > _dnc(comprobante_ref.monto_total) + Decimal('0.01'):
+        raise HTTPException(status_code=400,
+            detail=f"Total NC ({total}) excede el total del original ({comprobante_ref.monto_total})")
+    afect_orig = {(l.tipo_afectacion_igv or '10') for l in ref_lineas}
+    if not {s['tipo_afectacion_igv'] for s in nc_src}.issubset(afect_orig):
+        raise HTTPException(status_code=400,
+            detail="La afectación IGV de la NC no coincide con la del comprobante original")
     
-    igv = round(subtotal_gravado * 0.18, 2)
-    total = round(subtotal_gravado + igv, 2)
+    # (igv/subtotal/total ya calculados arriba respetando la afectación heredada)
     
     # Zona horaria Perú
     peru_tz = timezone(timedelta(hours=-5))
@@ -1160,9 +1230,12 @@ async def emitir_nota_credito(
         cliente_razon_social=comprobante_ref.cliente_razon_social,
         cliente_direccion=comprobante_ref.cliente_direccion,
         moneda=comprobante_ref.moneda or 'PEN',
-        monto_base=subtotal_gravado,
+        monto_base=subtotal,
         monto_igv=igv,
         monto_total=total,
+        op_gravada=gravado,
+        op_exonerada=exonerado,
+        op_inafecta=inafecto,
         estado='pendiente',
         observaciones=(data.get('observaciones', '') or '')[:250],  # cap 250 (alineado con XML/PDF)
         # Campos de referencia NC
@@ -1173,22 +1246,18 @@ async def emitir_nota_credito(
     
     db.add(nc)
     
-    # Crear líneas de detalle
-    for i, item in enumerate(items, 1):
-        cantidad = float(item.get('cantidad', 1))
-        precio = float(item.get('precio_unitario', 0))
-        monto_linea = round(cantidad * precio, 2)
-        
+    # Crear líneas de detalle (clonadas del original, afectación y precio heredados)
+    for i, s in enumerate(nc_src, 1):
         linea = LineaDetalle(
             id=str(uuid4()),
             comprobante_id=nc.id,
             orden=i,
-            descripcion=item.get('descripcion', ''),
-            cantidad=cantidad,
-            unidad=item.get('unidad_medida', 'NIU'),
-            precio_unitario=precio,
-            monto_linea=monto_linea,
-            tipo_afectacion_igv=item.get('tipo_afectacion_igv', '10'),
+            descripcion=s['descripcion'],
+            cantidad=s['cantidad'],
+            unidad=s['unidad'],
+            precio_unitario=s['precio'],
+            monto_linea=s['monto_linea'],
+            tipo_afectacion_igv=s['tipo_afectacion_igv'],
             es_bonificacion=False
         )
         db.add(linea)

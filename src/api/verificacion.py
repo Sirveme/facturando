@@ -138,9 +138,18 @@ def _construir_url_sunat(comp) -> str:
 def _pagina_verificacion(comp, sunat_url: str) -> str:
     """HTML de verificación."""
     tipo_nombre = "FACTURA" if comp.tipo_documento == "01" else "BOLETA"
-    es_valido = comp.estado in ("aceptado", "enviado", "encolado")
-    estado_class = "valid" if es_valido else "invalid"
-    estado_texto = "✅ COMPROBANTE VÁLIDO" if es_valido else "⚠️ COMPROBANTE PENDIENTE"
+    # Estado REAL del comprobante (antes solo reconocía 'aceptado' → todo lo demás caía en
+    # "PENDIENTE", incluido aceptado_con_observaciones, anulado y rechazado).
+    _est = (comp.estado or "").lower()
+    if _est in ("aceptado", "aceptado_con_observaciones"):
+        estado_class, estado_texto = "valid", "✅ ACEPTADO POR SUNAT"
+    elif _est == "anulado":
+        estado_class, estado_texto = "bad", "🚫 COMPROBANTE ANULADO"
+    elif _est == "rechazado":
+        estado_class, estado_texto = "bad", "❌ RECHAZADO POR SUNAT"
+    else:
+        # pendiente | enviando | encolado | reintentando | error | enviado
+        estado_class, estado_texto = "invalid", "⏳ EN PROCESO DE ENVÍO"
     
     fecha_str = comp.fecha_emision.strftime("%d/%m/%Y %H:%M") if comp.fecha_emision else "-"
     
@@ -186,6 +195,11 @@ def _pagina_verificacion(comp, sunat_url: str) -> str:
             background: rgba(234, 179, 8, 0.12);
             color: #eab308;
             border: 1px solid rgba(234, 179, 8, 0.25);
+        }}
+        .status.bad {{
+            background: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.25);
         }}
         .info-grid {{ display: grid; gap: 2px; }}
         .info-row {{
