@@ -56,6 +56,21 @@ def _sol_plain(emisor):
         return emisor.sol_password
 
 
+def _clasificar_estado_cdr(codigo, observaciones):
+    """Mapea (ResponseCode del CDR, observaciones 4xxx) → estado interno. PURA/testeable.
+    Según catálogo SUNAT:
+      - '0' sin notas 4xxx           → 'aceptado'
+      - '0' con notas 4xxx (o código 4xxx) → 'aceptado_con_observaciones'
+      - '2xxx' / '3xxx' / cualquier otro   → 'rechazado'
+    """
+    cod = str(codigo or '')
+    if cod == '0' or cod.startswith('4'):
+        if observaciones or cod.startswith('4'):
+            return 'aceptado_con_observaciones'
+        return 'aceptado'
+    return 'rechazado'
+
+
 def _emisor_tiene_aceptados(db, emisor_id, excluir_id=None):
     """True si el emisor ya tiene algún comprobante aceptado (historial ⇒ el permiso SOL existe).
     Usado para desambiguar los faults de perfil (Client.01xx)."""
@@ -476,11 +491,13 @@ def enviar_comprobante_task(self, comprobante_id: str):
         # GUARDAR CDR  (solo con ResponseCode REAL de SUNAT)
         # ============================
         try:
+            _observaciones = cdr.get('observaciones') or []
             respuesta = RespuestaSunat(
                 comprobante_id=comp.id,
                 codigo_cdr=str(cdr.get('codigo') or ''),
                 descripcion=cdr.get('descripcion') or '',
-                cdr_xml=cdr.get('cdr_xml')
+                cdr_xml=cdr.get('cdr_xml'),
+                observaciones=(_observaciones or None),
             )
             db.add(respuesta)
 
@@ -500,9 +517,12 @@ def enviar_comprobante_task(self, comprobante_id: str):
 
             intentos_previos = comp.intentos_envio or 0
 
-            if codigo == '0' or codigo.startswith('2'):
-                # Éxito (aceptado o aceptado con observaciones)
-                comp.estado = 'aceptado' if codigo == '0' else 'aceptado_con_observaciones'
+            # Clasificación SUNAT (pura, testeable): 0 → aceptado; 0 con notas 4xxx (o
+            # ResponseCode 4xxx) → aceptado_con_observaciones; 2xxx/3xxx/otros → RECHAZO
+            # (la rama de rechazo NO descuenta stock).
+            _estado_cdr = _clasificar_estado_cdr(codigo, _observaciones)
+            if _estado_cdr != 'rechazado':
+                comp.estado = _estado_cdr
                 comp.intentos_envio = intentos_previos + 1
                 comp.ultimo_intento_envio = datetime.now(timezone.utc)
                 comp.procesando_desde = None
@@ -519,10 +539,11 @@ def enviar_comprobante_task(self, comprobante_id: str):
                         pass
                     logger.warning("[STOCK] Descuento no-fatal falló para %s: %s", comp.id, _e)
 
-                if codigo == '0':
+                if comp.estado == 'aceptado':
                     print(f"✅ {comp.serie}-{comp.numero} ACEPTADO por SUNAT")
                 else:
-                    print(f"⚠️ {comp.serie}-{comp.numero} ACEPTADO CON OBSERVACIONES")
+                    _cods = [o.get('codigo') for o in _observaciones]
+                    print(f"⚠️ {comp.serie}-{comp.numero} ACEPTADO CON OBSERVACIONES {_cods}")
 
                 # Si veníamos de reintentos, avisar que se resolvió
                 if intentos_previos > 0:
