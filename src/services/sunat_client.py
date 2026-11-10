@@ -13,8 +13,47 @@ import zipfile
 from lxml import etree
 import logging
 import time
+import re
 
 logger = logging.getLogger(__name__)
+
+# Códigos de observación SUNAT (catálogo): 4000 a 3999 → el CPE se ACEPTA con observaciones.
+# (2xxx/3xxx = rechazo; 0 = aceptado.)
+_RE_COD_4XXX = re.compile(r'\b(4\d{3})\b')
+
+
+def _extraer_observaciones_4xxx(doc):
+    """Extrae observaciones SUNAT (notas 4xxx) de un CDR ya parseado (lxml.etree).
+    Devuelve lista [{'codigo': '4xxx', 'descripcion': texto}]; vacía si no hay.
+    NO genera nada: solo lee lo que SUNAT puso en el CDR."""
+    obs = []
+    vistos = set()
+    try:
+        for n in doc.xpath(".//*[local-name()='Note']"):
+            txt = (n.text or '').strip()
+            if not txt:
+                continue
+            m = _RE_COD_4XXX.search(txt)
+            if not m:
+                continue
+            cod = m.group(1)
+            key = (cod, txt[:200])
+            if key not in vistos:
+                vistos.add(key)
+                obs.append({'codigo': cod, 'descripcion': txt[:500]})
+        # ResponseCode 4xxx como código (poco común) con su Description
+        for rc in doc.xpath(".//*[local-name()='ResponseCode']"):
+            cod = (rc.text or '').strip()
+            if re.fullmatch(r'4\d{3}', cod):
+                d_els = rc.xpath("../*[local-name()='Description']/text()")
+                d = (d_els[0].strip() if d_els else '')
+                key = (cod, d[:200])
+                if key not in vistos:
+                    vistos.add(key)
+                    obs.append({'codigo': cod, 'descripcion': d[:500]})
+    except Exception:
+        pass
+    return obs
 
 # URLs SUNAT
 SUNAT_BETA_WSDL = "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl"
@@ -245,9 +284,13 @@ def _parse_cdr(cdr_bytes: bytes) -> dict:
         print(f"[CDR_PARSE] ⚠️ SOAP Fault detectado: codigo={codigo}, descripcion={descripcion}")
     # -----------------------------------------------------------------------------------
 
-    logger.info("[CDR_PARSE] Resultado: codigo=%s, descripcion=%s", codigo, descripcion)
-    print(f"[CDR_PARSE] Resultado: codigo={codigo}, descripcion={descripcion}")
-    return {"codigo": codigo, "descripcion": descripcion, "cdr_xml": cdr_bytes}
+    observaciones = _extraer_observaciones_4xxx(doc)
+
+    logger.info("[CDR_PARSE] Resultado: codigo=%s, descripcion=%s, observaciones=%d",
+                codigo, descripcion, len(observaciones))
+    print(f"[CDR_PARSE] Resultado: codigo={codigo}, descripcion={descripcion}, obs={len(observaciones)}")
+    return {"codigo": codigo, "descripcion": descripcion,
+            "cdr_xml": cdr_bytes, "observaciones": observaciones}
 
 
 def enviar_comprobante(
