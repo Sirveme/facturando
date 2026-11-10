@@ -190,6 +190,9 @@ class RespuestaSunat(Base):
     cdr_xml = Column(LargeBinary)
     recibido_en = Column(DateTime, default=utc_now)
     hash_documento = Column(String(255))
+    # Observaciones SUNAT (notas 4xxx) cuando el CDR es 'aceptado con observaciones'.
+    # Lista [{'codigo': '4xxx', 'descripcion': texto}]. Aditivo, nullable. Requiere DDL previo.
+    observaciones = Column(JSON)
 
     comprobante = relationship('Comprobante', back_populates='respuesta')
 
