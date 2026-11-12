@@ -11,7 +11,7 @@ celery_app.conf.update(
     result_serializer='json',
     timezone='UTC',
     enable_utc=True,
-    imports=['src.tasks.tasks', 'src.tasks.envio_sunat'],
+    imports=['src.tasks.tasks', 'src.tasks.envio_sunat', 'src.tasks.watchdog_tasks'],
 )
 
 # Ensure tasks module is imported so tasks are registered when worker starts
