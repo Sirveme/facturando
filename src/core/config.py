@@ -18,11 +18,24 @@ class Settings(BaseSettings):
     # Cache-busting de estáticos propios: bumpea este valor (o la env APP_VERSION)
     # en cada deploy para invalidar CSS/JS cacheados por el navegador.
     # También es el sello de versión visible en /health para confirmar qué corre en prod.
-    APP_VERSION: str = Field("2026.11.10.1", env="APP_VERSION")
+    APP_VERSION: str = Field("2026.11.11.1", env="APP_VERSION")
     # Sello de build OPCIONAL (manual, via env). Si queda vacío, /health calcula un
     # fingerprint automático del código Python desplegado (hash de src/**/*.py), que
     # cambia solo cuando cambia el código → detecta "deploy no tomó los cambios".
     BUILD_TAG: str = Field("", env="BUILD_TAG")
+
+    # ── Vigilante de salud (monitoreo) + Telegram. Secretos SOLO por env, nunca en código.
+    #    El código debe compilar/arrancar aunque estén vacías (solo se usan para alertar/ver).
+    TELEGRAM_BOT_TOKEN: str = Field("", env="TELEGRAM_BOT_TOKEN")
+    TELEGRAM_CHAT_ID: str = Field("", env="TELEGRAM_CHAT_ID")
+    WATCHDOG_VIEW_TOKEN: str = Field("", env="WATCHDOG_VIEW_TOKEN")
+    # Umbrales (minutos / hora), configurables por env.
+    WD_COLA_MIN: int = Field(15, env="WD_COLA_MIN")            # antigüedad para "cola atascada"
+    WD_COLA_MAX_H: int = Field(24, env="WD_COLA_MAX_H")        # ventana máx (ignora rezagos ancianos)
+    WD_HEARTBEAT_MIN: int = Field(20, env="WD_HEARTBEAT_MIN")  # debe ser > cadencia del cron (15m)
+    WD_NOEMISION_HORA_LIMA: int = Field(20, env="WD_NOEMISION_HORA_LIMA")
+    WD_COOLDOWN_MIN: int = Field(60, env="WD_COOLDOWN_MIN")    # anti-spam: no repetir antes de esto
+    WD_ESTADOS_COLA: str = Field("pendiente,encolado,enviando,reintentando", env="WD_ESTADOS_COLA")
 
     class Config:
         env_file = ".env"
