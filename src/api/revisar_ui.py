@@ -27,7 +27,9 @@ def _token_ok(token: str) -> bool:
     secret = settings.WATCHDOG_VIEW_TOKEN or ""
     if not secret or not token:
         return False
-    return hmac.compare_digest(str(token), str(secret))
+    # Comparar en bytes: hmac.compare_digest con str solo admite ASCII y revienta
+    # (TypeError) si el token trae caracteres no-ASCII (p.ej. "ñ"). En bytes es seguro.
+    return hmac.compare_digest(str(token).encode("utf-8"), str(secret).encode("utf-8"))
 
 
 @router.get("/revisar/data", include_in_schema=False)
