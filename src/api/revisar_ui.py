@@ -34,7 +34,10 @@ def _token_ok(token: str) -> bool:
 
 @router.get("/revisar/data", include_in_schema=False)
 async def revisar_data(request: Request):
-    token = request.query_params.get("token", "")
+    # El token puede venir por cabecera (preferido: NO queda en la URL ni en los access
+    # logs) o por query (?token=…, compatibilidad con el primer ingreso). La seguridad
+    # real no cambia: siga exigiéndose un token válido.
+    token = request.headers.get("x-watchdog-token") or request.query_params.get("token", "")
     if not _token_ok(token):
         return JSONResponse({"error": "token invalido o no configurado"}, status_code=403)
     snap = leer_snapshot()
@@ -73,6 +76,9 @@ _PAGINA = r"""<!doctype html>
   .sub{color:var(--mut);font-size:12px}
   .pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
   .err{color:var(--bad)} .warnp{color:var(--warn)}
+  .btnx{background:transparent;color:var(--mut);border:1px solid var(--line);border-radius:8px;
+        padding:4px 10px;font-size:12px;cursor:pointer}
+  .btnx:hover{color:var(--txt);border-color:var(--mut)}
   @media(max-width:640px){ th,td{padding:8px;font-size:12.5px} .maint{margin-top:30vh} }
 </style></head><body>
 <div class="wrap">
@@ -84,6 +90,7 @@ _PAGINA = r"""<!doctype html>
     <div class="head">
       <h2>Vigilante · estado por cliente</h2>
       <span class="meta" id="meta">—</span>
+      <button id="olvidar" class="btnx" type="button">Olvidar este dispositivo</button>
     </div>
     <table><thead><tr>
       <th>Cliente</th><th>Último (ayer)</th><th>Primero (hoy)</th><th>Último (hoy)</th><th>Total hoy</th><th>Hora</th>
@@ -93,23 +100,41 @@ _PAGINA = r"""<!doctype html>
 </div>
 <script>
 (function(){
-  var token = new URLSearchParams(location.search).get('token') || '';
-  var taps = 0, timer = null;
-  var gesto = document.getElementById('gesto');
-  gesto.addEventListener('click', function(){
+  var LS_KEY = 'wd_token';
+  function lsGet(){ try{ return localStorage.getItem(LS_KEY) || ''; }catch(e){ return ''; } }
+  function lsSet(v){ try{ localStorage.setItem(LS_KEY, v); }catch(e){} }
+  function lsDel(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
+
+  // Si llega ?token=… lo guardamos EN ESTE DISPOSITIVO y limpiamos la URL (no dejar el
+  // token en la barra ni en el historial). En visitas siguientes se usa el guardado:
+  // solo entras a /revisar + 5 taps, sin digitar el token.
+  var urlTok = new URLSearchParams(location.search).get('token') || '';
+  if (urlTok){ lsSet(urlTok); try{ history.replaceState(null, '', location.pathname); }catch(e){} }
+  var token = urlTok || lsGet();
+
+  var taps = 0, timer = null, refrescador = null;
+  document.getElementById('gesto').addEventListener('click', function(){
     taps++; clearTimeout(timer); timer = setTimeout(function(){ taps = 0; }, 1200);
     if (taps >= 5){ taps = 0; abrir(); }
   });
+  document.getElementById('olvidar').addEventListener('click', function(){
+    lsDel(); token = '';
+    if (refrescador){ clearInterval(refrescador); refrescador = null; }
+    document.getElementById('panel').style.display = 'none';
+    document.getElementById('maint').style.display = 'block';
+  });
+
   function abrir(){
     document.getElementById('maint').style.display = 'none';
     document.getElementById('panel').style.display = 'block';
     cargar();
-    setInterval(cargar, 60000);
+    if (!refrescador) refrescador = setInterval(cargar, 60000);
   }
   function celda(c){ if(!c) return '<span class="sub">—</span>';
     return c.numero + '<br><span class="sub">'+c.estado+' · '+c.hora+'</span>'; }
   function cargar(){
-    fetch('/revisar/data?token='+encodeURIComponent(token)).then(function(r){
+    // El token viaja por cabecera: no queda en la URL ni en los access logs del servidor.
+    fetch('/revisar/data', { headers: token ? {'X-Watchdog-Token': token} : {} }).then(function(r){
       if(r.status===403){ throw new Error('token'); } return r.json();
     }).then(function(d){
       document.getElementById('meta').textContent = d.generado_en ? ('snapshot: '+d.generado_en+' ('+ (d.tz||'') +')') : '';
@@ -124,10 +149,10 @@ _PAGINA = r"""<!doctype html>
           '<td class="sub">'+(d.generado_en? d.generado_en.split(' ')[1] : '—')+'</td>';
         tb.appendChild(tr);
       });
-      document.getElementById('status').textContent = 'Actualizado. Auto-refresh cada 60 s.';
+      document.getElementById('status').textContent = 'Actualizado. Auto-refresh cada 60 s. · Token guardado en este dispositivo.';
     }).catch(function(e){
       document.getElementById('rows').innerHTML = '<tr><td colspan="6" class="err">'+
-        (e.message==='token' ? 'Falta el token válido en la URL (?token=…).' : 'No se pudo cargar el snapshot.')+'</td></tr>';
+        (e.message==='token' ? 'Este dispositivo no está autorizado. Ábrelo una vez con ?token=… para guardarlo aquí.' : 'No se pudo cargar el snapshot.')+'</td></tr>';
     });
   }
 })();
