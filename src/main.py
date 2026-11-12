@@ -21,6 +21,7 @@ from src.api.importaciones_ui import router as importaciones_router
 from src.api.guias_ui import router as guias_router
 from src.api.lookup_ui import router as lookup_router
 from src.api.referencias_ui import router as referencias_router
+from src.api.revisar_ui import router as revisar_router
 
 app = FastAPI(
     title='facturalo.pro',
@@ -80,6 +81,9 @@ app.include_router(stock_router, include_in_schema=False)
 app.include_router(importaciones_router, include_in_schema=False)
 app.include_router(guias_router, include_in_schema=False)
 app.include_router(lookup_router, include_in_schema=False)
+# Tablero del vigilante (/revisar). Rutas literales top-level (no /api) → sin conflicto
+# con el catch-all /api/comprobantes/{id}; se monta al final, después de api_v1_router.
+app.include_router(revisar_router, include_in_schema=False)
 
 # ── Fingerprint de build: permite confirmar en /health QUÉ versión corre en prod ──
 import os as _os
