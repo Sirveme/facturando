@@ -105,12 +105,24 @@ _PAGINA = r"""<!doctype html>
   function lsSet(v){ try{ localStorage.setItem(LS_KEY, v); }catch(e){} }
   function lsDel(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
 
-  // Si llega ?token=… lo guardamos EN ESTE DISPOSITIVO y limpiamos la URL (no dejar el
-  // token en la barra ni en el historial). En visitas siguientes se usa el guardado:
-  // solo entras a /revisar + 5 taps, sin digitar el token.
+  // Si llega ?token=… limpiamos la URL de inmediato (no dejar el token en la barra ni en
+  // el historial), pero NO lo guardamos todavía: se persiste SOLO si el servidor lo confirma
+  // válido (validarYGuardar). Así un token mal tipeado o revocado nunca queda cacheado en el
+  // dispositivo. En visitas siguientes se usa el guardado: solo entras a /revisar + 5 taps.
   var urlTok = new URLSearchParams(location.search).get('token') || '';
-  if (urlTok){ lsSet(urlTok); try{ history.replaceState(null, '', location.pathname); }catch(e){} }
+  if (urlTok){ try{ history.replaceState(null, '', location.pathname); }catch(e){} validarYGuardar(urlTok); }
   var token = urlTok || lsGet();
+
+  // Confirma el token contra /revisar/data (silencioso, sin abrir el panel) y, solo si es
+  // válido (respuesta ≠ 403), lo guarda en ESTE dispositivo. No muestra datos: el panel
+  // sigue requiriendo los 5 taps. No-fatal ante cualquier error de red.
+  function validarYGuardar(tok){
+    try{
+      fetch('/revisar/data', { headers: {'X-Watchdog-Token': tok} }).then(function(r){
+        if (r.status !== 403){ lsSet(tok); }
+      }).catch(function(){});
+    }catch(e){}
+  }
 
   var taps = 0, timer = null, refrescador = null;
   document.getElementById('gesto').addEventListener('click', function(){
