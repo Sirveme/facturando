@@ -56,18 +56,34 @@ def _sol_plain(emisor):
         return emisor.sol_password
 
 
+def _codigos_informativos():
+    """Set de códigos de observación 'informativos' (ruido sistémico) que NO cambian el
+    estado. Configurable por env CODIGOS_OBS_INFORMATIVOS. No-fatal."""
+    try:
+        from src.core.config import settings as _s
+        raw = getattr(_s, 'CODIGOS_OBS_INFORMATIVOS', '') or ''
+        return {c.strip() for c in raw.split(',') if c.strip()}
+    except Exception:
+        return {'4094', '4252'}
+
+
 def _clasificar_estado_cdr(codigo, observaciones):
     """Mapea (ResponseCode del CDR, observaciones 4xxx) → estado interno. PURA/testeable.
-    Según catálogo SUNAT:
-      - '0' sin notas 4xxx           → 'aceptado'
-      - '0' con notas 4xxx (o código 4xxx) → 'aceptado_con_observaciones'
-      - '2xxx' / '3xxx' / cualquier otro   → 'rechazado'
+    Según catálogo SUNAT + política Opción C (códigos informativos no cambian el estado):
+      - '0' sin notas 4xxx                         → 'aceptado'
+      - '0' con notas 4xxx SOLO informativas       → 'aceptado' (detalle igual se guarda)
+      - '0' con alguna nota 4xxx SUSTANTIVA        → 'aceptado_con_observaciones'
+      - código 4xxx sustantivo                     → 'aceptado_con_observaciones'
+      - '2xxx' / '3xxx' / cualquier otro           → 'rechazado'
     """
     cod = str(codigo or '')
     if cod == '0' or cod.startswith('4'):
-        if observaciones or cod.startswith('4'):
-            return 'aceptado_con_observaciones'
-        return 'aceptado'
+        informativos = _codigos_informativos()
+        cods_obs = [str(o.get('codigo') or '') for o in (observaciones or [])]
+        if cod.startswith('4'):
+            cods_obs.append(cod)
+        sustantivas = [c for c in cods_obs if c and c not in informativos]
+        return 'aceptado_con_observaciones' if sustantivas else 'aceptado'
     return 'rechazado'
 
 
