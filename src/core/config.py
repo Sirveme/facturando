@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # Cache-busting de estáticos propios: bumpea este valor (o la env APP_VERSION)
     # en cada deploy para invalidar CSS/JS cacheados por el navegador.
     # También es el sello de versión visible en /health para confirmar qué corre en prod.
-    APP_VERSION: str = Field("2026.11.11.3", env="APP_VERSION")
+    APP_VERSION: str = Field("2026.11.13.1", env="APP_VERSION")
     # Sello de build OPCIONAL (manual, via env). Si queda vacío, /health calcula un
     # fingerprint automático del código Python desplegado (hash de src/**/*.py), que
     # cambia solo cuando cambia el código → detecta "deploy no tomó los cambios".
@@ -36,6 +36,22 @@ class Settings(BaseSettings):
     WD_NOEMISION_HORA_LIMA: int = Field(20, env="WD_NOEMISION_HORA_LIMA")
     WD_COOLDOWN_MIN: int = Field(60, env="WD_COOLDOWN_MIN")    # anti-spam: no repetir antes de esto
     WD_ESTADOS_COLA: str = Field("pendiente,encolado,enviando,reintentando", env="WD_ESTADOS_COLA")
+
+    # Clasificación CDR (Opción C): códigos de observación 4xxx "informativos" (ruido
+    # sistémico) que NO cambian el estado → el comprobante queda 'aceptado' aunque SUNAT
+    # devuelva estas notas (el detalle igual se guarda en RespuestaSunat.observaciones).
+    # Cualquier otro 4xxx → 'aceptado_con_observaciones'. 4252=@listName (ya corregido en
+    # xml_generator; histórico); 4094=domicilio fiscal del emisor en "-".
+    CODIGOS_OBS_INFORMATIVOS: str = Field("4094,4252", env="CODIGOS_OBS_INFORMATIVOS")
+
+    # ── Validación de receptor contra padrón (Task A). APAGADO por defecto.
+    #    Cuando el receptor es RUC: consulta el padrón y compara la razón social.
+    #    - No coincide (padrón respondió) → rechazo con mensaje claro.
+    #    - Padrón sin respuesta → fail-open: emite + marca receptor_no_validado + alerta
+    #      Telegram. Salvo "modo estricto" (por RUC de emisor) → rechaza.
+    VALIDAR_RECEPTOR: bool = Field(False, env="VALIDAR_RECEPTOR")
+    VALIDAR_RECEPTOR_UMBRAL: int = Field(90, env="VALIDAR_RECEPTOR_UMBRAL")   # % similitud mínima
+    VALIDAR_RECEPTOR_ESTRICTO: str = Field("", env="VALIDAR_RECEPTOR_ESTRICTO")  # RUCs emisor (coma) en modo estricto
 
     class Config:
         env_file = ".env"
