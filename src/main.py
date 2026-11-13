@@ -85,6 +85,14 @@ app.include_router(lookup_router, include_in_schema=False)
 # con el catch-all /api/comprobantes/{id}; se monta al final, después de api_v1_router.
 app.include_router(revisar_router, include_in_schema=False)
 
+# Página pública de comprobantes (/c/{token}, Task C). Top-level (no /api) → sin conflicto.
+# Import defensivo: si el módulo aún no está desplegado, NO tumba el boot.
+try:
+    from src.api.publico_ui import router as publico_router
+    app.include_router(publico_router, include_in_schema=False)
+except Exception as _e:  # no-fatal
+    print(f"[MAIN] publico_ui no montado: {_e}")
+
 # ── Fingerprint de build: permite confirmar en /health QUÉ versión corre en prod ──
 import os as _os
 import hashlib as _hashlib
