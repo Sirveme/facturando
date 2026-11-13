@@ -147,6 +147,15 @@ class Comprobante(Base):
     tipo_operacion = Column(String(4), default='0101')  # 0101=Venta interna
     codigo_establecimiento = Column(String(4))  # AddressTypeCode (anexo); None → default del emisor
     hash_cpe = Column(String(100), nullable=True)
+    # A4 — Validación de receptor (Task A). NULL = validado/no aplica; True = se emitió
+    # con el receptor NO validado contra padrón (fail-open). SIN default Python a propósito:
+    # solo se escribe cuando el validador devuelve 'pasa_no_validado', así el INSERT normal
+    # no referencia la columna (requiere DDL previo igualmente por los SELECT). Nullable.
+    receptor_no_validado = Column(Boolean, nullable=True)
+    # Compartir/descargar público (Task C): token aleatorio no adivinable para la página
+    # pública /c/{token}. Se genera perezosamente al pedir el enlace; nunca en el INSERT.
+    # Aditivo, nullable, único. Requiere DDL previo.
+    share_token = Column(String(64), nullable=True, unique=True)
     # Detracción (SPOT) — aditivo, nullable. Registro/PDF; el XML deriva de config del emisor.
     detraccion_codigo_bien = Column(String(4), nullable=True)     # catálogo 54, ej '020'
     detraccion_porcentaje = Column(Numeric(5, 2), nullable=True)  # ej 12.00
