@@ -130,7 +130,35 @@ async def emitir_comprobante(
                 "error": "DNI debe tener 8 dígitos",
                 "codigo": "DNI_INVALIDO"
             })
-        
+
+        # === A4 — Validación de receptor contra padrón (Task A) ===
+        # APAGADA por defecto (settings.VALIDAR_RECEPTOR=False → validar_receptor devuelve
+        # 'pasa' sin tocar nada → comportamiento idéntico al actual). Solo actúa cuando el
+        # receptor es RUC. No-fatal: un fallo del validador NUNCA bloquea la emisión.
+        _receptor_no_validado = False
+        _vr = None
+        if data.cliente.tipo_documento == "6":
+            try:
+                from src.services.receptor_validator import validar_receptor, mensaje_rechazo
+                _vr = validar_receptor(
+                    data.cliente.numero_documento,
+                    data.cliente.razon_social,
+                    emisor_ruc=emisor.ruc,
+                )
+                if _vr.get("accion") == "rechazar":
+                    raise HTTPException(422, detail={
+                        "exito": False,
+                        "codigo": "RECEPTOR_NO_COINCIDE",
+                        **mensaje_rechazo(_vr),
+                    })
+                _receptor_no_validado = (_vr.get("accion") == "pasa_no_validado")
+            except HTTPException:
+                raise
+            except Exception as _e:
+                # No-fatal: ante cualquier fallo del validador se emite igual.
+                print(f"[RECEPTOR] validación no-fatal falló: {_e}")
+                _receptor_no_validado = False
+
         # NC/ND requiere referencia
         if data.tipo_comprobante in ["07", "08"]:
             if not all([data.documento_ref_tipo, data.documento_ref_serie, data.documento_ref_numero]):
@@ -283,8 +311,13 @@ async def emitir_comprobante(
             comprobante.doc_referencia_numero = f"{data.documento_ref_serie}-{data.documento_ref_numero:08d}" if data.documento_ref_serie and data.documento_ref_numero else None
             comprobante.motivo_nota = data.motivo_nota
         
+        # Marca de receptor no validado (fail-open). Solo se setea cuando aplica, para que
+        # el INSERT normal NO referencie la columna (aunque el DDL debe existir por los SELECT).
+        if _receptor_no_validado:
+            comprobante.receptor_no_validado = True
+
         db.add(comprobante)
-        
+
         # === CREAR ITEMS ===
         for i, item_data in enumerate(items_data, 1):
             item = LineaDetalle(
@@ -316,6 +349,19 @@ async def emitir_comprobante(
         # === ENVIAR A SUNAT VÍA CELERY ===
         from src.tasks.celery_app import celery_app
         celery_app.send_task('enviar_comprobante_sunat', args=[comprobante_id])
+
+        # Alerta Telegram (no-fatal) si el receptor quedó NO validado (fail-open).
+        if _receptor_no_validado and _vr is not None:
+            try:
+                from src.services.receptor_validator import alertar_no_validado
+                alertar_no_validado(
+                    _vr,
+                    serie_numero=numero_formato,
+                    emisor_ruc=emisor.ruc,
+                    receptor_ruc=data.cliente.numero_documento,
+                )
+            except Exception as _e:
+                print(f"[RECEPTOR] alerta no-fatal falló: {_e}")
         
         # === RESPONSE ===
         response = {
@@ -550,6 +596,105 @@ async def obtener_xml(
         media_type="application/xml",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+def _nombre_cdr(emisor, comprobante) -> str:
+    """Nombre SUNAT del documento CDR: {ruc}-{tipo}-{serie}-{numero}."""
+    return f"{emisor.ruc}-{comprobante.tipo_documento}-{comprobante.serie}-{comprobante.numero:08d}"
+
+
+def _cdr_zip_bytes(emisor, comprobante, cdr_xml: bytes) -> bytes:
+    """Re-empaqueta el CDR XML en el ZIP estándar de SUNAT (R-<nombre>.zip con
+    R-<nombre>.xml dentro). El ZIP original de SUNAT no se persiste; el contenido
+    (el ApplicationResponse) es idéntico."""
+    import io as _io
+    import zipfile as _zip
+    base = _nombre_cdr(emisor, comprobante)
+    buf = _io.BytesIO()
+    with _zip.ZipFile(buf, "w", _zip.ZIP_DEFLATED) as zf:
+        zf.writestr(f"R-{base}.xml",
+                    cdr_xml if isinstance(cdr_xml, (bytes, bytearray)) else str(cdr_xml).encode("utf-8"))
+    return buf.getvalue()
+
+
+@router.get(
+    "/{comprobante_id}/cdr",
+    summary="Descargar CDR (ZIP)",
+    description="Descarga el CDR de SUNAT re-empaquetado en el ZIP estándar R-<nombre>.zip."
+)
+async def obtener_cdr(
+    comprobante_id: str,
+    emisor: Emisor = Depends(verificar_api_key),
+    db: Session = Depends(get_db)
+):
+    """Devuelve el CDR como application/zip (R-<ruc>-<tipo>-<serie>-<numero>.zip)."""
+    comprobante = db.query(Comprobante).filter(
+        Comprobante.id == comprobante_id,
+        Comprobante.emisor_id == emisor.id
+    ).first()
+    if not comprobante:
+        raise HTTPException(404, detail={"exito": False, "error": "No encontrado", "codigo": "NOT_FOUND"})
+
+    cdr_xml = comprobante.respuesta.cdr_xml if comprobante.respuesta else None
+    if not cdr_xml:
+        raise HTTPException(404, detail={"exito": False, "error": "CDR aún no disponible", "codigo": "CDR_NOT_READY"})
+
+    base = _nombre_cdr(emisor, comprobante)
+    return Response(
+        content=_cdr_zip_bytes(emisor, comprobante, cdr_xml),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="R-{base}.zip"'}
+    )
+
+
+@router.get(
+    "/{comprobante_id}/enlace-publico",
+    summary="Obtener enlace público del comprobante",
+    description=(
+        "Devuelve (y genera si no existe) el enlace público, con token aleatorio no "
+        "adivinable, para compartir el comprobante: muestra datos básicos + estado y "
+        "permite descargar PDF, XML y CDR sin API key."
+    )
+)
+async def enlace_publico(
+    comprobante_id: str,
+    request: Request,
+    emisor: Emisor = Depends(verificar_api_key),
+    db: Session = Depends(get_db)
+):
+    """Genera perezosamente comprobante.share_token y retorna el enlace público."""
+    import secrets as _secrets
+    comprobante = db.query(Comprobante).filter(
+        Comprobante.id == comprobante_id,
+        Comprobante.emisor_id == emisor.id
+    ).first()
+    if not comprobante:
+        raise HTTPException(404, detail={"exito": False, "error": "No encontrado", "codigo": "NOT_FOUND"})
+
+    if not getattr(comprobante, "share_token", None):
+        # token_urlsafe(32) ≈ 43 chars, ~256 bits de entropía → no adivinable.
+        token = _secrets.token_urlsafe(32)
+        comprobante.share_token = token
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise HTTPException(500, detail={"exito": False, "error": "No se pudo generar el enlace", "codigo": "SHARE_TOKEN_ERROR"})
+    else:
+        token = comprobante.share_token
+
+    base_url = "https://facturalo.pro"
+    enlace = f"{base_url}/c/{token}"
+    return {
+        "exito": True,
+        "enlace": enlace,
+        "token": token,
+        "descargas": {
+            "pdf": f"{enlace}/pdf",
+            "xml": f"{enlace}/xml",
+            "cdr": f"{enlace}/cdr",
+        },
+    }
 
 
 @router.post(
