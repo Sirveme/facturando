@@ -134,6 +134,9 @@
                                 <div class="comprobante-cell">
                                     <span class="comprobante-serie">{{ comp.serie }}-{{ "%08d"|format(comp.numero) }}</span>
                                     <span class="comprobante-date">{{ comp.fecha_emision.strftime('%d %b, %Y') }}</span>
+                                    {% if comp.tipo_documento in ['07', '08'] and comp.doc_referencia_numero %}
+                                    <span class="comprobante-ref" style="font-size:11px;color:#e11d48;font-weight:600;">↩ {{ 'anula' if comp.tipo_documento == '07' else 'modifica' }} {{ comp.doc_referencia_numero }}</span>
+                                    {% endif %}
                                 </div>
                             </td>
                             <td>
@@ -170,8 +173,22 @@
                                     </svg>
                                     Enviando
                                 </span>
+                                {% elif comp.estado == 'reintentando' %}
+                                <span class="badge badge-warning" title="{{ comp.descripcion_respuesta or 'Reintentando envío a SUNAT' }}" style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    Reintentando
+                                </span>
+                                {% elif comp.estado == 'aceptado_con_observaciones' %}
+                                <span class="badge" title="{{ comp.descripcion_respuesta or 'Aceptado por SUNAT con observaciones' }}" style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;">
+                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Observado
+                                </span>
                                 {% else %}
-                                <span class="badge badge-{{ comp.estado }}" data-estado="{{ comp.estado }}">
+                                <span class="badge badge-secondary" data-estado="{{ comp.estado }}">{{ comp.estado }}</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -371,6 +388,7 @@
                 <select id="estado" name="estado" class="input">
                     <option value="">Todos</option>
                     <option value="aceptado" {% if estado == 'aceptado' %}selected{% endif %}>Aceptado</option>
+                    <option value="aceptado_con_observaciones" {% if estado == 'aceptado_con_observaciones' %}selected{% endif %}>Observado</option>
                     <option value="rechazado" {% if estado == 'rechazado' %}selected{% endif %}>Rechazado</option>
                     <option value="encolado" {% if estado == 'encolado' %}selected{% endif %}>En cola</option>
                     <option value="enviando" {% if estado == 'enviando' %}selected{% endif %}>Enviando</option>
@@ -779,7 +797,22 @@ async function verComprobante(id) {
                             <span>${c.cliente_direccion || '-'}</span>
                         </div>
                     </div>
-                    
+
+                    ${c.referencia ? `
+                    <div class="preview-referencia" style="margin:12px 0;padding:10px 12px;border:1px solid #fecdd3;border-radius:8px;background:#fff1f2;">
+                        <div style="font-weight:700;font-size:13px;color:#9f1239;">
+                            ${c.referencia.nota_label} → ${c.referencia.verbo} ${c.referencia.ref_tipo_label} ${c.referencia.ref_numero || '-'}
+                        </div>
+                        <div style="font-size:12px;color:#334155;margin-top:2px;">Motivo: ${c.referencia.motivo_texto}</div>
+                        <table style="width:100%;font-size:12px;margin-top:6px;border-collapse:collapse;">
+                            <tr>
+                                <td style="padding:2px 0;color:#64748b;">${c.referencia.cliente_tipo_label} ${c.referencia.original.cliente_doc || '-'} · ${c.referencia.original.cliente_nombre || '-'}</td>
+                                <td style="padding:2px 0;text-align:right;color:#334155;">${c.referencia.original.encontrado ? ('Emitido: ' + (c.referencia.original.fecha || '-') + (c.referencia.original.hora ? ' ' + c.referencia.original.hora : '') + ' · Monto: S/ ' + Number(c.referencia.original.monto || 0).toFixed(2)) : '(documento original no localizado)'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    ` : ''}
+
                     <table class="preview-items">
                         <thead>
                             <tr>
