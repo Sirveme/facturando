@@ -762,8 +762,29 @@ async function verComprobante(id) {
         
         if (result.exito && result.datos) {
             const c = result.datos;
-            
+
             titulo.textContent = `${c.tipo_documento_nombre} ${c.numero_formato}`;
+
+            // Totales por afectación (mismos conceptos y criterio que el PDF):
+            // solo se muestran los conceptos con monto > 0; el IGV solo si hay IGV.
+            const _n = (v) => parseFloat(v || 0);
+            let _grav = _n(c.op_gravada);
+            const _exo = _n(c.op_exonerada);
+            const _ina = _n(c.op_inafecta);
+            const _igv = _n(c.monto_igv);
+            // Paridad con el PDF: si no quedó op_gravada guardada pero sí hay IGV, derivar la base.
+            if (_grav === 0 && _igv > 0) _grav = Math.round((_igv / 0.18) * 100) / 100;
+            let _totalesRows = [
+                ['Op. Gravada:', _grav],
+                ['Op. Inafecta:', _ina],
+                ['Op. Exonerada:', _exo],
+            ].filter((f) => f[1] > 0)
+             .map((f) => `<div class="total-row"><span>${f[0]}</span><span>S/ ${f[1].toFixed(2)}</span></div>`)
+             .join('');
+            if (_igv > 0) {
+                _totalesRows += `<div class="total-row"><span>IGV (18%):</span><span>S/ ${_igv.toFixed(2)}</span></div>`;
+            }
+            _totalesRows += `<div class="total-row total-final"><span>TOTAL:</span><span>S/ ${_n(c.monto_total).toFixed(2)}</span></div>`;
             
             contenido.innerHTML = `
                 <div class="comprobante-preview">
@@ -837,18 +858,7 @@ async function verComprobante(id) {
                     </table>
                     
                     <div class="preview-totales">
-                        <div class="total-row">
-                            <span>Op. Gravada:</span>
-                            <span>S/ ${parseFloat(c.monto_base).toFixed(2)}</span>
-                        </div>
-                        <div class="total-row">
-                            <span>IGV (18%):</span>
-                            <span>S/ ${parseFloat(c.monto_igv).toFixed(2)}</span>
-                        </div>
-                        <div class="total-row total-final">
-                            <span>TOTAL:</span>
-                            <span>S/ ${parseFloat(c.monto_total).toFixed(2)}</span>
-                        </div>
+                        ${_totalesRows}
                     </div>
                     
                     <div class="preview-estado">
